@@ -3,771 +3,442 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cloud Cost Simulator — All Deployment Variants</title>
+<title>Serverless Cost Simulator — 5 Platforms · June 2026</title>
 <style>
   :root {
-    --bg: #0b0e14;
-    --surface: #141925;
-    --surface2: #1b2230;
-    --surface3: #232d3f;
-    --border: #263041;
-    --text: #e6edf3;
-    --text-muted: #8b98a9;
-    --text-dim: #5d6b7d;
-    --low: #22c55e;
-    --low-bg: #0c1f13;
-    --low-border: #166534;
-    --medium: #f59e0b;
-    --medium-bg: #1c1507;
-    --medium-border: #92400e;
-    --high: #ef4444;
-    --high-bg: #1c0a0a;
-    --high-border: #991b1b;
+    --bg: #0b0e14; --surface: #141925; --surface2: #1b2230; --surface3: #232d3f;
+    --border: #263041; --text: #e6edf3; --text-muted: #8b98a9; --text-dim: #5d6b7d;
+    --low: #22c55e; --low-bg: #0c1f13; --low-border: #166534;
+    --medium: #f59e0b; --medium-bg: #1c1507; --medium-border: #92400e;
+    --high: #ef4444; --high-bg: #1c0a0a; --high-border: #991b1b;
     --accent: #58a6ff;
-    /* variant colours */
-    --aws: #ff9900;
-    --stack: #a855f7;
-    --gcp: #4285f4;
-    --hybrid: #2dd4bf;
-    --azure: #0078d4;
-    --cf: #f6821f;
-    --vercel: #a8b3c1;
-    --railway: #a855f7;
-    --slider-track: #263041;
-    --slider-thumb: #58a6ff;
+    --lambda: #ff9900; --gcp: #4285f4; --azure: #0078d4; --cf: #f6821f; --vercel: #b0bec5;
+    --slider-track: #263041; --slider-thumb: #58a6ff;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.5;min-height:100vh}
   a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
 
-  /* Top bar */
   .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:11px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;gap:12px;flex-wrap:wrap}
   .topbar-title{font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px;white-space:nowrap}
+  .topbar-badge{font-size:10px;background:rgba(88,166,255,.12);border:1px solid rgba(88,166,255,.3);color:var(--accent);border-radius:4px;padding:2px 7px;font-weight:600}
   .topbar-links{display:flex;gap:14px;font-size:12px;flex-wrap:wrap}
 
-  /* Layout */
-  .layout{display:grid;grid-template-columns:340px 1fr;min-height:calc(100vh - 48px)}
-
-  /* Sidebar */
-  .sidebar{background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:18px;height:calc(100vh - 48px);position:sticky;top:48px}
-  .sidebar-section{margin-bottom:22px}
-  .sidebar-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-dim);margin-bottom:10px;display:flex;align-items:center;gap:6px}
-  .sidebar-section-title::after{content:'';flex:1;height:1px;background:var(--border)}
-
-  /* Controls */
-  .control{margin-bottom:14px}
-  .control-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px}
-  .control-label{font-size:12px;color:var(--text-muted)}
-  .control-value{font-size:14px;font-weight:700;color:var(--text);min-width:70px;text-align:right}
-  .control-value input[type="number"]{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:2px 7px;font-size:13px;font-weight:700;width:84px;text-align:right;outline:none}
-  .control-value input[type="number"]:focus{border-color:var(--accent)}
+  .layout{display:grid;grid-template-columns:320px 1fr;min-height:calc(100vh - 48px)}
+  .sidebar{background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:16px;height:calc(100vh - 48px);position:sticky;top:48px}
+  .sec-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-dim);margin:18px 0 10px;display:flex;align-items:center;gap:6px}
+  .sec-title::after{content:'';flex:1;height:1px;background:var(--border)}
+  .sec-title:first-child{margin-top:0}
+  .ctrl{margin-bottom:13px}
+  .ctrl-hdr{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px}
+  .ctrl-label{font-size:12px;color:var(--text-muted)}
+  .ctrl-val{font-size:13px;font-weight:700;color:var(--text)}
+  .ctrl-val input[type="number"]{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:2px 6px;font-size:12px;font-weight:700;width:80px;text-align:right;outline:none}
+  .ctrl-val input[type="number"]:focus{border-color:var(--accent)}
   input[type="range"]{width:100%;height:4px;appearance:none;background:var(--slider-track);border-radius:2px;outline:none;cursor:pointer}
-  input[type="range"]::-webkit-slider-thumb{appearance:none;width:15px;height:15px;border-radius:50%;background:var(--slider-thumb);cursor:pointer;box-shadow:0 0 0 3px rgba(88,166,255,.18);transition:box-shadow .15s}
+  input[type="range"]::-webkit-slider-thumb{appearance:none;width:14px;height:14px;border-radius:50%;background:var(--slider-thumb);cursor:pointer;box-shadow:0 0 0 3px rgba(88,166,255,.18)}
   input[type="range"]::-webkit-slider-thumb:hover{box-shadow:0 0 0 5px rgba(88,166,255,.28)}
-  .control-hint{font-size:10px;color:var(--text-dim);margin-top:3px}
-  select{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 10px;font-size:12px;outline:none;cursor:pointer;appearance:none}
+  .ctrl-hint{font-size:10px;color:var(--text-dim);margin-top:3px}
+  select{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:6px 9px;font-size:12px;outline:none;cursor:pointer;appearance:none}
   select:focus{border-color:var(--accent)}
-
-  /* Toggle */
-  .toggle-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
   .toggle-label{font-size:12px;color:var(--text-muted)}
   .toggle{position:relative;width:34px;height:19px;display:inline-block;flex-shrink:0}
   .toggle input{opacity:0;width:0;height:0}
-  .toggle-slider{position:absolute;inset:0;background:var(--surface3);border-radius:20px;cursor:pointer;transition:background .2s;border:1px solid var(--border)}
-  .toggle-slider::before{content:'';position:absolute;width:13px;height:13px;left:2px;top:2px;background:white;border-radius:50%;transition:transform .2s}
-  .toggle input:checked+.toggle-slider{background:var(--accent);border-color:var(--accent)}
-  .toggle input:checked+.toggle-slider::before{transform:translateX(15px)}
-
-  /* Variant tabs */
-  .variant-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:16px}
-  .vtab{padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;font-size:11px;font-weight:600;text-align:center;transition:all .15s;color:var(--text-muted)}
-  .vtab:hover{border-color:var(--accent)}
-  .vtab.active-aws{border-color:var(--aws);background:rgba(255,153,0,.1);color:var(--aws)}
-  .vtab.active-stack{border-color:var(--stack);background:rgba(168,85,247,.1);color:var(--stack)}
-  .vtab.active-gcp{border-color:var(--gcp);background:rgba(66,133,244,.1);color:var(--gcp)}
-  .vtab.active-hybrid{border-color:var(--hybrid);background:rgba(45,212,191,.1);color:var(--hybrid)}
-  .vtab.active-azure{border-color:var(--azure);background:rgba(0,120,212,.1);color:var(--azure)}
-  .vtab-all{grid-column:1/-1;border-color:var(--accent);background:rgba(88,166,255,.08);color:var(--accent)}
-  .vtab-all.active{background:rgba(88,166,255,.18);font-weight:700}
-
-  /* Reset btn */
-  .btn-reset{width:100%;padding:7px;border:1px solid var(--border);background:transparent;color:var(--text-muted);border-radius:8px;cursor:pointer;font-size:11px;transition:all .15s}
+  .tslider{position:absolute;inset:0;background:var(--surface3);border-radius:20px;cursor:pointer;transition:background .2s;border:1px solid var(--border)}
+  .tslider::before{content:'';position:absolute;width:13px;height:13px;left:2px;top:2px;background:white;border-radius:50%;transition:transform .2s}
+  .toggle input:checked+.tslider{background:var(--accent);border-color:var(--accent)}
+  .toggle input:checked+.tslider::before{transform:translateX(15px)}
+  .btn-reset{width:100%;padding:7px;border:1px solid var(--border);background:transparent;color:var(--text-muted);border-radius:8px;cursor:pointer;font-size:11px;margin-top:16px;transition:all .15s}
   .btn-reset:hover{background:var(--surface2);color:var(--text)}
 
-  /* Main */
-  .main{padding:20px;overflow-y:auto}
+  .main{padding:18px;overflow-y:auto}
 
-  /* Cost cards — 5 variants */
-  .variant-cards{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
-  .variant-card{border-radius:12px;padding:16px;position:relative;overflow:hidden;transition:transform .15s;cursor:pointer;border:2px solid transparent}
-  .variant-card:hover{transform:translateY(-2px)}
-  .vc-aws{background:rgba(255,153,0,.07);border-color:rgba(255,153,0,.35)}
-  .vc-stack{background:rgba(168,85,247,.07);border-color:rgba(168,85,247,.35)}
-  .vc-gcp{background:rgba(66,133,244,.07);border-color:rgba(66,133,244,.35)}
-  .vc-hybrid{background:rgba(45,212,191,.07);border-color:rgba(45,212,191,.35)}
-  .vc-azure{background:rgba(0,120,212,.07);border-color:rgba(0,120,212,.35)}
-  .vc-active.vc-aws{border-color:var(--aws);box-shadow:0 0 0 1px rgba(255,153,0,.3)}
-  .vc-active.vc-stack{border-color:var(--stack);box-shadow:0 0 0 1px rgba(168,85,247,.3)}
-  .vc-active.vc-gcp{border-color:var(--gcp);box-shadow:0 0 0 1px rgba(66,133,244,.3)}
-  .vc-active.vc-hybrid{border-color:var(--hybrid);box-shadow:0 0 0 1px rgba(45,212,191,.3)}
-  .vc-active.vc-azure{border-color:var(--azure);box-shadow:0 0 0 1px rgba(0,120,212,.3)}
-  .vc-name{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px}
-  .vc-desc{font-size:10px;color:var(--text-dim);margin-bottom:10px;line-height:1.3}
-  .vc-price{font-size:28px;font-weight:800;line-height:1;margin-bottom:2px}
-  .vc-sub{font-size:10px;opacity:.7;margin-bottom:10px}
-  .vc-breakdown{border-top:1px solid rgba(255,255,255,.07);padding-top:8px}
-  .vcb-row{display:flex;justify-content:space-between;font-size:11px;padding:2px 0}
-  .vcb-label{opacity:.6}
-  .vcb-val{font-weight:600}
-  .aws-text{color:var(--aws)} .stack-text{color:var(--stack)} .gcp-text{color:var(--gcp)} .hybrid-text{color:var(--hybrid)} .azure-text{color:var(--azure)}
-  .low-text{color:var(--low)} .medium-text{color:var(--medium)} .high-text{color:var(--high)}
+  /* variant cards */
+  .vcards{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
+  .vcard{border-radius:12px;padding:14px;border:2px solid transparent;transition:transform .15s;position:relative;overflow:hidden}
+  .vcard:hover{transform:translateY(-2px)}
+  .vcard-lambda{background:rgba(255,153,0,.07);border-color:rgba(255,153,0,.3)}
+  .vcard-gcp{background:rgba(66,133,244,.07);border-color:rgba(66,133,244,.3)}
+  .vcard-azure{background:rgba(0,120,212,.07);border-color:rgba(0,120,212,.3)}
+  .vcard-cf{background:rgba(246,130,31,.07);border-color:rgba(246,130,31,.3)}
+  .vcard-vercel{background:rgba(176,190,197,.07);border-color:rgba(176,190,197,.3)}
+  .vcard.best-val.vcard-lambda{border-color:var(--lambda);box-shadow:0 0 0 1px rgba(255,153,0,.3)}
+  .vcard.best-val.vcard-gcp{border-color:var(--gcp);box-shadow:0 0 0 1px rgba(66,133,244,.3)}
+  .vcard.best-val.vcard-azure{border-color:var(--azure);box-shadow:0 0 0 1px rgba(0,120,212,.3)}
+  .vcard.best-val.vcard-cf{border-color:var(--cf);box-shadow:0 0 0 1px rgba(246,130,31,.3)}
+  .vcard.best-val.vcard-vercel{border-color:var(--vercel);box-shadow:0 0 0 1px rgba(176,190,197,.3)}
+  .vc-name{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-bottom:1px}
+  .vc-desc{font-size:9px;color:var(--text-dim);margin-bottom:10px;line-height:1.3}
+  .vc-price{font-size:26px;font-weight:800;line-height:1;margin-bottom:1px}
+  .vc-sub{font-size:9px;opacity:.65;margin-bottom:9px}
+  .vc-sep{border-top:1px solid rgba(255,255,255,.07);padding-top:7px}
+  .vcb{display:flex;justify-content:space-between;font-size:11px;padding:2px 0}
+  .vcb-l{opacity:.55;font-size:10px}
+  .vcb-r{font-weight:600;font-size:11px}
+  .vc-per{font-size:9px;color:var(--text-dim);margin-top:5px;border-top:1px solid rgba(255,255,255,.04);padding-top:5px}
+  .badge-best{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:var(--low);border-radius:4px;padding:1px 5px;font-size:9px;font-weight:700;margin-left:4px}
+  .badge-free{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:var(--low);border-radius:4px;padding:1px 5px;font-size:9px;font-weight:700}
+  .lt{color:var(--lambda)} .gt{color:var(--gcp)} .at{color:var(--azure)} .ct{color:var(--cf)} .vt{color:var(--vercel)}
+  .lowt{color:var(--low)} .medt{color:var(--medium)} .hight{color:var(--high)}
 
-  /* Traffic toggle */
-  .traffic-tabs{display:flex;gap:6px;margin-bottom:16px}
-  .ttab{flex:1;padding:6px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;font-size:11px;font-weight:600;text-align:center;transition:all .15s;color:var(--text-muted)}
-  .ttab.active-low{border-color:var(--low);background:rgba(34,197,94,.1);color:var(--low)}
-  .ttab.active-medium{border-color:var(--medium);background:rgba(245,158,11,.1);color:var(--medium)}
-  .ttab.active-high{border-color:var(--high);background:rgba(239,68,68,.1);color:var(--high)}
-  .ttab.active-all{border-color:var(--accent);background:rgba(88,166,255,.1);color:var(--accent)}
-
-  /* Panel */
-  .panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:16px}
-  .panel-header{background:var(--surface2);padding:12px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+  /* comparison chart */
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px}
+  .panel-hdr{background:var(--surface2);padding:11px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
   .panel-title{font-weight:600;font-size:13px;display:flex;align-items:center;gap:7px}
   .panel-sub{font-size:10px;color:var(--text-dim)}
-  .panel-body{padding:16px}
+  .panel-body{padding:14px}
+  .cc-row{margin-bottom:9px}
+  .cc-label{font-size:11px;color:var(--text-muted);margin-bottom:3px;display:flex;justify-content:space-between}
+  .cc-bars{display:flex;gap:3px;height:22px}
+  .cc-bar{display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;border-radius:3px;min-width:3px;transition:width .4s ease;overflow:hidden}
+  .cc-bar-lambda{background:var(--lambda);color:rgba(0,0,0,.7)}
+  .cc-bar-gcp{background:var(--gcp);color:rgba(255,255,255,.85)}
+  .cc-bar-azure{background:var(--azure);color:rgba(255,255,255,.85)}
+  .cc-bar-cf{background:var(--cf);color:rgba(0,0,0,.7)}
+  .cc-bar-vercel{background:var(--vercel);color:rgba(0,0,0,.7)}
+  .chart-legend{display:flex;gap:12px;margin-top:9px;font-size:10px;color:var(--text-dim);flex-wrap:wrap}
+  .chart-legend span{display:flex;align-items:center;gap:4px}
+  .ldot{width:10px;height:10px;border-radius:2px;display:inline-block}
 
-  /* Detail table */
+  /* detail table */
   .detail-table{width:100%;border-collapse:collapse}
-  .detail-table th{text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim);padding:7px 11px;border-bottom:1px solid var(--border);background:var(--surface2)}
-  .detail-table td{padding:9px 11px;border-bottom:1px solid var(--border);font-size:12px}
+  .detail-table th{text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim);padding:7px 10px;border-bottom:1px solid var(--border);background:var(--surface2)}
+  .detail-table td{padding:8px 10px;border-bottom:1px solid var(--border);font-size:12px}
   .detail-table tr:last-child td{border-bottom:none}
-  .detail-table tr:hover td{background:rgba(255,255,255,.015)}
-  .detail-table .total-row td{background:var(--surface2);font-weight:700;font-size:13px}
-  .detail-table .section-row td{font-size:10px;font-weight:700;padding:6px 11px;letter-spacing:.5px}
-  .sect-aws{background:rgba(255,153,0,.06);color:var(--aws)}
-  .sect-stack{background:rgba(168,85,247,.06);color:var(--stack)}
-  .sect-gcp{background:rgba(66,133,244,.06);color:var(--gcp)}
-  .sect-hybrid{background:rgba(45,212,191,.06);color:var(--hybrid)}
-  .sect-azure{background:rgba(0,120,212,.06);color:var(--azure)}
+  .detail-table tr:hover td{background:rgba(255,255,255,.012)}
+  .total-row td{background:var(--surface2);font-weight:700;font-size:13px}
+  .section-row td{font-size:10px;font-weight:700;padding:6px 10px;letter-spacing:.5px;text-transform:uppercase}
+  .s-lambda{background:rgba(255,153,0,.06);color:var(--lambda)}
+  .s-gcp{background:rgba(66,133,244,.06);color:var(--gcp)}
+  .s-azure{background:rgba(0,120,212,.06);color:var(--azure)}
+  .s-cf{background:rgba(246,130,31,.06);color:var(--cf)}
+  .s-vercel{background:rgba(176,190,197,.06);color:var(--vercel)}
   .td-note{font-size:10px;color:var(--text-dim);margin-top:1px}
 
-  /* Comparison chart */
-  .compare-chart{margin-bottom:16px}
-  .cc-row{margin-bottom:10px}
-  .cc-row-label{font-size:11px;color:var(--text-muted);margin-bottom:4px;display:flex;justify-content:space-between}
-  .cc-bars{display:flex;gap:3px;height:24px}
-  .cc-bar{display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;border-radius:3px;min-width:3px;transition:width .4s ease;overflow:hidden;color:rgba(0,0,0,.75)}
-  .cc-bar-aws{background:var(--aws)}
-  .cc-bar-stack{background:var(--stack);color:rgba(255,255,255,.8)}
-  .cc-bar-gcp{background:var(--gcp);color:rgba(255,255,255,.8)}
-  .cc-bar-hybrid{background:var(--hybrid)}
-  .cc-bar-azure{background:var(--azure);color:rgba(255,255,255,.8)}
-
-  /* Chips */
+  /* chips */
   .chip-row{display:flex;flex-wrap:wrap;gap:6px}
   .chip{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:3px 9px;font-size:10px;color:var(--text-muted)}
   .chip strong{color:var(--text)}
 
-  /* Warnings */
-  .warning-list{display:flex;flex-direction:column;gap:7px}
-  .warning-item{display:flex;gap:8px;padding:9px 12px;border-radius:8px;font-size:11px}
+  /* warnings */
+  .warn-list{display:flex;flex-direction:column;gap:7px}
+  .warn-item{display:flex;gap:8px;padding:9px 12px;border-radius:8px;font-size:11px}
   .w-warn{background:#1c1507;border:1px solid var(--medium-border);color:var(--medium)}
   .w-info{background:#0d1721;border:1px solid #1f6feb;color:#58a6ff}
-  .w-success{background:var(--low-bg);border:1px solid var(--low-border);color:var(--low)}
-  .w-icon{flex-shrink:0}
+  .w-ok{background:var(--low-bg);border:1px solid var(--low-border);color:var(--low)}
 
-  /* Add-ons */
-  .addons-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
-  .addon-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px}
-  .addon-card-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim);margin-bottom:10px;display:flex;align-items:center;gap:5px}
-  .addon-line{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:11px}
-  .addon-line:last-child{border-bottom:none}
-  .addon-line-label{color:var(--text-muted);flex:1;padding-right:6px}
-  .addon-line-note{font-size:10px;color:var(--text-dim)}
-  .addon-line-cost{font-weight:600;color:var(--text);white-space:nowrap}
-  .addon-cost-free{color:var(--low)}
-  .addon-cost-muted{color:var(--text-muted)}
-  .addon-grand{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-top:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
-  .addon-grand-label{font-size:12px;color:var(--text-muted)}
-  .addon-grand-value{font-size:20px;font-weight:800}
-  .addon-totals-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
-  .atc{border-radius:8px;padding:10px}
-  .atc-low{background:var(--low-bg);border:1px solid var(--low-border)}
-  .atc-medium{background:var(--medium-bg);border:1px solid var(--medium-border)}
-  .atc-high{background:var(--high-bg);border:1px solid var(--high-border)}
-  .atc-tier{font-size:10px;font-weight:700;margin-bottom:3px}
-  .atc-value{font-size:20px;font-weight:800}
-  .atc-hint{font-size:10px;color:var(--text-dim);margin-top:2px}
+  /* sources */
+  .sources{margin-top:18px}
+  .sources-title{font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:9px}
+  .src-pills{display:flex;flex-wrap:wrap;gap:5px}
+  .src-pill{display:inline-flex;align-items:center;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:10px;color:var(--text-muted);transition:border-color .15s}
+  .src-pill:hover{border-color:var(--accent);color:var(--accent)}
 
-  /* Badge */
-  .badge{display:inline-block;background:rgba(88,166,255,.12);border:1px solid rgba(88,166,255,.3);color:var(--accent);border-radius:4px;padding:1px 5px;font-size:10px;font-weight:600;margin-left:4px;vertical-align:middle}
-  .badge-best{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.3);color:var(--low)}
+  /* free tier bar */
+  .free-bar-wrap{margin-top:4px;height:3px;background:var(--surface3);border-radius:2px;overflow:hidden}
+  .free-bar-fill{height:100%;border-radius:2px;transition:width .4s ease}
 
-  /* Sources */
-  .sources-section{margin-top:20px}
-  .sources-title{font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:10px}
-  .sources-links{display:flex;flex-wrap:wrap;gap:6px}
-  .source-pill{display:inline-flex;align-items:center;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:10px;color:var(--text-muted);transition:border-color .15s}
-  .source-pill:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
-
-  /* Section hidden/shown */
-  .variant-section{display:none}
-  .variant-section.shown{display:block}
-
-  /* Legend */
-  .chart-legend{display:flex;gap:14px;margin-top:10px;font-size:10px;color:var(--text-dim);flex-wrap:wrap}
-  .chart-legend span{display:flex;align-items:center;gap:4px}
-  .legend-dot{width:10px;height:10px;border-radius:2px;display:inline-block}
-
-  @media(max-width:1400px){.variant-cards{grid-template-columns:repeat(3,1fr)}}
-  @media(max-width:1100px){.variant-cards{grid-template-columns:repeat(2,1fr)}}
-  @media(max-width:800px){.layout{grid-template-columns:1fr}.sidebar{position:static;height:auto}.variant-cards{grid-template-columns:1fr 1fr}}
-  @media(max-width:500px){.variant-cards{grid-template-columns:1fr}}
+  @media(max-width:1400px){.vcards{grid-template-columns:repeat(3,1fr)}}
+  @media(max-width:1100px){.vcards{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:800px){.layout{grid-template-columns:1fr}.sidebar{position:static;height:auto}}
+  @media(max-width:600px){.vcards{grid-template-columns:1fr 1fr}}
+  @media(max-width:400px){.vcards{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 
 <div class="topbar">
   <div class="topbar-title">
-    🧮 Cloud Cost Simulator
-    <span style="font-size:10px;color:var(--text-dim);font-weight:400;">All Variants · 300 Projects · June 2026</span>
+    ⚡ Serverless Cost Simulator
+    <span class="topbar-badge">5 Platforms · June 2026</span>
   </div>
   <div class="topbar-links">
     <a href="cost-estimate.html" target="_blank">📊 Static Report ↗</a>
     <a href="platform-comparison.html" target="_blank">⚡ Platform Compare ↗</a>
-    <a href="cost-simulator.html" target="_blank">🔧 Stack Simulator ↗</a>
   </div>
 </div>
 
 <div class="layout">
 
-<!-- Sidebar -->
+<!-- ── Sidebar ─────────────────────────────────────────────────────────── -->
 <div class="sidebar">
 
-  <!-- Active variant -->
-  <div class="sidebar-section">
-    <div class="sidebar-section-title">🎯 View Mode</div>
-    <div class="variant-tabs">
-      <div class="vtab-all vtab active" id="vtab_all" onclick="setVariant('all')">📊 All Variants</div>
-      <div class="vtab" id="vtab_aws"    onclick="setVariant('aws')">🟠 AWS Fargate</div>
-      <div class="vtab" id="vtab_stack"  onclick="setVariant('stack')">🟣 Vercel+Railway+CF</div>
-      <div class="vtab" id="vtab_gcp"    onclick="setVariant('gcp')">🔵 GCP Cloud Run</div>
-      <div class="vtab" id="vtab_hybrid" onclick="setVariant('hybrid')">🩵 GCP+CF Hybrid</div>
-      <div class="vtab" id="vtab_azure"  onclick="setVariant('azure')">🔷 Azure Container</div>
+  <div class="sec-title">📦 Workload</div>
+  <div class="ctrl">
+    <div class="ctrl-hdr">
+      <label class="ctrl-label">Number of Projects / Functions</label>
+      <div class="ctrl-val"><input type="number" id="projects_i" value="10" min="1" max="5000"></div>
     </div>
-    <div class="traffic-tabs">
-      <div class="ttab active-all" id="ttab_all"    onclick="setTraffic('all')">All</div>
-      <div class="ttab" id="ttab_low"    onclick="setTraffic('low')">🟢 Low</div>
-      <div class="ttab" id="ttab_medium" onclick="setTraffic('medium')">🟡 Med</div>
-      <div class="ttab" id="ttab_high"   onclick="setTraffic('high')">🔴 High</div>
+    <input type="range" id="projects_r" min="1" max="1000" step="1" value="10">
+  </div>
+  <div class="ctrl">
+    <div class="ctrl-hdr">
+      <label class="ctrl-label">Requests / Day / Project (Medium)</label>
+      <div class="ctrl-val"><input type="number" id="req_i" value="10000" min="1" max="10000000"></div>
     </div>
+    <input type="range" id="req_r" min="1" max="500000" step="100" value="10000">
+    <div class="ctrl-hint">Low = 10% · High = 10× · <span id="req_range_lbl">1K / 10K / 100K</span>/day</div>
+  </div>
+  <div class="ctrl">
+    <div class="ctrl-hdr">
+      <label class="ctrl-label">Avg Function Duration (ms)</label>
+      <div class="ctrl-val"><input type="number" id="dur_i" value="100" min="1" max="900000"></div>
+    </div>
+    <input type="range" id="dur_r" min="1" max="30000" step="1" value="100">
+    <div class="ctrl-hint">DB API: 20–200ms · External fetch: 100–2000ms · Heavy: 1000ms+</div>
+  </div>
+  <div class="ctrl">
+    <div class="ctrl-hdr">
+      <label class="ctrl-label">Memory per Function</label>
+    </div>
+    <select id="mem_sel">
+      <option value="128">128 MB</option>
+      <option value="256" selected>256 MB</option>
+      <option value="512">512 MB</option>
+      <option value="1024">1 GB</option>
+      <option value="2048">2 GB</option>
+      <option value="3008">3 GB (Lambda max common)</option>
+    </select>
+    <div class="ctrl-hint">Lambda: CPU scales with memory · GCP/Azure: set vCPU separately below</div>
+  </div>
+  <div class="ctrl">
+    <div class="ctrl-hdr">
+      <label class="ctrl-label">Avg Response Size (KB)</label>
+      <div class="ctrl-val"><input type="number" id="resp_i" value="10" min="1" max="50000"></div>
+    </div>
+    <input type="range" id="resp_r" min="1" max="5000" step="1" value="10">
   </div>
 
-  <!-- Projects -->
-  <div class="sidebar-section">
-    <div class="sidebar-section-title">📁 Projects</div>
-    <div class="control">
-      <div class="control-header">
-        <label class="control-label">Frontend Projects (Vercel / CDN)</label>
-        <div class="control-value"><input type="number" id="num_frontend_input" value="100" min="0" max="500"></div>
-      </div>
-      <input type="range" id="num_frontend" min="0" max="500" step="1" value="100">
-      <div class="control-hint">Vercel (② stack) · CloudFront/CDN (① AWS / ③④ GCP)</div>
-    </div>
-    <div class="control">
-      <div class="control-header">
-        <label class="control-label">Backend API Projects</label>
-        <div class="control-value"><input type="number" id="num_backend_input" value="200" min="0" max="1000"></div>
-      </div>
-      <input type="range" id="num_backend" min="0" max="1000" step="1" value="200">
-      <div class="control-hint">Fargate (①) · Railway (②) · Cloud Run (③④)</div>
-    </div>
+  <div class="sec-title">🟠 AWS Lambda</div>
+  <div class="ctrl">
+    <label class="ctrl-label" style="display:block;margin-bottom:5px">Architecture</label>
+    <select id="lambda_arch">
+      <option value="x86">x86 — $0.0000166667/GB-sec</option>
+      <option value="arm">ARM Graviton2 — $0.0000133334/GB-sec (20% cheaper)</option>
+    </select>
+    <div class="ctrl-hint"><a href="https://aws.amazon.com/lambda/pricing/" target="_blank">Lambda pricing ↗</a></div>
+  </div>
+  <div class="ctrl">
+    <label class="ctrl-label" style="display:block;margin-bottom:5px">API Gateway Type</label>
+    <select id="lambda_apigw">
+      <option value="http">HTTP API — $1.00/M req (recommended)</option>
+      <option value="rest">REST API — $3.50/M req</option>
+      <option value="none">Function URL / No Gateway</option>
+    </select>
+    <div class="ctrl-hint"><a href="https://aws.amazon.com/api-gateway/pricing/" target="_blank">API Gateway pricing ↗</a></div>
   </div>
 
-  <!-- Traffic -->
-  <div class="sidebar-section">
-    <div class="sidebar-section-title">📈 Traffic</div>
-    <div class="control">
-      <div class="control-header">
-        <label class="control-label">Requests/Day per Project (Medium)</label>
-        <div class="control-value"><input type="number" id="req_per_day_input" value="1000" min="10" max="500000"></div>
-      </div>
-      <input type="range" id="req_per_day" min="10" max="100000" step="10" value="1000">
-      <div class="control-hint">Low=10% · High=10× · Range: <span id="req_range_label">100/1K/10K</span></div>
-    </div>
-    <div class="control">
-      <div class="control-header">
-        <label class="control-label">Avg Response Size (KB)</label>
-        <div class="control-value"><input type="number" id="response_size_input" value="10" min="1" max="5000"></div>
-      </div>
-      <input type="range" id="response_size" min="1" max="2000" step="1" value="10">
-      <div class="control-hint">JSON API: 5–20 KB · HTML page: 50–200 KB</div>
-    </div>
+  <div class="sec-title">🔵 GCP Cloud Run</div>
+  <div class="ctrl">
+    <label class="ctrl-label" style="display:block;margin-bottom:5px">vCPU per Instance</label>
+    <select id="gcp_cpu">
+      <option value="0.5">0.5 vCPU</option>
+      <option value="1" selected>1 vCPU</option>
+      <option value="2">2 vCPU</option>
+      <option value="4">4 vCPU</option>
+    </select>
+    <div class="ctrl-hint">Request-based · CPU allocated only during request · <a href="https://cloud.google.com/run/pricing" target="_blank">pricing ↗</a></div>
   </div>
 
-  <!-- AWS Config -->
-  <div class="sidebar-section">
-    <div class="sidebar-section-title">🟠 AWS Config</div>
-    <div class="control">
-      <label class="control-label" style="display:block;margin-bottom:5px">Compute Type</label>
-      <select id="aws_compute">
-        <option value="fargate">ECS Fargate (serverless, per-task)</option>
-        <option value="ec2_spot">EC2 Spot t3a.2xlarge (dense-pack)</option>
-        <option value="ec2_od">EC2 On-Demand t3a.2xlarge</option>
-      </select>
-      <div class="control-hint"><a href="https://aws.amazon.com/fargate/pricing/" target="_blank">Fargate pricing ↗</a> · <a href="https://aws.amazon.com/ec2/pricing/on-demand/" target="_blank">EC2 ↗</a></div>
-    </div>
-    <div class="control">
-      <div class="control-header">
-        <label class="control-label">vCPU per Task (Fargate)</label>
-        <div class="control-value" id="aws_vcpu_display">0.25</div>
-      </div>
-      <select id="aws_vcpu">
-        <option value="0.25" selected>0.25 vCPU</option>
-        <option value="0.5">0.5 vCPU</option>
-        <option value="1">1 vCPU</option>
-        <option value="2">2 vCPU</option>
-      </select>
-    </div>
-    <div class="control">
-      <div class="control-header">
-        <label class="control-label">RAM per Task (Fargate)</label>
-        <div class="control-value" id="aws_ram_display">512 MB</div>
-      </div>
-      <select id="aws_ram">
-        <option value="512" selected>512 MB</option>
-        <option value="1024">1 GB</option>
-        <option value="2048">2 GB</option>
-        <option value="4096">4 GB</option>
-      </select>
-    </div>
-    <div class="toggle-row">
-      <span class="toggle-label">CloudFront CDN (flat-rate Pro $15/mo)</span>
-      <label class="toggle"><input type="checkbox" id="aws_cloudfront" checked><span class="toggle-slider"></span></label>
-    </div>
-    <div class="toggle-row">
-      <span class="toggle-label">AWS WAF on CloudFront</span>
-      <label class="toggle"><input type="checkbox" id="aws_waf" checked><span class="toggle-slider"></span></label>
-    </div>
+  <div class="sec-title">🔷 Azure Container Apps</div>
+  <div class="ctrl">
+    <label class="ctrl-label" style="display:block;margin-bottom:5px">vCPU per Replica</label>
+    <select id="az_cpu">
+      <option value="0.25">0.25 vCPU</option>
+      <option value="0.5" selected>0.5 vCPU</option>
+      <option value="1">1 vCPU</option>
+      <option value="2">2 vCPU</option>
+    </select>
+    <div class="ctrl-hint">Consumption plan · scale to zero · <a href="https://azure.microsoft.com/en-us/pricing/details/container-apps/" target="_blank">pricing ↗</a></div>
   </div>
 
-  <!-- Railway / Stack Config -->
-  <div class="sidebar-section">
-    <div class="sidebar-section-title">🟣 Railway Config (② Stack)</div>
-    <div class="control">
-      <div class="control-header">
-        <label class="control-label">RAM per Service</label>
-        <div class="control-value" id="rail_ram_display">128 MB</div>
-      </div>
-      <select id="rail_ram">
-        <option value="64">64 MB</option>
-        <option value="128" selected>128 MB</option>
-        <option value="256">256 MB</option>
-        <option value="512">512 MB</option>
-        <option value="1024">1024 MB</option>
-      </select>
+  <div class="sec-title">🔶 Cloudflare Workers</div>
+  <div class="ctrl">
+    <div class="ctrl-hdr">
+      <label class="ctrl-label">CPU Time / Request (ms)</label>
+      <div class="ctrl-val"><input type="number" id="cf_cpu_i" value="2" min="0.1" max="300" step="0.1"></div>
     </div>
-    <div class="control">
-      <div class="control-header">
-        <label class="control-label">Active Hours/Day (Medium)</label>
-        <div class="control-value"><input type="number" id="active_hours_input" value="4" min="0.5" max="24" step="0.5"></div>
-      </div>
-      <input type="range" id="active_hours" min="0.5" max="24" step="0.5" value="4">
-    </div>
-    <div class="toggle-row">
-      <span class="toggle-label">Serverless Sleep (Railway)</span>
-      <label class="toggle"><input type="checkbox" id="serverless_enabled" checked><span class="toggle-slider"></span></label>
-    </div>
-    <div class="control">
-      <label class="control-label" style="display:block;margin-bottom:5px">Railway Plan</label>
-      <select id="railway_plan">
-        <option value="20">Pro — $20/mo (+$20 credit)</option>
-        <option value="5">Hobby — $5/mo (+$5 credit)</option>
-      </select>
-    </div>
-    <div class="control">
-      <div class="control-header">
-        <label class="control-label">Vercel Developer Seats</label>
-        <div class="control-value"><input type="number" id="vercel_seats_input" value="1" min="1" max="50"></div>
-      </div>
-      <input type="range" id="vercel_seats" min="1" max="50" step="1" value="1">
-      <div class="control-hint">$20/seat/mo · Hobby plan bans commercial use</div>
-    </div>
+    <input type="range" id="cf_cpu_r" min="0.1" max="50" step="0.1" value="2">
+    <div class="ctrl-hint">CPU only — I/O wait is FREE. Typical: 1–5ms for DB-backed APIs · <a href="https://developers.cloudflare.com/workers/platform/pricing/" target="_blank">pricing ↗</a></div>
   </div>
 
-  <!-- GCP Config -->
-  <div class="sidebar-section">
-    <div class="sidebar-section-title">🔵 GCP Config (③ / ④ Hybrid)</div>
-    <div class="control">
-      <div class="control-header">
-        <label class="control-label">Cloud Run Memory / Instance</label>
-        <div class="control-value" id="gcp_mem_display">256 MB</div>
-      </div>
-      <select id="gcp_mem">
-        <option value="128">128 MiB</option>
-        <option value="256" selected>256 MiB</option>
-        <option value="512">512 MiB</option>
-        <option value="1024">1024 MiB</option>
-        <option value="2048">2048 MiB</option>
-      </select>
-      <div class="control-hint"><a href="https://cloud.google.com/run/pricing" target="_blank">Cloud Run pricing ↗</a></div>
+  <div class="sec-title">▲ Vercel Functions</div>
+  <div class="ctrl">
+    <div class="ctrl-hdr">
+      <label class="ctrl-label">Developer Seats (Pro $20/seat/mo)</label>
+      <div class="ctrl-val"><input type="number" id="vercel_seats_i" value="2" min="1" max="200"></div>
     </div>
-    <div class="control">
-      <div class="control-header">
-        <label class="control-label">Cloud Run vCPU / Instance</label>
-        <div class="control-value" id="gcp_cpu_display">1</div>
-      </div>
-      <select id="gcp_cpu">
-        <option value="1" selected>1 vCPU</option>
-        <option value="2">2 vCPU</option>
-        <option value="4">4 vCPU</option>
-      </select>
-    </div>
-    <div class="control">
-      <div class="control-header">
-        <label class="control-label">Avg Concurrency per Instance</label>
-        <div class="control-value"><input type="number" id="gcp_concurrency_input" value="80" min="1" max="1000"></div>
-      </div>
-      <input type="range" id="gcp_concurrency" min="1" max="1000" step="1" value="80">
-      <div class="control-hint">Cloud Run default max-concurrency=1000; ~80 typical</div>
-    </div>
-    <div class="toggle-row">
-      <span class="toggle-label">GCP Global LB ($18/mo base) — ③ only</span>
-      <label class="toggle"><input type="checkbox" id="gcp_lb" checked><span class="toggle-slider"></span></label>
-    </div>
-  </div>
-
-  <!-- Azure Config -->
-  <div class="sidebar-section">
-    <div class="sidebar-section-title">🔷 Azure Config (⑤ Container Apps)</div>
-    <div class="control">
-      <div class="control-header">
-        <label class="control-label">Memory per Instance</label>
-        <div class="control-value" id="az_mem_display">512 MiB</div>
-      </div>
-      <select id="az_mem">
-        <option value="256">256 MiB</option>
-        <option value="512" selected>512 MiB</option>
-        <option value="1024">1 GiB</option>
-        <option value="2048">2 GiB</option>
-      </select>
-      <div class="control-hint"><a href="https://azure.microsoft.com/en-us/pricing/details/container-apps/" target="_blank">Container Apps pricing ↗</a></div>
-    </div>
-    <div class="control">
-      <div class="control-header">
-        <label class="control-label">vCPU per Instance</label>
-        <div class="control-value" id="az_cpu_display">0.5</div>
-      </div>
-      <select id="az_cpu">
-        <option value="0.25">0.25 vCPU</option>
-        <option value="0.5" selected>0.5 vCPU</option>
-        <option value="1">1.0 vCPU</option>
-      </select>
-    </div>
-    <div class="control">
-      <div class="control-header">
-        <label class="control-label">Active Hours/Day (Medium)</label>
-        <div class="control-value"><input type="number" id="az_active_hr_input" value="4" min="1" max="24" step="1"></div>
-      </div>
-      <input type="range" id="az_active_hr" min="1" max="24" step="1" value="4">
-      <div class="control-hint">Consumption plan scales to zero when idle</div>
-    </div>
-    <div class="toggle-row">
-      <span class="toggle-label">Azure Front Door Standard ($35/mo base)</span>
-      <label class="toggle"><input type="checkbox" id="az_front_door" checked><span class="toggle-slider"></span></label>
-    </div>
-    <div class="toggle-row">
-      <span class="toggle-label">Azure WAF Policy ($5 + $1/rule/mo)</span>
-      <label class="toggle"><input type="checkbox" id="az_waf" checked><span class="toggle-slider"></span></label>
-    </div>
-  </div>
-
-  <!-- Add-ons -->
-  <div class="sidebar-section">
-    <div class="sidebar-section-title">🔒 Prod-Ready Add-ons</div>
-    <div class="toggle-row">
-      <span class="toggle-label">Logging (Better Stack Nano ~$35/mo)</span>
-      <label class="toggle"><input type="checkbox" id="addon_logging" checked><span class="toggle-slider"></span></label>
-    </div>
-    <div class="toggle-row">
-      <span class="toggle-label">Error Monitoring (Sentry Team $29/mo)</span>
-      <label class="toggle"><input type="checkbox" id="addon_monitoring" checked><span class="toggle-slider"></span></label>
-    </div>
-    <div class="toggle-row">
-      <span class="toggle-label">WAF / Firewall Rules</span>
-      <label class="toggle"><input type="checkbox" id="addon_waf"><span class="toggle-slider"></span></label>
-    </div>
-    <div class="toggle-row">
-      <span class="toggle-label">Secrets Management ($24/mo Doppler)</span>
-      <label class="toggle"><input type="checkbox" id="addon_secrets"><span class="toggle-slider"></span></label>
-    </div>
-    <div class="toggle-row">
-      <span class="toggle-label">Backup / DR (est. $5–15/mo)</span>
-      <label class="toggle"><input type="checkbox" id="addon_backup"><span class="toggle-slider"></span></label>
-    </div>
+    <input type="range" id="vercel_seats_r" min="1" max="50" step="1" value="2">
+    <div class="ctrl-hint">Hobby plan BANS commercial use (enforced Dec 2024) · <a href="https://vercel.com/pricing" target="_blank">pricing ↗</a></div>
   </div>
 
   <button class="btn-reset" onclick="resetDefaults()">↺ Reset to Defaults</button>
 </div>
 
-<!-- Main -->
+<!-- ── Main ────────────────────────────────────────────────────────────── -->
 <div class="main">
 
-  <!-- 4-variant summary cards -->
-  <div class="variant-cards">
-    <div class="variant-card vc-aws" id="card_aws" onclick="setVariant('aws')">
-      <div class="vc-name aws-text">① AWS Fargate</div>
-      <div class="vc-desc">ECS Fargate + ALB + CloudFront + WAF</div>
-      <div class="vc-price aws-text" id="aws_price_med">$—</div>
-      <div class="vc-sub aws-text" id="aws_sub_med">medium traffic</div>
-      <div class="vc-breakdown">
-        <div class="vcb-row"><span class="vcb-label">🟢 Low</span><span class="vcb-val aws-text" id="aws_price_low">$—</span></div>
-        <div class="vcb-row"><span class="vcb-label">🔴 High</span><span class="vcb-val aws-text" id="aws_price_high">$—</span></div>
+  <!-- Summary cards -->
+  <div class="vcards">
+
+    <div class="vcard vcard-lambda" id="card_lambda">
+      <div class="vc-name lt">🟠 AWS Lambda</div>
+      <div class="vc-desc">Per-invocation + GB-sec billing · HTTP/REST API Gateway · global</div>
+      <div class="vc-price lt" id="lp_med">$—</div>
+      <div class="vc-sub lt" id="ls_med">medium traffic</div>
+      <div class="vc-sep">
+        <div class="vcb"><span class="vcb-l">🟢 Low</span><span class="vcb-r lt" id="lp_low">$—</span></div>
+        <div class="vcb"><span class="vcb-l">🔴 High</span><span class="vcb-r lt" id="lp_high">$—</span></div>
       </div>
+      <div class="vc-per" id="lp_per">— /project/mo</div>
     </div>
-    <div class="variant-card vc-stack" id="card_stack" onclick="setVariant('stack')">
-      <div class="vc-name stack-text">② Vercel+Railway+CF</div>
-      <div class="vc-desc">CF Workers proxy + Vercel frontend + Railway API</div>
-      <div class="vc-price stack-text" id="stack_price_med">$—</div>
-      <div class="vc-sub stack-text" id="stack_sub_med">medium traffic</div>
-      <div class="vc-breakdown">
-        <div class="vcb-row"><span class="vcb-label">🟢 Low</span><span class="vcb-val stack-text" id="stack_price_low">$—</span></div>
-        <div class="vcb-row"><span class="vcb-label">🔴 High</span><span class="vcb-val stack-text" id="stack_price_high">$—</span></div>
+
+    <div class="vcard vcard-gcp" id="card_gcp">
+      <div class="vc-name gt">🔵 GCP Cloud Run</div>
+      <div class="vc-desc">vCPU-sec + GiB-sec · request-based · 2M req free/mo</div>
+      <div class="vc-price gt" id="gp_med">$—</div>
+      <div class="vc-sub gt" id="gs_med">medium traffic</div>
+      <div class="vc-sep">
+        <div class="vcb"><span class="vcb-l">🟢 Low</span><span class="vcb-r gt" id="gp_low">$—</span></div>
+        <div class="vcb"><span class="vcb-l">🔴 High</span><span class="vcb-r gt" id="gp_high">$—</span></div>
       </div>
+      <div class="vc-per" id="gp_per">— /project/mo</div>
     </div>
-    <div class="variant-card vc-gcp" id="card_gcp" onclick="setVariant('gcp')">
-      <div class="vc-name gcp-text">③ GCP Cloud Run</div>
-      <div class="vc-desc">Cloud Run + Global LB + Cloud Armor CDN</div>
-      <div class="vc-price gcp-text" id="gcp_price_med">$—</div>
-      <div class="vc-sub gcp-text" id="gcp_sub_med">medium traffic</div>
-      <div class="vc-breakdown">
-        <div class="vcb-row"><span class="vcb-label">🟢 Low</span><span class="vcb-val gcp-text" id="gcp_price_low">$—</span></div>
-        <div class="vcb-row"><span class="vcb-label">🔴 High</span><span class="vcb-val gcp-text" id="gcp_price_high">$—</span></div>
+
+    <div class="vcard vcard-azure" id="card_azure">
+      <div class="vc-name at">🔷 Azure Container Apps</div>
+      <div class="vc-desc">vCPU-sec + GiB-sec · consumption plan · scale to zero</div>
+      <div class="vc-price at" id="ap_med">$—</div>
+      <div class="vc-sub at" id="as_med">medium traffic</div>
+      <div class="vc-sep">
+        <div class="vcb"><span class="vcb-l">🟢 Low</span><span class="vcb-r at" id="ap_low">$—</span></div>
+        <div class="vcb"><span class="vcb-l">🔴 High</span><span class="vcb-r at" id="ap_high">$—</span></div>
       </div>
+      <div class="vc-per" id="ap_per">— /project/mo</div>
     </div>
-    <div class="variant-card vc-hybrid" id="card_hybrid" onclick="setVariant('hybrid')">
-      <div class="vc-name hybrid-text">④ GCP + CF <span class="badge badge-best" id="badge_best">★ BEST</span></div>
-      <div class="vc-desc">Cloud Run compute + CF Workers front door</div>
-      <div class="vc-price hybrid-text" id="hybrid_price_med">$—</div>
-      <div class="vc-sub hybrid-text" id="hybrid_sub_med">medium traffic</div>
-      <div class="vc-breakdown">
-        <div class="vcb-row"><span class="vcb-label">🟢 Low</span><span class="vcb-val hybrid-text" id="hybrid_price_low">$—</span></div>
-        <div class="vcb-row"><span class="vcb-label">🔴 High</span><span class="vcb-val hybrid-text" id="hybrid_price_high">$—</span></div>
+
+    <div class="vcard vcard-cf" id="card_cf">
+      <div class="vc-name ct">🔶 CF Workers</div>
+      <div class="vc-desc">Edge serverless · CPU-only billing · no egress fee · 130+ PoPs</div>
+      <div class="vc-price ct" id="cp_med">$—</div>
+      <div class="vc-sub ct" id="cs_med">medium traffic</div>
+      <div class="vc-sep">
+        <div class="vcb"><span class="vcb-l">🟢 Low</span><span class="vcb-r ct" id="cp_low">$—</span></div>
+        <div class="vcb"><span class="vcb-l">🔴 High</span><span class="vcb-r ct" id="cp_high">$—</span></div>
       </div>
+      <div class="vc-per" id="cp_per">— /project/mo</div>
     </div>
-    <div class="variant-card vc-azure" id="card_azure" onclick="setVariant('azure')">
-      <div class="vc-name azure-text">⑤ Azure Container Apps</div>
-      <div class="vc-desc">Container Apps + Front Door + WAF (Consumption plan)</div>
-      <div class="vc-price azure-text" id="azure_price_med">$—</div>
-      <div class="vc-sub azure-text" id="azure_sub_med">medium traffic</div>
-      <div class="vc-breakdown">
-        <div class="vcb-row"><span class="vcb-label">🟢 Low</span><span class="vcb-val azure-text" id="azure_price_low">$—</span></div>
-        <div class="vcb-row"><span class="vcb-label">🔴 High</span><span class="vcb-val azure-text" id="azure_price_high">$—</span></div>
+
+    <div class="vcard vcard-vercel" id="card_vercel">
+      <div class="vc-name vt">▲ Vercel Functions</div>
+      <div class="vc-desc">$0.60/M invocations + CPU-hr + GB-hr · Pro plan required (commercial)</div>
+      <div class="vc-price vt" id="vp_med">$—</div>
+      <div class="vc-sub vt" id="vs_med">medium traffic</div>
+      <div class="vc-sep">
+        <div class="vcb"><span class="vcb-l">🟢 Low</span><span class="vcb-r vt" id="vp_low">$—</span></div>
+        <div class="vcb"><span class="vcb-l">🔴 High</span><span class="vcb-r vt" id="vp_high">$—</span></div>
       </div>
+      <div class="vc-per" id="vp_per">— /project/mo</div>
     </div>
+
   </div>
 
-  <!-- Comparison bar chart -->
+  <!-- Comparison bars -->
   <div class="panel">
-    <div class="panel-header">
+    <div class="panel-hdr">
       <div class="panel-title">📊 Side-by-Side Cost Comparison</div>
-      <div class="panel-sub">All 5 variants · relative bars</div>
+      <div class="panel-sub">5 platforms · all traffic tiers · relative bars</div>
     </div>
     <div class="panel-body">
-      <div class="compare-chart">
-        <div class="cc-row">
-          <div class="cc-row-label"><span>🟢 Low Traffic</span><span id="chart_low_label">—</span></div>
-          <div class="cc-bars">
-            <div class="cc-bar cc-bar-aws"    id="bar_low_aws"    style="width:0%"></div>
-            <div class="cc-bar cc-bar-stack"  id="bar_low_stack"  style="width:0%"></div>
-            <div class="cc-bar cc-bar-gcp"    id="bar_low_gcp"    style="width:0%"></div>
-            <div class="cc-bar cc-bar-hybrid" id="bar_low_hybrid" style="width:0%"></div>
-            <div class="cc-bar cc-bar-azure"  id="bar_low_azure"  style="width:0%"></div>
-          </div>
+      <div class="cc-row">
+        <div class="cc-label"><span>🟢 Low Traffic</span><span id="chart_low_lbl" style="color:var(--text-dim);font-size:10px"></span></div>
+        <div class="cc-bars">
+          <div class="cc-bar cc-bar-lambda" id="b_lo_l" style="width:0%"></div>
+          <div class="cc-bar cc-bar-gcp"    id="b_lo_g" style="width:0%"></div>
+          <div class="cc-bar cc-bar-azure"  id="b_lo_a" style="width:0%"></div>
+          <div class="cc-bar cc-bar-cf"     id="b_lo_c" style="width:0%"></div>
+          <div class="cc-bar cc-bar-vercel" id="b_lo_v" style="width:0%"></div>
         </div>
-        <div class="cc-row">
-          <div class="cc-row-label"><span>🟡 Medium Traffic</span><span id="chart_med_label">—</span></div>
-          <div class="cc-bars">
-            <div class="cc-bar cc-bar-aws"    id="bar_med_aws"    style="width:0%"></div>
-            <div class="cc-bar cc-bar-stack"  id="bar_med_stack"  style="width:0%"></div>
-            <div class="cc-bar cc-bar-gcp"    id="bar_med_gcp"    style="width:0%"></div>
-            <div class="cc-bar cc-bar-hybrid" id="bar_med_hybrid" style="width:0%"></div>
-            <div class="cc-bar cc-bar-azure"  id="bar_med_azure"  style="width:0%"></div>
-          </div>
+      </div>
+      <div class="cc-row">
+        <div class="cc-label"><span>🟡 Medium Traffic</span><span id="chart_med_lbl" style="color:var(--text-dim);font-size:10px"></span></div>
+        <div class="cc-bars">
+          <div class="cc-bar cc-bar-lambda" id="b_me_l" style="width:0%"></div>
+          <div class="cc-bar cc-bar-gcp"    id="b_me_g" style="width:0%"></div>
+          <div class="cc-bar cc-bar-azure"  id="b_me_a" style="width:0%"></div>
+          <div class="cc-bar cc-bar-cf"     id="b_me_c" style="width:0%"></div>
+          <div class="cc-bar cc-bar-vercel" id="b_me_v" style="width:0%"></div>
         </div>
-        <div class="cc-row">
-          <div class="cc-row-label"><span>🔴 High Traffic</span><span id="chart_high_label">—</span></div>
-          <div class="cc-bars">
-            <div class="cc-bar cc-bar-aws"    id="bar_high_aws"    style="width:0%"></div>
-            <div class="cc-bar cc-bar-stack"  id="bar_high_stack"  style="width:0%"></div>
-            <div class="cc-bar cc-bar-gcp"    id="bar_high_gcp"    style="width:0%"></div>
-            <div class="cc-bar cc-bar-hybrid" id="bar_high_hybrid" style="width:0%"></div>
-            <div class="cc-bar cc-bar-azure"  id="bar_high_azure"  style="width:0%"></div>
-          </div>
+      </div>
+      <div class="cc-row">
+        <div class="cc-label"><span>🔴 High Traffic</span><span id="chart_hi_lbl" style="color:var(--text-dim);font-size:10px"></span></div>
+        <div class="cc-bars">
+          <div class="cc-bar cc-bar-lambda" id="b_hi_l" style="width:0%"></div>
+          <div class="cc-bar cc-bar-gcp"    id="b_hi_g" style="width:0%"></div>
+          <div class="cc-bar cc-bar-azure"  id="b_hi_a" style="width:0%"></div>
+          <div class="cc-bar cc-bar-cf"     id="b_hi_c" style="width:0%"></div>
+          <div class="cc-bar cc-bar-vercel" id="b_hi_v" style="width:0%"></div>
         </div>
       </div>
       <div class="chart-legend">
-        <span><div class="legend-dot" style="background:var(--aws)"></div>① AWS Fargate</span>
-        <span><div class="legend-dot" style="background:var(--stack)"></div>② Vercel+Railway+CF</span>
-        <span><div class="legend-dot" style="background:var(--gcp)"></div>③ GCP Cloud Run</span>
-        <span><div class="legend-dot" style="background:var(--hybrid)"></div>④ GCP+CF Hybrid</span>
-        <span><div class="legend-dot" style="background:var(--azure)"></div>⑤ Azure Container Apps</span>
+        <span><div class="ldot" style="background:var(--lambda)"></div>AWS Lambda</span>
+        <span><div class="ldot" style="background:var(--gcp)"></div>GCP Cloud Run</span>
+        <span><div class="ldot" style="background:var(--azure)"></div>Azure CA</span>
+        <span><div class="ldot" style="background:var(--cf)"></div>CF Workers</span>
+        <span><div class="ldot" style="background:var(--vercel)"></div>Vercel</span>
       </div>
     </div>
   </div>
 
-  <!-- Detailed breakdown table -->
+  <!-- Detail table -->
   <div class="panel">
-    <div class="panel-header">
-      <div class="panel-title">🔍 Detailed Line-Item Breakdown</div>
-      <div class="panel-sub">USD/month · <span id="detail_traffic_label">all traffic levels</span></div>
+    <div class="panel-hdr">
+      <div class="panel-title">🔍 Line-Item Breakdown</div>
+      <div class="panel-sub">USD/month · all 5 platforms</div>
     </div>
     <div class="panel-body" style="padding:0;overflow-x:auto">
       <table class="detail-table">
         <thead>
           <tr>
-            <th style="min-width:230px">Line Item</th>
+            <th style="min-width:220px">Line Item</th>
             <th>🟢 Low</th>
-            <th>🟡 Medium</th>
+            <th>🟡 Med</th>
             <th>🔴 High</th>
-            <th>Pricing Ref</th>
+            <th>Ref</th>
           </tr>
         </thead>
-        <tbody id="detail_tbody">
-        </tbody>
+        <tbody id="tbl_body"></tbody>
       </table>
     </div>
   </div>
 
   <!-- Assumptions -->
   <div class="panel">
-    <div class="panel-header"><div class="panel-title">📋 Current Assumptions</div></div>
-    <div class="panel-body"><div class="chip-row" id="assumptions_display"></div></div>
+    <div class="panel-hdr"><div class="panel-title">📋 Current Assumptions</div></div>
+    <div class="panel-body"><div class="chip-row" id="assumptions"></div></div>
   </div>
 
   <!-- Warnings -->
   <div class="panel">
-    <div class="panel-header"><div class="panel-title">💡 Notes &amp; Warnings</div></div>
-    <div class="panel-body"><div class="warning-list" id="warnings_list"></div></div>
-  </div>
-
-  <!-- Add-ons -->
-  <div class="panel">
-    <div class="panel-header">
-      <div class="panel-title">🔒 Operational Add-ons <span class="badge">estimates</span></div>
-      <div class="panel-sub">Toggle in sidebar to include in totals</div>
-    </div>
-    <div class="panel-body">
-      <div class="addons-grid">
-        <div class="addon-card">
-          <div class="addon-card-title">📋 Logging</div>
-          <div class="addon-line">
-            <span class="addon-line-label">Better Stack Nano <span class="badge">est.</span></span>
-            <span class="addon-line-cost" id="ao_logging_cost">$35/mo</span>
-          </div>
-          <div class="addon-line">
-            <span class="addon-line-note">40GB logs+traces · 30-day retention · ~$30/mo EU / ~$45/mo US · <a href="https://betterstack.com/pricing" target="_blank">betterstack.com ↗</a></span>
-          </div>
-        </div>
-        <div class="addon-card">
-          <div class="addon-card-title">📡 Error Monitoring</div>
-          <div class="addon-line">
-            <span class="addon-line-label">Sentry Team <span class="badge">est.</span></span>
-            <span class="addon-line-cost" id="ao_monitoring_cost">$29/mo</span>
-          </div>
-          <div class="addon-line">
-            <span class="addon-line-note">50k errors · 5M spans · $29/mo monthly / $26/mo annual · <a href="https://sentry.io/pricing/" target="_blank">sentry.io ↗</a></span>
-          </div>
-        </div>
-        <div class="addon-card">
-          <div class="addon-card-title">🛡 WAF &amp; Security</div>
-          <div class="addon-line">
-            <span class="addon-line-label">WAF rules <span class="badge">est.</span></span>
-            <span class="addon-line-cost" id="ao_waf_cost">$0/mo</span>
-          </div>
-          <div class="addon-line">
-            <span class="addon-line-note">CF Workers code-level rules free · CF Pro zone $25/mo · AWS WAF ~$11+/mo · GCP Cloud Armor $5/policy</span>
-          </div>
-          <div class="addon-line">
-            <span class="addon-line-label">DDoS Protection</span>
-            <span class="addon-line-cost addon-cost-free">$0 unmetered (CF/AWS Shield Std)</span>
-          </div>
-        </div>
-        <div class="addon-card">
-          <div class="addon-card-title">🔑 Secrets &amp; Scanning</div>
-          <div class="addon-line">
-            <span class="addon-line-label">Doppler Team <span class="badge">est.</span></span>
-            <span class="addon-line-cost" id="ao_secrets_cost">$0/mo</span>
-          </div>
-          <div class="addon-line">
-            <span class="addon-line-note">Secrets mgmt + dependency scanning · Free tier available · Team $24/mo · <a href="https://www.doppler.com/pricing" target="_blank">doppler.com ↗</a></span>
-          </div>
-        </div>
-        <div class="addon-card">
-          <div class="addon-card-title">💾 Backup &amp; DR</div>
-          <div class="addon-line">
-            <span class="addon-line-label">Cloud storage backup <span class="badge">est.</span></span>
-            <span class="addon-line-cost" id="ao_backup_cost">$0/mo</span>
-          </div>
-          <div class="addon-line">
-            <span class="addon-line-note">CF R2 $0.015/GB-mo · S3 $0.023/GB-mo · GCS $0.020/GB-mo · 50GB snapshots est. $1–2/mo</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="addon-grand">
-        <div>
-          <div class="addon-grand-label">Selected add-ons monthly subtotal <span class="badge">estimates</span></div>
-          <div style="font-size:10px;color:var(--text-dim);margin-top:2px">Same across all variants — infrastructure-agnostic operational costs</div>
-        </div>
-        <div class="addon-grand-value medium-text" id="addons_subtotal">$0/mo</div>
-      </div>
-
-      <div class="addon-totals-grid">
-        <div class="atc atc-low">
-          <div class="atc-tier low-text">🟢 Low + Add-ons</div>
-          <div class="atc-value low-text" id="total_addons_low">$—</div>
-          <div class="atc-hint" id="total_addons_low_hint">base + add-ons · cheapest variant</div>
-        </div>
-        <div class="atc atc-medium">
-          <div class="atc-tier medium-text">🟡 Medium + Add-ons</div>
-          <div class="atc-value medium-text" id="total_addons_med">$—</div>
-          <div class="atc-hint" id="total_addons_med_hint">base + add-ons · cheapest variant</div>
-        </div>
-        <div class="atc atc-high">
-          <div class="atc-tier high-text">🔴 High + Add-ons</div>
-          <div class="atc-value high-text" id="total_addons_high">$—</div>
-          <div class="atc-hint" id="total_addons_high_hint">base + add-ons · cheapest variant</div>
-        </div>
-      </div>
-    </div>
+    <div class="panel-hdr"><div class="panel-title">💡 Notes &amp; Platform Insights</div></div>
+    <div class="panel-body"><div class="warn-list" id="warnings"></div></div>
   </div>
 
   <!-- Sources -->
-  <div class="sources-section">
-    <div class="sources-title">📎 Pricing Reference Sources — <span style="color:var(--text-dim);font-weight:400">verified June 2026</span></div>
-    <div class="sources-links">
-      <a href="https://aws.amazon.com/fargate/pricing/" target="_blank" class="source-pill">🟠 AWS Fargate</a>
-      <a href="https://aws.amazon.com/ec2/pricing/on-demand/" target="_blank" class="source-pill">🟠 AWS EC2</a>
-      <a href="https://aws.amazon.com/cloudfront/pricing/" target="_blank" class="source-pill">🟠 AWS CloudFront</a>
-      <a href="https://aws.amazon.com/waf/pricing/" target="_blank" class="source-pill">🟠 AWS WAF</a>
-      <a href="https://aws.amazon.com/elasticloadbalancing/pricing/" target="_blank" class="source-pill">🟠 AWS ALB</a>
-      <a href="https://developers.cloudflare.com/workers/platform/pricing/" target="_blank" class="source-pill">🔶 CF Workers</a>
-      <a href="https://www.cloudflare.com/plans/" target="_blank" class="source-pill">🔶 CF Plans</a>
-      <a href="https://developers.cloudflare.com/r2/pricing/" target="_blank" class="source-pill">🔶 CF R2</a>
-      <a href="https://vercel.com/pricing" target="_blank" class="source-pill">▲ Vercel Pricing</a>
-      <a href="https://docs.railway.com/pricing" target="_blank" class="source-pill">🚂 Railway Pricing</a>
-      <a href="https://cloud.google.com/run/pricing" target="_blank" class="source-pill">🔵 Cloud Run</a>
-      <a href="https://cloud.google.com/vpc/network-pricing" target="_blank" class="source-pill">🔵 GCP Egress</a>
-      <a href="https://cloud.google.com/armor/pricing" target="_blank" class="source-pill">🔵 Cloud Armor</a>
-      <a href="https://cloud.google.com/load-balancing/pricing" target="_blank" class="source-pill">🔵 GCP LB</a>
-      <a href="https://azure.microsoft.com/en-us/pricing/details/container-apps/" target="_blank" class="source-pill">🔷 Azure Container Apps</a>
-      <a href="https://azure.microsoft.com/en-us/pricing/details/frontdoor/" target="_blank" class="source-pill">🔷 Azure Front Door</a>
-      <a href="https://azure.microsoft.com/en-us/pricing/details/web-application-firewall/" target="_blank" class="source-pill">🔷 Azure WAF</a>
-      <a href="https://azure.microsoft.com/en-us/pricing/details/bandwidth/" target="_blank" class="source-pill">🔷 Azure Egress</a>
-      <a href="https://betterstack.com/pricing" target="_blank" class="source-pill">📋 Better Stack</a>
-      <a href="https://sentry.io/pricing/" target="_blank" class="source-pill">📡 Sentry</a>
+  <div class="sources">
+    <div class="sources-title">📎 Pricing Sources — verified June 2026</div>
+    <div class="src-pills">
+      <a href="https://aws.amazon.com/lambda/pricing/" target="_blank" class="src-pill">🟠 Lambda</a>
+      <a href="https://aws.amazon.com/api-gateway/pricing/" target="_blank" class="src-pill">🟠 API Gateway</a>
+      <a href="https://aws.amazon.com/ec2/pricing/on-demand/" target="_blank" class="src-pill">🟠 EC2 Egress</a>
+      <a href="https://cloud.google.com/run/pricing" target="_blank" class="src-pill">🔵 Cloud Run</a>
+      <a href="https://cloud.google.com/vpc/network-pricing" target="_blank" class="src-pill">🔵 GCP Egress</a>
+      <a href="https://azure.microsoft.com/en-us/pricing/details/container-apps/" target="_blank" class="src-pill">🔷 Azure CA</a>
+      <a href="https://azure.microsoft.com/en-us/pricing/details/bandwidth/" target="_blank" class="src-pill">🔷 Azure Egress</a>
+      <a href="https://developers.cloudflare.com/workers/platform/pricing/" target="_blank" class="src-pill">🔶 CF Workers</a>
+      <a href="https://vercel.com/pricing" target="_blank" class="src-pill">▲ Vercel</a>
+      <a href="https://vercel.com/docs/pricing" target="_blank" class="src-pill">▲ Vercel Docs</a>
     </div>
   </div>
 
@@ -775,647 +446,460 @@
 </div><!-- /layout -->
 
 <script>
-// ─── Pricing constants (verified June 2026) ──────────────────────────────────
+// ── Pricing constants (verified June 2026) ─────────────────────────────────────
 const DAYS = 30;
 
-// AWS Fargate (us-east-1)
-const AWS_FARGATE_VCPU_HR   = 0.04048;   // $0.04048/vCPU-hr
-const AWS_FARGATE_MEM_HR    = 0.004445;  // $0.004445/GB-hr
-const AWS_ALB_BASE          = 22.27;     // ~$0.008/LCU-hr * ~100 LCU + base ~$16/mo → avg $22.27
-const AWS_ALB_PER_REQ       = 0.000008;  // $0.000008/req (LCU estimate)
-const AWS_CLOUDFRONT_PRO    = 15;        // CF flat-rate Pro plan (Nov 2025) — 50TB + 10M req
-const AWS_CLOUDFRONT_PAY_GB = 0.0085;    // pay-as-you-go first 10TB (US)
-const AWS_WAF_ACL           = 5;         // $5/WebACL/mo
-const AWS_WAF_RULE          = 1;         // $1/rule/mo (10 rules = $10)
-const AWS_WAF_REQ           = 0.0000006; // $0.60/M requests
-const AWS_EGRESS_GB         = 0.09;      // $0.09/GB out (first 10TB; after free 100GB/mo)
-const AWS_EC2_T3A_2XL_OD    = 0.3008;    // $/hr on-demand
-const AWS_EC2_T3A_2XL_SPOT  = 0.09024;   // $/hr spot (~30%)
-const AWS_EC2_PROJECTS_PER  = 20;        // dense-pack: ~20 projects per t3a.2xlarge
+// AWS Lambda (us-east-1)
+const L_REQ_RATE      = 0.20 / 1e6;        // per request (after 1M free)
+const L_GB_SEC_X86    = 0.0000166667;       // per GB-sec (after 400k free)
+const L_GB_SEC_ARM    = 0.0000133334;       // ARM Graviton2 — 20% cheaper
+const L_FREE_REQ      = 1_000_000;          // free/mo
+const L_FREE_GB_SEC   = 400_000;            // free/mo
+const APIGW_HTTP      = 1.00 / 1e6;         // HTTP API per request
+const APIGW_REST      = 3.50 / 1e6;         // REST API per request
+const APIGW_EGRESS    = 0.09;               // per GB (API GW data transfer out)
+
+// GCP Cloud Run (us-central1, Tier 1)
+const GCP_CPU_SEC     = 0.000024;           // per vCPU-sec (after 180k free)
+const GCP_MEM_SEC     = 0.0000025;          // per GiB-sec (after 360k free)
+const GCP_REQ_RATE    = 0.40 / 1e6;         // per request (after 2M free)
+const GCP_FREE_CPU    = 180_000;
+const GCP_FREE_MEM    = 360_000;
+const GCP_FREE_REQ    = 2_000_000;
+const GCP_EGRESS      = 0.12;               // per GB (North America)
+
+// Azure Container Apps (Consumption plan, East US)
+const AZ_CPU_SEC      = 0.000024;           // per vCPU-sec (after 180k free)
+const AZ_MEM_SEC      = 0.000003;           // per GiB-sec (after 360k free) — slightly higher than GCP
+const AZ_REQ_RATE     = 0.40 / 1e6;         // per request (after 2M free)
+const AZ_FREE_CPU     = 180_000;
+const AZ_FREE_MEM     = 360_000;
+const AZ_FREE_REQ     = 2_000_000;
+const AZ_EGRESS       = 0.087;              // per GB (first 10 TB)
 
 // Cloudflare Workers
-const CF_FREE_REQ     = 3_000_000;
-const CF_PAID_BASE    = 5;
-const CF_PAID_INC     = 10_000_000;
-const CF_OVERAGE_RATE = 0.30;
+const CF_FREE_REQ_MO  = 3_000_000;          // 100k req/day free
+const CF_PAID_BASE    = 5;                  // $5/mo Workers Paid
+const CF_INCL_REQ     = 10_000_000;         // included in $5
+const CF_INCL_CPU_MS  = 30_000_000;         // CPU-ms included in $5
+const CF_OVG_REQ      = 0.30 / 1e6;         // per req over 10M
+const CF_OVG_CPU      = 0.02 / 1e6;         // per CPU-ms over 30M
+// No egress cost — a major advantage
 
-// Vercel Pro
-const VERCEL_SEAT      = 20;
-const VERCEL_INC_BW    = 1024;       // 1TB
-const VERCEL_INC_EDGE  = 10_000_000;
-const VERCEL_BW_OVG    = 0.15;
-const VERCEL_EDGE_OVG  = 2.00;
-
-// Railway
-const RAIL_RAM_RATE    = 0.013699;   // $10/GB-mo ÷ 730hr
-const RAIL_EGRESS_RATE = 0.05;
-
-// GCP Cloud Run (us-central1)
-const GCP_CPU_SEC      = 0.000024;   // $0.000024/vCPU-sec (beyond free tier)
-const GCP_MEM_SEC      = 0.0000025;  // $0.0000025/GiB-sec
-const GCP_FREE_CPU_SEC = 180_000;    // 180k vCPU-sec free/mo
-const GCP_FREE_MEM_SEC = 360_000;    // 360k GiB-sec free/mo
-const GCP_FREE_REQ     = 2_000_000;  // 2M req/mo free
-const GCP_EGRESS_GB    = 0.12;       // $0.12/GB egress (North America)
-const GCP_LB_BASE      = 18;         // Global LB min ~$18/mo
-const GCP_ARMOR_POLICY = 5;          // Cloud Armor policy/mo
-const GCP_ARMOR_RULE   = 1;          // per rule/mo
-const GCP_ARMOR_REQ    = 0.00000075; // $0.75/M requests
-
-// Azure Container Apps (Consumption plan, June 2026)
-const AZ_CPU_SEC    = 0.000024;    // per vCPU-sec
-const AZ_MEM_SEC    = 0.000003;    // per GiB-sec
-const AZ_FREE_CPU   = 180_000;     // free vCPU-sec/mo
-const AZ_FREE_MEM   = 360_000;     // free GiB-sec/mo
-const AZ_FREE_REQ   = 2_000_000;   // free requests/mo
-const AZ_FRONT_DOOR = 35;          // Front Door Standard base/mo
-const AZ_FD_GB      = 0.008;       // per GB transfer
-const AZ_EGRESS_GB  = 0.087;       // egress per GB (first 10TB)
-const AZ_WAF_POLICY = 5;           // WAF policy/mo
-const AZ_WAF_RULE   = 1;           // per rule/mo
-const AZ_WAF_REQ    = 0.0000015;   // per request WAF processing
-
-// Add-ons
-const ADDON_COST = {
-  logging:    35,
-  monitoring: 29,
-  waf:        25,
-  secrets:    24,
-  backup:     1.5,
-};
+// Vercel (Pro plan)
+const V_SEAT          = 20;                 // per seat/mo
+const V_INV_RATE      = 0.60 / 1e6;         // per invocation
+const V_CPU_HR        = 0.128;              // per CPU-hour
+const V_MEM_GB_HR     = 0.0106;             // per GB-hour (provisioned memory)
+const V_INCL_BW_GB    = 1024;               // 1TB included in Pro
+const V_BW_RATE       = 0.15;               // per GB over 1TB
 
 const TRAFFIC = {
-  low:    { reqMult: 0.1,  activeHrMult: 0.25 },
-  medium: { reqMult: 1,    activeHrMult: 1    },
-  high:   { reqMult: 10,   activeHrMult: 2.5  },
+  low:    { mult: 0.1  },
+  medium: { mult: 1    },
+  high:   { mult: 10   },
 };
 
-// ─── State ────────────────────────────────────────────────────────────────────
-let activeVariant = 'all';
-let activeTraffic = 'all';
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────────────────────
 const $  = id => document.getElementById(id);
-const fmt = n => n < 0.005 ? '$0' : n < 1 ? '$' + n.toFixed(2) : '$' + Math.round(n).toLocaleString();
-const fmtDec = n => '$' + n.toFixed(2);
-const fmtReq = n => {
-  if (n >= 1e9) return (n/1e9).toFixed(1) + 'B';
-  if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
-  if (n >= 1e3) return Math.round(n/1e3) + 'K';
+const fmt = n => {
+  if (n === 0) return '$0';
+  if (n < 0.005) return '<$0.01';
+  if (n < 1) return '$' + n.toFixed(2);
+  if (n < 10) return '$' + n.toFixed(2);
+  return '$' + Math.round(n).toLocaleString();
+};
+const fmtK = n => {
+  if (n >= 1e9) return (n/1e9).toFixed(1)+'B';
+  if (n >= 1e6) return (n/1e6).toFixed(1)+'M';
+  if (n >= 1e3) return Math.round(n/1000)+'K';
   return Math.round(n).toString();
 };
-const fmtGB = n => {
-  if (n >= 1024) return (n/1024).toFixed(1) + 'TB';
-  if (n < 1) return (n*1024).toFixed(0) + 'MB';
-  return n.toFixed(1) + 'GB';
-};
 
-// ─── Read inputs ─────────────────────────────────────────────────────────────
-function getVals() {
-  const numFrontend = parseInt($('num_frontend').value) || 0;
-  const numBackend  = parseInt($('num_backend').value)  || 0;
+// ── Read inputs ────────────────────────────────────────────────────────────────
+function getV() {
   return {
-    numFrontend,
-    numBackend,
-    // aliases used by calcAzure
-    frontendProjects: numFrontend,
-    backendProjects:  numBackend,
-    reqPerDay:       parseInt($('req_per_day').value) || 1000,
-    responseSizeKB:  parseInt($('response_size').value) || 10,
-    // AWS
-    awsCompute:      $('aws_compute').value,
-    awsVcpu:         parseFloat($('aws_vcpu').value) || 0.25,
-    awsRamMB:        parseInt($('aws_ram').value) || 512,
-    awsCloudFront:   $('aws_cloudfront').checked,
-    awsWaf:          $('aws_waf').checked,
-    // Stack
-    railRamMB:       parseInt($('rail_ram').value) || 128,
-    activeHours:     parseFloat($('active_hours').value) || 4,
-    serverless:      $('serverless_enabled').checked,
-    railPlan:        parseInt($('railway_plan').value) || 20,
-    vercelSeats:     parseInt($('vercel_seats').value) || 1,
-    // GCP
-    gcpMemMiB:       parseInt($('gcp_mem').value) || 256,
-    gcpCpu:          parseFloat($('gcp_cpu').value) || 1,
-    gcpConcurrency:  parseInt($('gcp_concurrency').value) || 80,
-    gcpLb:           $('gcp_lb').checked,
-    // Azure
-    azMem:           parseInt($('az_mem').value) || 512,
-    azCpu:           parseFloat($('az_cpu').value) || 0.5,
-    azActiveHr:      parseFloat($('az_active_hr').value) || 4,
-    azFrontDoor:     $('az_front_door').checked,
-    azWAF:           $('az_waf').checked,
+    projects:    Math.max(1, parseInt($('projects_i').value) || 1),
+    reqPerDay:   Math.max(1, parseInt($('req_i').value) || 10000),
+    durMs:       Math.max(1, parseFloat($('dur_i').value) || 100),
+    memMB:       parseInt($('mem_sel').value) || 256,
+    respKB:      Math.max(1, parseInt($('resp_i').value) || 10),
+    lambdaArch:  $('lambda_arch').value,
+    lambdaApigw: $('lambda_apigw').value,
+    gcpCpu:      parseFloat($('gcp_cpu').value) || 1,
+    azCpu:       parseFloat($('az_cpu').value) || 0.5,
+    cfCpuMs:     Math.max(0.1, parseFloat($('cf_cpu_i').value) || 2),
+    vercelSeats: Math.max(1, parseInt($('vercel_seats_i').value) || 2),
   };
 }
 
-// ─── Calc: AWS ────────────────────────────────────────────────────────────────
-function calcAWS(v, level) {
-  const t = TRAFFIC[level];
-  const total = v.numFrontend + v.numBackend;
-  const reqPerMo = total * v.reqPerDay * t.reqMult * DAYS;
-  const bwGB = (reqPerMo * v.responseSizeKB) / (1024 * 1024);
+// ── Calc: Lambda ───────────────────────────────────────────────────────────────
+function calcLambda(v, level) {
+  const req = v.projects * v.reqPerDay * DAYS * TRAFFIC[level].mult;
+  const gbSec = req * (v.memMB / 1024) * (v.durMs / 1000);
+  const rate = v.lambdaArch === 'arm' ? L_GB_SEC_ARM : L_GB_SEC_X86;
 
-  let compute = 0;
-  if (v.awsCompute === 'fargate') {
-    const activeHrs = v.serverless ? Math.min(24, v.activeHours * t.activeHrMult) * DAYS
-                                   : 24 * DAYS;
-    const vcpuCost  = total * v.awsVcpu * activeHrs * AWS_FARGATE_VCPU_HR;
-    const memCost   = total * (v.awsRamMB / 1024) * activeHrs * AWS_FARGATE_MEM_HR;
-    compute = vcpuCost + memCost;
-  } else {
-    const hr = v.awsCompute === 'ec2_spot' ? AWS_EC2_T3A_2XL_SPOT : AWS_EC2_T3A_2XL_OD;
-    const instances = Math.ceil(total / AWS_EC2_PROJECTS_PER);
-    compute = instances * hr * 24 * DAYS;
-  }
+  const reqCost  = Math.max(0, req - L_FREE_REQ) * L_REQ_RATE;
+  const compCost = Math.max(0, gbSec - L_FREE_GB_SEC) * rate;
 
-  const alb = AWS_ALB_BASE + reqPerMo * AWS_ALB_PER_REQ;
-  const cdn = v.awsCloudFront ? AWS_CLOUDFRONT_PRO : Math.max(0, bwGB - 1) * AWS_CLOUDFRONT_PAY_GB;
-  const waf = v.awsWaf ? (AWS_WAF_ACL + AWS_WAF_RULE * 10 + reqPerMo * AWS_WAF_REQ) : 0;
-  const egress = v.awsCloudFront ? 0 : Math.max(0, bwGB - 0.1) * AWS_EGRESS_GB;
+  let apigwCost = 0;
+  if (v.lambdaApigw === 'http') apigwCost = req * APIGW_HTTP;
+  else if (v.lambdaApigw === 'rest') apigwCost = req * APIGW_REST;
 
-  return {
-    compute, alb, cdn, waf, egress,
-    total: compute + alb + cdn + waf + egress,
-    reqPerMo, bwGB,
-  };
+  const egressGB = req * v.respKB / 1024 / 1024;
+  const egressCost = v.lambdaApigw !== 'none'
+    ? Math.max(0, egressGB - 1) * APIGW_EGRESS  // 1GB free/mo from API GW
+    : Math.max(0, egressGB - 100/1024) * APIGW_EGRESS;
+
+  const freeReqPct = Math.min(100, req / L_FREE_REQ * 100);
+  const freeCompPct = Math.min(100, gbSec / L_FREE_GB_SEC * 100);
+
+  return { reqCost, compCost, apigwCost, egressCost,
+    total: reqCost + compCost + apigwCost + egressCost,
+    req, gbSec, egressGB, freeReqPct, freeCompPct };
 }
 
-// ─── Calc: Stack (Vercel+Railway+CF) ─────────────────────────────────────────
-function calcStack(v, level) {
-  const t = TRAFFIC[level];
-  const allProj = v.numFrontend + v.numBackend;
-  const totalReq = allProj * v.reqPerDay * t.reqMult * DAYS;
-  const vercelReq = v.numFrontend * v.reqPerDay * t.reqMult * DAYS;
-  const railReq   = v.numBackend  * v.reqPerDay * t.reqMult * DAYS;
+// ── Calc: GCP Cloud Run ────────────────────────────────────────────────────────
+function calcGCP(v, level) {
+  const req = v.projects * v.reqPerDay * DAYS * TRAFFIC[level].mult;
+  const durSec = v.durMs / 1000;
+  const cpuSec    = req * v.gcpCpu * durSec;
+  const memGiSec  = req * (v.memMB / 1024) * durSec;
 
-  // CF Workers
-  let cfBase = 0, cfOvg = 0;
-  if (totalReq > CF_FREE_REQ) {
-    cfBase = CF_PAID_BASE;
-    cfOvg  = Math.max(0, (totalReq - CF_PAID_INC) / 1e6) * CF_OVERAGE_RATE;
-  }
-  const cfTotal = cfBase + cfOvg;
+  const compCost = Math.max(0, cpuSec - GCP_FREE_CPU) * GCP_CPU_SEC
+                 + Math.max(0, memGiSec - GCP_FREE_MEM) * GCP_MEM_SEC;
+  const reqCost   = Math.max(0, req - GCP_FREE_REQ) * GCP_REQ_RATE;
+  const egressGB  = req * v.respKB / 1024 / 1024;
+  const egressCost = egressGB * GCP_EGRESS;
 
-  // Vercel
-  const vercelBase = v.vercelSeats * VERCEL_SEAT;
-  const vercelBwGB = (vercelReq * v.responseSizeKB) / (1024 * 1024);
-  const vercelBwOvg = Math.max(0, vercelBwGB - VERCEL_INC_BW) * VERCEL_BW_OVG;
-  const vercelEdgeOvg = Math.max(0, (vercelReq - VERCEL_INC_EDGE) / 1e6) * VERCEL_EDGE_OVG;
-  const vercelTotal = vercelBase + vercelBwOvg + vercelEdgeOvg;
-
-  // Railway
-  const railCredit = v.railPlan;
-  const activeHrsMo = (v.serverless ? Math.min(24, v.activeHours * t.activeHrMult) : 24) * DAYS;
-  const ramGB = v.railRamMB / 1024;
-  const ramCost = v.numBackend * ramGB * activeHrsMo * RAIL_RAM_RATE;
-  const railBwGB = (railReq * v.responseSizeKB) / (1024 * 1024);
-  const egressCost = railBwGB * RAIL_EGRESS_RATE;
-  const rawUsage = ramCost + egressCost;
-  const railOvg = Math.max(0, rawUsage - railCredit);
-  const railTotal = v.railPlan + railOvg;
-
-  return {
-    cfBase, cfOvg, cfTotal,
-    vercelBase, vercelBwGB, vercelBwOvg, vercelEdgeOvg, vercelTotal,
-    railCredit, ramCost, railBwGB, egressCost, rawUsage, railOvg, railTotal,
-    total: cfTotal + vercelTotal + railTotal,
-    totalReq, vercelReq, railReq,
-  };
+  return { compCost, reqCost, egressCost,
+    total: compCost + reqCost + egressCost,
+    req, cpuSec, memGiSec, egressGB };
 }
 
-// ─── Calc: GCP ────────────────────────────────────────────────────────────────
-function calcGCP(v, level, withCF) {
-  const t = TRAFFIC[level];
-  const total = v.numFrontend + v.numBackend;
-  const reqPerMo = total * v.reqPerDay * t.reqMult * DAYS;
-  const bwGB = (reqPerMo * v.responseSizeKB) / (1024 * 1024);
-
-  // Estimate request duration: ~50ms typical cold, ~20ms warm
-  const reqDurSec = 0.030;
-  const instances = Math.max(1, Math.ceil((v.reqPerDay * t.reqMult * total) / (v.gcpConcurrency * 86400 / reqDurSec)));
-  const cpuSec  = reqPerMo * v.gcpCpu * reqDurSec;
-  const memSecGiB = reqPerMo * (v.gcpMemMiB / 1024) * reqDurSec;
-  const cpuCost  = Math.max(0, cpuSec  - GCP_FREE_CPU_SEC) * GCP_CPU_SEC;
-  const memCost  = Math.max(0, memSecGiB - GCP_FREE_MEM_SEC) * GCP_MEM_SEC;
-  const computeTotal = cpuCost + memCost;
-
-  const egress = withCF ? Math.max(0, bwGB * 0.1) * GCP_EGRESS_GB  // CF edge caches ~90%
-                        : Math.max(0, bwGB) * GCP_EGRESS_GB;
-  const lb = (!withCF && v.gcpLb) ? GCP_LB_BASE : 0;  // hybrid uses CF Workers instead of GCP LB
-  const cf = withCF ? (reqPerMo > CF_FREE_REQ ? CF_PAID_BASE + Math.max(0,(reqPerMo-CF_PAID_INC)/1e6)*CF_OVERAGE_RATE : 0) : 0;
-  const armor = !withCF ? (GCP_ARMOR_POLICY + GCP_ARMOR_RULE * 5 + reqPerMo * GCP_ARMOR_REQ) : 0;
-
-  return {
-    computeTotal, cpuCost, memCost, egress, lb, cf, armor,
-    total: computeTotal + egress + lb + cf + armor,
-    reqPerMo, bwGB,
-  };
-}
-
-// ─── Calc: Azure Container Apps ──────────────────────────────────────────────
+// ── Calc: Azure Container Apps ─────────────────────────────────────────────────
 function calcAzure(v, level) {
-  const tm = TRAFFIC[level];
-  const totalReq = v.frontendProjects * v.reqPerDay * 30 * tm.reqMult
-                 + v.backendProjects  * v.reqPerDay * 30 * tm.reqMult;
+  const req = v.projects * v.reqPerDay * DAYS * TRAFFIC[level].mult;
+  const durSec = v.durMs / 1000;
+  const cpuSec    = req * v.azCpu * durSec;
+  const memGiSec  = req * (v.memMB / 1024) * durSec;
 
-  // Container Apps compute (vCPU-sec + GiB-sec)
-  const activeSecPerMonth = v.backendProjects * v.azActiveHr * 3600 * 30 * tm.activeHrMult;
-  const cpuSec = Math.max(0, activeSecPerMonth * v.azCpu - AZ_FREE_CPU);
-  const memSec = Math.max(0, activeSecPerMonth * (v.azMem / 1024) - AZ_FREE_MEM);
-  const computeCost = cpuSec * AZ_CPU_SEC + memSec * AZ_MEM_SEC;
+  const compCost = Math.max(0, cpuSec - AZ_FREE_CPU) * AZ_CPU_SEC
+                 + Math.max(0, memGiSec - AZ_FREE_MEM) * AZ_MEM_SEC;
+  const reqCost   = Math.max(0, req - AZ_FREE_REQ) * AZ_REQ_RATE;
+  const egressGB  = req * v.respKB / 1024 / 1024;
+  const egressCost = egressGB * AZ_EGRESS;
 
-  // Egress
-  const egressGB = totalReq * v.responseSizeKB / 1024 / 1024;
-  const egressCost = egressGB * AZ_EGRESS_GB;
-
-  // Front Door
-  const fdCost = v.azFrontDoor ? AZ_FRONT_DOOR + egressGB * AZ_FD_GB : 0;
-
-  // WAF
-  const wafCost = v.azWAF ? AZ_WAF_POLICY + 3 * AZ_WAF_RULE + totalReq * AZ_WAF_REQ : 0;
-
-  return { compute: computeCost, egress: egressCost, frontDoor: fdCost, waf: wafCost,
-           total: computeCost + egressCost + fdCost + wafCost,
-           totalReq, egressGB };
+  return { compCost, reqCost, egressCost,
+    total: compCost + reqCost + egressCost,
+    req, cpuSec, memGiSec, egressGB };
 }
 
-// ─── Add-ons ──────────────────────────────────────────────────────────────────
-function calcAddOns() {
-  const on = id => { const el = $(id); return el ? el.checked : false; };
-  const sel = {
-    logging: on('addon_logging'),
-    monitoring: on('addon_monitoring'),
-    waf: on('addon_waf'),
-    secrets: on('addon_secrets'),
-    backup: on('addon_backup'),
-  };
-  let subtotal = 0;
-  for (const k in sel) if (sel[k]) subtotal += ADDON_COST[k];
-  return { sel, subtotal };
+// ── Calc: Cloudflare Workers ───────────────────────────────────────────────────
+function calcCF(v, level) {
+  const req = v.projects * v.reqPerDay * DAYS * TRAFFIC[level].mult;
+  const cpuMs = req * v.cfCpuMs;
+
+  let base = 0, reqOvg = 0, cpuOvg = 0;
+  if (req > CF_FREE_REQ_MO) {
+    base = CF_PAID_BASE;
+    reqOvg = Math.max(0, req - CF_INCL_REQ) * CF_OVG_REQ;
+    cpuOvg = Math.max(0, cpuMs - CF_INCL_CPU_MS) * CF_OVG_CPU;
+  }
+
+  return { base, reqOvg, cpuOvg,
+    total: base + reqOvg + cpuOvg,
+    req, cpuMs };
 }
 
-// ─── Build detail table rows ──────────────────────────────────────────────────
-function buildDetailRows(v, low_aws, med_aws, high_aws, low_stack, med_stack, high_stack, low_gcp, med_gcp, high_gcp, low_hyb, med_hyb, high_hyb, low_az, med_az, high_az) {
-  const tr = (label, note, l, m, h, ref='') =>
-    `<tr>
-      <td>${label}${note?`<div class="td-note">${note}</div>`:''}
-      </td>
-      <td>${l}</td><td>${m}</td><td>${h}</td>
-      <td>${ref}</td>
-    </tr>`;
+// ── Calc: Vercel Functions ─────────────────────────────────────────────────────
+function calcVercel(v, level) {
+  const req = v.projects * v.reqPerDay * DAYS * TRAFFIC[level].mult;
+  const durSec = v.durMs / 1000;
 
-  const sect = (cls, label) =>
-    `<tr class="section-row"><td colspan="5" class="${cls}">${label}</td></tr>`;
+  const planCost = v.vercelSeats * V_SEAT;
+  const invCost  = req * V_INV_RATE;
+  const cpuHr    = req * durSec / 3600;
+  const memGBhr  = req * (v.memMB / 1024) * durSec / 3600;
+  const compCost = cpuHr * V_CPU_HR + memGBhr * V_MEM_GB_HR;
+  const bwGB     = req * v.respKB / 1024 / 1024;
+  const bwCost   = Math.max(0, bwGB - V_INCL_BW_GB) * V_BW_RATE;
 
+  return { planCost, invCost, compCost, bwCost,
+    total: planCost + invCost + compCost + bwCost,
+    req, cpuHr, memGBhr, bwGB };
+}
+
+// ── Build table ────────────────────────────────────────────────────────────────
+function buildTable(v, lo, me, hi, platform) {
   const rows = [];
+  const tr = (lbl, note, l, m, h, ref='') =>
+    `<tr><td>${lbl}${note?`<div class="td-note">${note}</div>`:''}</td>
+     <td>${l}</td><td>${m}</td><td>${h}</td><td>${ref}</td></tr>`;
+  const sect = (cls, lbl) =>
+    `<tr class="section-row"><td colspan="5" class="${cls}">${lbl}</td></tr>`;
+  const total = (cls, lbl, l, m, h) =>
+    `<tr class="total-row"><td>${lbl}</td>
+     <td class="${cls}">${fmt(l)}</td>
+     <td class="${cls}">${fmt(m)}</td>
+     <td class="${cls}">${fmt(h)}</td><td></td></tr>`;
 
-  // AWS
-  rows.push(sect('sect-aws', '🟠 ① AWS FARGATE'));
-  rows.push(tr('Compute (Fargate/EC2)',
-    `${v.awsCompute==='fargate'?`${v.awsVcpu} vCPU · ${v.awsRamMB}MB · Fargate`:`EC2 t3a.2xlarge (${v.awsCompute==='ec2_spot'?'Spot ~70% off':'On-Demand'})`}`,
-    fmt(low_aws.compute), fmt(med_aws.compute), fmt(high_aws.compute),
-    `<a href="https://aws.amazon.com/fargate/pricing/" target="_blank">Fargate ↗</a>`));
-  rows.push(tr('ALB (Application Load Balancer)', '$16/mo base + LCU usage',
-    fmt(low_aws.alb), fmt(med_aws.alb), fmt(high_aws.alb),
-    `<a href="https://aws.amazon.com/elasticloadbalancing/pricing/" target="_blank">ALB ↗</a>`));
-  rows.push(tr('CloudFront CDN', v.awsCloudFront ? 'Flat-rate Pro $15/mo · 50TB + 10M req (Nov 2025)' : 'Pay-as-you-go $0.0085/GB',
-    fmt(low_aws.cdn), fmt(med_aws.cdn), fmt(high_aws.cdn),
-    `<a href="https://aws.amazon.com/cloudfront/pricing/" target="_blank">CF ↗</a>`));
-  rows.push(tr('WAF (1 WebACL · 10 rules)', '$5/ACL + $10 rules + $0.60/M req',
-    fmt(low_aws.waf), fmt(med_aws.waf), fmt(high_aws.waf),
-    `<a href="https://aws.amazon.com/waf/pricing/" target="_blank">WAF ↗</a>`));
-  rows.push(tr('EC2/Fargate Egress', 'Waived when CloudFront in front',
-    fmt(low_aws.egress), fmt(med_aws.egress), fmt(high_aws.egress), ''));
-  rows.push(`<tr class="total-row"><td>🟠 AWS TOTAL</td>
-    <td class="aws-text">${fmt(low_aws.total)}</td>
-    <td class="aws-text">${fmt(med_aws.total)}</td>
-    <td class="aws-text">${fmt(high_aws.total)}</td><td></td></tr>`);
+  // Lambda
+  rows.push(sect('s-lambda', '🟠 AWS LAMBDA'));
+  rows.push(tr('Invocations',
+    `$0.20/M req · first ${fmtK(L_FREE_REQ)} free/mo · arch: ${v.lambdaArch.toUpperCase()}`,
+    lo.reqCost===0?'✓ Free':fmt(lo.reqCost), me.reqCost===0?'✓ Free':fmt(me.reqCost), fmt(hi.reqCost),
+    `<a href="https://aws.amazon.com/lambda/pricing/" target="_blank">↗</a>`));
+  rows.push(tr('Compute (GB-sec)',
+    `$${v.lambdaArch==='arm'?'0.0000133334':'0.0000166667'}/GB-sec · first 400K GB-sec free · ${v.memMB}MB × ${v.durMs}ms`,
+    lo.compCost===0?'✓ Free':fmt(lo.compCost), me.compCost===0?'✓ Free':fmt(me.compCost), fmt(hi.compCost),
+    `<a href="https://aws.amazon.com/lambda/pricing/" target="_blank">↗</a>`));
+  rows.push(tr(`API Gateway (${v.lambdaApigw==='http'?'HTTP $1/M':v.lambdaApigw==='rest'?'REST $3.50/M':'none'})`,
+    v.lambdaApigw==='http'?'Recommended — lower cost, lower latency':v.lambdaApigw==='rest'?'Full REST features, higher cost':'Function URL (no managed gateway)',
+    fmt(lo.apigwCost), fmt(me.apigwCost), fmt(hi.apigwCost),
+    `<a href="https://aws.amazon.com/api-gateway/pricing/" target="_blank">↗</a>`));
+  rows.push(tr('Data Transfer Out', '$0.09/GB · first 1GB/mo free (API GW)',
+    lo.egressCost===0?'✓ Free':fmt(lo.egressCost), me.egressCost===0?'✓ Free':fmt(me.egressCost), fmt(hi.egressCost)));
+  rows.push(total('lt', '🟠 LAMBDA TOTAL', lo.total, me.total, hi.total));
 
-  // Stack
-  rows.push(sect('sect-stack', '🟣 ② VERCEL + RAILWAY + CLOUDFLARE'));
-  rows.push(tr('CF Workers Invocations', `free ≤3M/mo · $5 paid ≤10M · $0.30/M over`,
-    low_stack.cfTotal===0?'✓ Free':fmt(low_stack.cfTotal),
-    med_stack.cfTotal===0?'✓ Free':fmt(med_stack.cfTotal),
-    fmt(high_stack.cfTotal),
-    `<a href="https://developers.cloudflare.com/workers/platform/pricing/" target="_blank">CF ↗</a>`));
-  rows.push(tr('Vercel Pro', `${v.vercelSeats} seat${v.vercelSeats>1?'s':''} × $20 · 10M edge req + 1TB BW included`,
-    fmt(low_stack.vercelTotal), fmt(med_stack.vercelTotal), fmt(high_stack.vercelTotal),
-    `<a href="https://vercel.com/pricing" target="_blank">Vercel ↗</a>`));
-  rows.push(tr('Railway (RAM + egress − credit)', `$${v.railPlan}/mo plan incl. $${v.railPlan} credit · $0.0139/GB-hr · $0.05/GB egress`,
-    fmt(low_stack.railTotal), fmt(med_stack.railTotal), fmt(high_stack.railTotal),
-    `<a href="https://docs.railway.com/pricing" target="_blank">Railway ↗</a>`));
-  rows.push(`<tr class="total-row"><td>🟣 STACK TOTAL</td>
-    <td class="stack-text">${fmt(low_stack.total)}</td>
-    <td class="stack-text">${fmt(med_stack.total)}</td>
-    <td class="stack-text">${fmt(high_stack.total)}</td><td></td></tr>`);
+  const [glo,gme,ghi] = [calcGCP(v,'low'), calcGCP(v,'medium'), calcGCP(v,'high')];
+  rows.push(sect('s-gcp', '🔵 GCP CLOUD RUN'));
+  rows.push(tr('Compute (vCPU-sec + GiB-sec)',
+    `$0.000024/vCPU-sec + $0.0000025/GiB-sec · free: 180K vCPU-sec + 360K GiB-sec/mo · ${v.gcpCpu} vCPU · ${v.memMB}MB`,
+    glo.compCost===0?'✓ Free':fmt(glo.compCost), gme.compCost===0?'✓ Free':fmt(gme.compCost), fmt(ghi.compCost),
+    `<a href="https://cloud.google.com/run/pricing" target="_blank">↗</a>`));
+  rows.push(tr('Requests',
+    '$0.40/M requests · first 2M free/mo',
+    glo.reqCost===0?'✓ Free':fmt(glo.reqCost), gme.reqCost===0?'✓ Free':fmt(gme.reqCost), fmt(ghi.reqCost),
+    `<a href="https://cloud.google.com/run/pricing" target="_blank">↗</a>`));
+  rows.push(tr('Egress', '$0.12/GB (North America)',
+    fmt(glo.egressCost), fmt(gme.egressCost), fmt(ghi.egressCost),
+    `<a href="https://cloud.google.com/vpc/network-pricing" target="_blank">↗</a>`));
+  rows.push(total('gt', '🔵 GCP TOTAL', glo.total, gme.total, ghi.total));
 
-  // GCP
-  rows.push(sect('sect-gcp', '🔵 ③ GCP CLOUD RUN (all-Google)'));
-  rows.push(tr('Cloud Run Compute', `${v.gcpCpu} vCPU · ${v.gcpMemMiB}MiB · req-based billing · 180k vCPU-sec + 360k GiB-sec free/mo`,
-    fmt(low_gcp.computeTotal), fmt(med_gcp.computeTotal), fmt(high_gcp.computeTotal),
-    `<a href="https://cloud.google.com/run/pricing" target="_blank">Cloud Run ↗</a>`));
-  rows.push(tr('GCP Egress', '$0.12/GB North America',
-    fmt(low_gcp.egress), fmt(med_gcp.egress), fmt(high_gcp.egress),
-    `<a href="https://cloud.google.com/vpc/network-pricing" target="_blank">Egress ↗</a>`));
-  rows.push(tr('GCP Global LB', '$18/mo base (when enabled)',
-    fmt(low_gcp.lb), fmt(med_gcp.lb), fmt(high_gcp.lb),
-    `<a href="https://cloud.google.com/load-balancing/pricing" target="_blank">LB ↗</a>`));
-  rows.push(tr('Cloud Armor WAF', '$5/policy + $1/rule × 5 + $0.75/M req',
-    fmt(low_gcp.armor), fmt(med_gcp.armor), fmt(high_gcp.armor),
-    `<a href="https://cloud.google.com/armor/pricing" target="_blank">Armor ↗</a>`));
-  rows.push(`<tr class="total-row"><td>🔵 GCP TOTAL</td>
-    <td class="gcp-text">${fmt(low_gcp.total)}</td>
-    <td class="gcp-text">${fmt(med_gcp.total)}</td>
-    <td class="gcp-text">${fmt(high_gcp.total)}</td><td></td></tr>`);
+  const [alo,ame,ahi] = [calcAzure(v,'low'), calcAzure(v,'medium'), calcAzure(v,'high')];
+  rows.push(sect('s-azure', '🔷 AZURE CONTAINER APPS (Consumption)'));
+  rows.push(tr('Compute (vCPU-sec + GiB-sec)',
+    `$0.000024/vCPU-sec + $0.000003/GiB-sec · free: 180K vCPU-sec + 360K GiB-sec/mo · ${v.azCpu} vCPU · ${v.memMB}MB`,
+    alo.compCost===0?'✓ Free':fmt(alo.compCost), ame.compCost===0?'✓ Free':fmt(ame.compCost), fmt(ahi.compCost),
+    `<a href="https://azure.microsoft.com/en-us/pricing/details/container-apps/" target="_blank">↗</a>`));
+  rows.push(tr('HTTP Requests',
+    '$0.40/M requests · first 2M free/mo',
+    alo.reqCost===0?'✓ Free':fmt(alo.reqCost), ame.reqCost===0?'✓ Free':fmt(ame.reqCost), fmt(ahi.reqCost),
+    `<a href="https://azure.microsoft.com/en-us/pricing/details/container-apps/" target="_blank">↗</a>`));
+  rows.push(tr('Egress', '$0.087/GB (first 10 TB, East US)',
+    fmt(alo.egressCost), fmt(ame.egressCost), fmt(ahi.egressCost),
+    `<a href="https://azure.microsoft.com/en-us/pricing/details/bandwidth/" target="_blank">↗</a>`));
+  rows.push(total('at', '🔷 AZURE TOTAL', alo.total, ame.total, ahi.total));
 
-  // Hybrid
-  rows.push(sect('sect-hybrid', '🩵 ④ GCP CLOUD RUN + CLOUDFLARE (Hybrid)'));
-  rows.push(tr('Cloud Run Compute', 'Same as ③ · CF edge cache cuts ~90% of backend hits',
-    fmt(low_hyb.computeTotal), fmt(med_hyb.computeTotal), fmt(high_hyb.computeTotal),
-    `<a href="https://cloud.google.com/run/pricing" target="_blank">Cloud Run ↗</a>`));
-  rows.push(tr('GCP Egress', '~10% of total (CF caches remainder)',
-    fmt(low_hyb.egress), fmt(med_hyb.egress), fmt(high_hyb.egress), ''));
-  rows.push(tr('CF Workers Front Door', 'Replaces GCP LB · free WAF + DDoS included',
-    low_hyb.cf===0?'✓ Free':fmt(low_hyb.cf),
-    med_hyb.cf===0?'✓ Free':fmt(med_hyb.cf),
-    fmt(high_hyb.cf),
-    `<a href="https://developers.cloudflare.com/workers/platform/pricing/" target="_blank">CF ↗</a>`));
-  rows.push(`<tr class="total-row"><td>🩵 HYBRID TOTAL</td>
-    <td class="hybrid-text">${fmt(low_hyb.total)}</td>
-    <td class="hybrid-text">${fmt(med_hyb.total)}</td>
-    <td class="hybrid-text">${fmt(high_hyb.total)}</td><td></td></tr>`);
+  const [clo,cme,chi] = [calcCF(v,'low'), calcCF(v,'medium'), calcCF(v,'high')];
+  rows.push(sect('s-cf', '🔶 CLOUDFLARE WORKERS'));
+  rows.push(tr('Base Plan',
+    'Free up to 3M req/mo · Workers Paid $5/mo includes 10M req + 30M CPU-ms',
+    clo.base===0?'✓ Free':fmt(clo.base), cme.base===0?'✓ Free':fmt(cme.base), fmt(chi.base),
+    `<a href="https://developers.cloudflare.com/workers/platform/pricing/" target="_blank">↗</a>`));
+  rows.push(tr('Request Overage',
+    '$0.30/M req over 10M included · CPU time billed separately',
+    clo.reqOvg===0?'—':fmt(clo.reqOvg), cme.reqOvg===0?'—':fmt(cme.reqOvg), fmt(chi.reqOvg)));
+  rows.push(tr('CPU Overage',
+    `$0.02/M CPU-ms over 30M included · ${v.cfCpuMs}ms CPU/req configured · I/O wait is FREE`,
+    clo.cpuOvg===0?'—':fmt(clo.cpuOvg), cme.cpuOvg===0?'—':fmt(cme.cpuOvg), fmt(chi.cpuOvg)));
+  rows.push(tr('Egress / Bandwidth', '✓ Free — no egress charges ever',
+    '<span class="badge-free">$0</span>','<span class="badge-free">$0</span>','<span class="badge-free">$0</span>'));
+  rows.push(total('ct', '🔶 CF WORKERS TOTAL', clo.total, cme.total, chi.total));
 
-  // Azure
-  rows.push(sect('sect-azure', '🔷 ⑤ AZURE CONTAINER APPS (Consumption plan)'));
-  rows.push(tr('Container Apps Compute', `${v.azCpu} vCPU · ${v.azMem} MiB · ${v.azActiveHr}h active/day · 180k vCPU-sec + 360k GiB-sec free/mo`,
-    fmt(low_az.compute), fmt(med_az.compute), fmt(high_az.compute),
-    `<a href="https://azure.microsoft.com/en-us/pricing/details/container-apps/" target="_blank">Container Apps ↗</a>`));
-  rows.push(tr('Egress', '$0.087/GB (first 10TB)',
-    fmt(low_az.egress), fmt(med_az.egress), fmt(high_az.egress),
-    `<a href="https://azure.microsoft.com/en-us/pricing/details/bandwidth/" target="_blank">Bandwidth ↗</a>`));
-  rows.push(tr('Azure Front Door Standard', v.azFrontDoor ? '$35/mo base + $0.008/GB transfer' : 'Disabled',
-    fmt(low_az.frontDoor), fmt(med_az.frontDoor), fmt(high_az.frontDoor),
-    `<a href="https://azure.microsoft.com/en-us/pricing/details/frontdoor/" target="_blank">Front Door ↗</a>`));
-  rows.push(tr('Azure WAF Policy', v.azWAF ? '$5/policy + $1/rule × 3 + $1.50/M req' : 'Disabled',
-    fmt(low_az.waf), fmt(med_az.waf), fmt(high_az.waf),
-    `<a href="https://azure.microsoft.com/en-us/pricing/details/web-application-firewall/" target="_blank">WAF ↗</a>`));
-  rows.push(`<tr class="total-row"><td>🔷 AZURE TOTAL</td>
-    <td class="azure-text">${fmt(low_az.total)}</td>
-    <td class="azure-text">${fmt(med_az.total)}</td>
-    <td class="azure-text">${fmt(high_az.total)}</td><td></td></tr>`);
+  const [vlo,vme,vhi] = [calcVercel(v,'low'), calcVercel(v,'medium'), calcVercel(v,'high')];
+  rows.push(sect('s-vercel', '▲ VERCEL FUNCTIONS (Pro)'));
+  rows.push(tr(`Pro Plan (${v.vercelSeats} seat${v.vercelSeats>1?'s':''} × $20)`,
+    'Hobby plan PROHIBITED for commercial use · includes 1TB bandwidth',
+    fmt(vlo.planCost), fmt(vme.planCost), fmt(vhi.planCost),
+    `<a href="https://vercel.com/pricing" target="_blank">↗</a>`));
+  rows.push(tr('Invocations', '$0.60/M invocations',
+    fmt(vlo.invCost), fmt(vme.invCost), fmt(vhi.invCost),
+    `<a href="https://vercel.com/docs/pricing" target="_blank">↗</a>`));
+  rows.push(tr('Compute (CPU-hr + GB-hr)',
+    `$0.128/CPU-hr + $0.0106/GB-hr · ${v.memMB}MB × ${v.durMs}ms/req`,
+    fmt(vlo.compCost), fmt(vme.compCost), fmt(vhi.compCost),
+    `<a href="https://vercel.com/docs/pricing" target="_blank">↗</a>`));
+  rows.push(tr('Bandwidth Overage', '$0.15/GB over 1TB · 1TB included in Pro',
+    vlo.bwCost===0?'✓ incl.':fmt(vlo.bwCost), vme.bwCost===0?'✓ incl.':fmt(vme.bwCost), fmt(vhi.bwCost),
+    `<a href="https://vercel.com/docs/pricing" target="_blank">↗</a>`));
+  rows.push(total('vt', '▲ VERCEL TOTAL', vlo.total, vme.total, vhi.total));
 
   return rows.join('');
 }
 
-// ─── Render ───────────────────────────────────────────────────────────────────
+// ── Render ─────────────────────────────────────────────────────────────────────
 function render() {
-  const v = getVals();
+  const v = getV();
 
-  // Calc all variants × all traffic levels
-  const aws_low  = calcAWS(v, 'low'),   aws_med  = calcAWS(v, 'medium'),   aws_high  = calcAWS(v, 'high');
-  const stk_low  = calcStack(v, 'low'), stk_med  = calcStack(v, 'medium'), stk_high  = calcStack(v, 'high');
-  const gcp_low  = calcGCP(v, 'low', false), gcp_med = calcGCP(v, 'medium', false), gcp_high = calcGCP(v, 'high', false);
-  const hyb_low  = calcGCP(v, 'low', true),  hyb_med = calcGCP(v, 'medium', true),  hyb_high = calcGCP(v, 'high', true);
-  const az_low   = calcAzure(v, 'low'), az_med   = calcAzure(v, 'medium'), az_high   = calcAzure(v, 'high');
+  const l = { lo: calcLambda(v,'low'), me: calcLambda(v,'medium'), hi: calcLambda(v,'high') };
+  const g = { lo: calcGCP(v,'low'),    me: calcGCP(v,'medium'),    hi: calcGCP(v,'high') };
+  const a = { lo: calcAzure(v,'low'),  me: calcAzure(v,'medium'),  hi: calcAzure(v,'high') };
+  const c = { lo: calcCF(v,'low'),     me: calcCF(v,'medium'),     hi: calcCF(v,'high') };
+  const vr= { lo: calcVercel(v,'low'), me: calcVercel(v,'medium'), hi: calcVercel(v,'high') };
 
   // Summary cards
-  $('aws_price_low').textContent  = fmt(aws_low.total);
-  $('aws_price_med').textContent  = fmt(aws_med.total);
-  $('aws_price_high').textContent = fmt(aws_high.total);
-  $('aws_sub_med').textContent    = fmtReq(aws_med.reqPerMo) + ' req/mo · ' + fmtGB(aws_med.bwGB);
-
-  $('stack_price_low').textContent  = fmt(stk_low.total);
-  $('stack_price_med').textContent  = fmt(stk_med.total);
-  $('stack_price_high').textContent = fmt(stk_high.total);
-  $('stack_sub_med').textContent    = fmtReq(stk_med.totalReq) + ' req/mo · ' + fmtGB(stk_med.vercelBwGB + stk_med.railBwGB);
-
-  $('gcp_price_low').textContent  = fmt(gcp_low.total);
-  $('gcp_price_med').textContent  = fmt(gcp_med.total);
-  $('gcp_price_high').textContent = fmt(gcp_high.total);
-  $('gcp_sub_med').textContent    = fmtReq(gcp_med.reqPerMo) + ' req/mo · ' + fmtGB(gcp_med.bwGB);
-
-  $('hybrid_price_low').textContent  = fmt(hyb_low.total);
-  $('hybrid_price_med').textContent  = fmt(hyb_med.total);
-  $('hybrid_price_high').textContent = fmt(hyb_high.total);
-  $('hybrid_sub_med').textContent    = fmtReq(hyb_med.reqPerMo) + ' req/mo · ' + fmtGB(hyb_med.bwGB);
-
-  $('azure_price_low').textContent  = fmt(az_low.total);
-  $('azure_price_med').textContent  = fmt(az_med.total);
-  $('azure_price_high').textContent = fmt(az_high.total);
-  $('azure_sub_med').textContent    = fmtReq(az_med.totalReq) + ' req/mo · ' + fmtGB(az_med.egressGB);
-
-  // Highlight cheapest variant card
-  ['aws','stack','gcp','hybrid','azure'].forEach(vt => {
-    const el = $('card_' + vt);
-    if (!el) return;
-    el.classList.remove('vc-active');
-  });
-  const meds = { aws: aws_med.total, stack: stk_med.total, gcp: gcp_med.total, hybrid: hyb_med.total, azure: az_med.total };
-  const cheapest = Object.entries(meds).sort((a,b)=>a[1]-b[1])[0][0];
-  const cheapCard = $('card_' + cheapest);
-  if (cheapCard) cheapCard.classList.add('vc-active');
-
-  // Bar chart (5 bars per traffic level, relative)
-  const maxAll = Math.max(aws_high.total, stk_high.total, gcp_high.total, hyb_high.total, az_high.total, 1);
-  const updateBars = (pfx, r_aws, r_stk, r_gcp, r_hyb, r_az) => {
-    const mx = maxAll;
-    const set = (id, val) => {
-      const el = $(id);
-      if (!el) return;
-      const pct = (val / mx) * 100;
-      el.style.width = pct + '%';
-      el.textContent = pct > 6 ? fmt(val) : '';
-    };
-    set(`bar_${pfx}_aws`,    r_aws.total);
-    set(`bar_${pfx}_stack`,  r_stk.total);
-    set(`bar_${pfx}_gcp`,    r_gcp.total);
-    set(`bar_${pfx}_hybrid`, r_hyb.total);
-    set(`bar_${pfx}_azure`,  r_az.total);
+  const setCard = (pfx, r, extraSub, perProj) => {
+    $(pfx+'p_low').textContent  = fmt(r.lo.total);
+    $(pfx+'p_med').textContent  = fmt(r.me.total);
+    $(pfx+'p_high').textContent = fmt(r.hi.total);
+    $(pfx+'s_med').textContent  = extraSub;
+    $(pfx+'p_per').textContent  = fmt(r.me.total / v.projects) + ' /project/mo (medium)';
   };
-  updateBars('low',  aws_low,  stk_low,  gcp_low,  hyb_low,  az_low);
-  updateBars('med',  aws_med,  stk_med,  gcp_med,  hyb_med,  az_med);
-  updateBars('high', aws_high, stk_high, gcp_high, hyb_high, az_high);
 
-  $('chart_low_label').textContent  = `AWS:${fmt(aws_low.total)} Stack:${fmt(stk_low.total)} GCP:${fmt(gcp_low.total)} Hybrid:${fmt(hyb_low.total)} Azure:${fmt(az_low.total)}`;
-  $('chart_med_label').textContent  = `AWS:${fmt(aws_med.total)} Stack:${fmt(stk_med.total)} GCP:${fmt(gcp_med.total)} Hybrid:${fmt(hyb_med.total)} Azure:${fmt(az_med.total)}`;
-  $('chart_high_label').textContent = `AWS:${fmt(aws_high.total)} Stack:${fmt(stk_high.total)} GCP:${fmt(gcp_high.total)} Hybrid:${fmt(hyb_high.total)} Azure:${fmt(az_high.total)}`;
+  const medReq = v.projects * v.reqPerDay * DAYS;
+  setCard('l', l, fmtK(medReq)+' req/mo · '+fmtK(l.me.gbSec)+' GB-sec');
+  setCard('g', g, fmtK(g.me.req)+' req/mo · '+fmtK(g.me.cpuSec)+' vCPU-sec');
+  setCard('a', a, fmtK(a.me.req)+' req/mo · '+fmtK(a.me.cpuSec)+' vCPU-sec');
+  setCard('c', c, fmtK(c.me.req)+' req/mo · '+fmtK(c.me.cpuMs)+' CPU-ms');
+  setCard('v', vr, fmtK(vr.me.req)+' req/mo · '+vr.me.cpuHr.toFixed(1)+' CPU-hr');
+
+  // Highlight cheapest at medium
+  const meds = { lambda: l.me.total, gcp: g.me.total, azure: a.me.total, cf: c.me.total, vercel: vr.me.total };
+  const cheapestKey = Object.entries(meds).sort((a,b)=>a[1]-b[1])[0][0];
+  ['lambda','gcp','azure','cf','vercel'].forEach(k => {
+    const el = $('card_'+k);
+    if (!el) return;
+    el.classList.remove('best-val');
+    const badge = el.querySelector('.badge-best');
+    if (badge) badge.remove();
+    if (k === cheapestKey) {
+      el.classList.add('best-val');
+      el.querySelector('.vc-name').insertAdjacentHTML('beforeend','<span class="badge-best">★ BEST</span>');
+    }
+  });
+
+  // Bar chart
+  const allVals = [l.hi.total, g.hi.total, a.hi.total, c.hi.total, vr.hi.total, 1];
+  const maxAll = Math.max(...allVals);
+  const setBar = (id, val) => {
+    const el = $(id);
+    if (!el) return;
+    const pct = val / maxAll * 100;
+    el.style.width = pct + '%';
+    el.textContent = pct > 7 ? fmt(val) : '';
+  };
+  ['lo','me','hi'].forEach((t, i) => {
+    const pre = ['lo','me','hi'][i];
+    const rr = [l,g,a,c,vr];
+    const keys = ['l','g','a','c','v'];
+    rr.forEach((r, j) => setBar('b_'+t[0]+t[1]+'_'+keys[j], r[{lo:'lo',me:'me',hi:'hi'}[pre] || pre].total));
+  });
+  // Fix: use correct pre mapping
+  [['lo','b_lo'],['me','b_me'],['hi','b_hi']].forEach(([tier,pf]) => {
+    const rv = [
+      { k:'l', r: tier==='lo'?l.lo:tier==='me'?l.me:l.hi },
+      { k:'g', r: tier==='lo'?g.lo:tier==='me'?g.me:g.hi },
+      { k:'a', r: tier==='lo'?a.lo:tier==='me'?a.me:a.hi },
+      { k:'c', r: tier==='lo'?c.lo:tier==='me'?c.me:c.hi },
+      { k:'v', r: tier==='lo'?vr.lo:tier==='me'?vr.me:vr.hi },
+    ];
+    rv.forEach(({k,r}) => setBar(pf+'_'+k, r.total));
+    const lbl = rv.map(({k,r}) => ['λ','GCP','AZ','CF','VCL'][['l','g','a','c','v'].indexOf(k)]+':'+fmt(r.total)).join(' ');
+    $('chart_'+tier.replace('lo','low').replace('me','med').replace('hi','hi')+'_lbl').textContent = lbl;
+  });
 
   // Detail table
-  $('detail_tbody').innerHTML = buildDetailRows(v,
-    aws_low, aws_med, aws_high,
-    stk_low, stk_med, stk_high,
-    gcp_low, gcp_med, gcp_high,
-    hyb_low, hyb_med, hyb_high,
-    az_low,  az_med,  az_high);
+  $('tbl_body').innerHTML = buildTable(v, l.lo, l.me, l.hi);
 
   // Assumptions chips
-  const totalProj = v.numFrontend + v.numBackend;
-  $('assumptions_display').innerHTML = [
-    `<div class="chip">Frontend: <strong>${v.numFrontend}</strong> projects</div>`,
-    `<div class="chip">Backend: <strong>${v.numBackend}</strong> projects</div>`,
-    `<div class="chip">Total: <strong>${totalProj}</strong> projects</div>`,
-    `<div class="chip">Traffic base: <strong>${v.reqPerDay.toLocaleString()}</strong> req/day/proj</div>`,
-    `<div class="chip">Resp size: <strong>${v.responseSizeKB} KB</strong></div>`,
-    `<div class="chip">Fargate: <strong>${v.awsVcpu}vCPU/${v.awsRamMB}MB</strong></div>`,
-    `<div class="chip">Railway RAM: <strong>${v.railRamMB} MB</strong></div>`,
-    `<div class="chip">Cloud Run: <strong>${v.gcpCpu}vCPU/${v.gcpMemMiB}MiB</strong></div>`,
-    `<div class="chip">Serverless sleep: <strong>${v.serverless?'On':'Off'}</strong></div>`,
-    `<div class="chip">Railway plan: <strong>$${v.railPlan}/mo</strong></div>`,
+  $('assumptions').innerHTML = [
+    `<div class="chip">Projects: <strong>${v.projects}</strong></div>`,
+    `<div class="chip">Req/day: <strong>${v.reqPerDay.toLocaleString()}</strong> (medium)</div>`,
+    `<div class="chip">Duration: <strong>${v.durMs}ms</strong></div>`,
+    `<div class="chip">Memory: <strong>${v.memMB}MB</strong></div>`,
+    `<div class="chip">Response: <strong>${v.respKB}KB</strong></div>`,
+    `<div class="chip">Lambda: <strong>${v.lambdaArch.toUpperCase()}</strong> · <strong>${v.lambdaApigw.toUpperCase()} API GW</strong></div>`,
+    `<div class="chip">GCP vCPU: <strong>${v.gcpCpu}</strong></div>`,
+    `<div class="chip">Azure vCPU: <strong>${v.azCpu}</strong></div>`,
+    `<div class="chip">CF CPU/req: <strong>${v.cfCpuMs}ms</strong></div>`,
     `<div class="chip">Vercel seats: <strong>${v.vercelSeats}</strong></div>`,
-    `<div class="chip">Azure: <strong>${v.azCpu}vCPU/${v.azMem}MiB</strong></div>`,
-    `<div class="chip">Azure active: <strong>${v.azActiveHr}h/day</strong></div>`,
-    `<div class="chip">Azure Front Door: <strong>${v.azFrontDoor?'On':'Off'}</strong></div>`,
+    `<div class="chip">Low = <strong>${fmtK(v.projects*v.reqPerDay*0.1*DAYS)}</strong> req/mo</div>`,
+    `<div class="chip">High = <strong>${fmtK(v.projects*v.reqPerDay*10*DAYS)}</strong> req/mo</div>`,
   ].join('');
 
   // Warnings
   const warns = [];
-  if (!v.serverless) {
-    warns.push({ t:'w-warn', i:'⚠️', m:'<b>Always-on:</b> serverless sleep off → Railway charges 24hr/day. Fargate also runs continuously. High costs.' });
-  }
-  if (v.numBackend === 0) {
-    warns.push({ t:'w-info', i:'ℹ️', m:'No backend projects — Railway/Fargate/Cloud Run costs are $0. Only CF Workers + Vercel + CDN costs apply.' });
-  }
-  if (v.numFrontend === 0) {
-    warns.push({ t:'w-info', i:'ℹ️', m:'No frontend projects — Vercel cost = $0 on ② Stack (seat only). CDN/LB still applies for ① AWS / ③ GCP.' });
-  }
-  if (v.responseSizeKB > 500) {
-    warns.push({ t:'w-warn', i:'⚠️', m:`<b>Large responses (${v.responseSizeKB}KB):</b> bandwidth costs will dominate. Enable gzip/brotli. CF and CloudFront compress automatically.` });
-  }
-  if (aws_med.total > stk_med.total * 2) {
-    warns.push({ t:'w-info', i:'💡', m:`<b>AWS is ${Math.round(aws_med.total/stk_med.total)}× more expensive</b> than ② Stack at medium traffic. ALB baseline ($22+/mo) is the main driver. Consider EC2 Spot to cut ~70% compute cost.` });
-  }
-  warns.push({ t:'w-success', i:'✅', m:'<b>GCP Cloud Run:</b> true scale-to-zero, request-based billing. GPU support GA (2025, NVIDIA L4/RTX PRO 6000). Free tier: 2M req + 180k vCPU-sec + 360k GiB-sec/mo.' });
-  warns.push({ t:'w-success', i:'✅', m:'<b>④ Hybrid advantage:</b> CF Workers front door replaces GCP LB ($18/mo saved), adds free WAF + DDoS protection, edge-caches ~90% of requests → lower Cloud Run invocations and GCP egress.' });
-  warns.push({ t:'w-info', i:'ℹ️', m:'<b>AWS ALB baseline</b> ($22+/mo) makes AWS expensive for <100K req/mo. At high traffic, Fargate scales proportionally. Use Savings Plans (1yr) to cut compute ~40%.' });
-  warns.push({ t:'w-info', i:'ℹ️', m:'<b>Vercel Hobby</b> plan bans commercial use (enforced Dec 2024). All production work requires Pro ($20/seat/mo) or Enterprise.' });
+  const totals = { Lambda: l.me.total, 'Cloud Run': g.me.total, 'Azure CA': a.me.total, 'CF Workers': c.me.total, Vercel: vr.me.total };
+  const sortedT = Object.entries(totals).sort((a,b)=>a[1]-b[1]);
+  const cheapName = sortedT[0][0];
+  const cheapVal  = sortedT[0][1];
+  const expName   = sortedT[sortedT.length-1][0];
+  const expVal    = sortedT[sortedT.length-1][1];
 
-  $('warnings_list').innerHTML = warns.map(w =>
-    `<div class="warning-item ${w.t}"><span class="w-icon">${w.i}</span><span>${w.m}</span></div>`
+  warns.push({ t:'w-ok', i:'✅', m:`<b>${cheapName}</b> is cheapest at medium traffic (${fmt(cheapVal)}/mo). ${expName} is ${Math.round(expVal/Math.max(cheapVal,0.01))}× more expensive.` });
+
+  if (c.me.total === 0 || c.me.total <= CF_PAID_BASE) {
+    warns.push({ t:'w-ok', i:'🔶', m:`<b>CF Workers free tier covers this workload</b> — ${fmtK(v.projects*v.reqPerDay*DAYS)} req/mo stays under 3M/mo free. Zero cost at medium traffic.` });
+  }
+
+  if (v.durMs > 1000) {
+    warns.push({ t:'w-warn', i:'⚠️', m:`<b>Long duration (${v.durMs}ms)</b> significantly increases Lambda and Vercel compute costs. CF Workers has a 30s wall-clock limit but CPU-time limit applies — if this is I/O-heavy (network calls), CF Workers CPU cost stays low.` });
+  }
+
+  if (v.durMs > 900 && v.lambdaApigw !== 'none') {
+    warns.push({ t:'w-info', i:'ℹ️', m:`<b>Lambda timeout:</b> default is 3s for API Gateway integrations. Increase via function config. Max 15 min (900s) for direct invocation.` });
+  }
+
+  if (v.memMB >= 1024) {
+    warns.push({ t:'w-info', i:'ℹ️', m:`<b>Lambda high memory (${v.memMB}MB):</b> Lambda automatically allocates proportional CPU — at 1769MB you get 1 full vCPU, 3538MB gets 2 vCPU. This can be cost-effective if it reduces duration.` });
+  }
+
+  warns.push({ t:'w-ok', i:'🔵', m:'<b>GCP Cloud Run free tier</b> resets monthly: 2M requests + 180K vCPU-sec + 360K GiB-sec per billing account. GPU support GA since 2025 (NVIDIA L4/RTX PRO 6000). Excellent for workloads under free threshold.' });
+  warns.push({ t:'w-ok', i:'🔶', m:'<b>CF Workers zero egress cost</b> is a major advantage for high-bandwidth workloads. No data transfer fees ever. Workers KV (storage), R2 (object storage), D1 (SQLite) available as native edge storage.' });
+  warns.push({ t:'w-info', i:'ℹ️', m:'<b>Vercel Pro plan ($20/seat/mo)</b> required for commercial use. Compute billing ($0.128/CPU-hr + $0.0106/GB-hr) is similar to GCP Cloud Run rates but adds per-invocation charge + seat fee makes it expensive at scale.' });
+  warns.push({ t:'w-info', i:'ℹ️', m:`<b>Azure vs GCP:</b> same free tier (180K vCPU-sec, 360K GiB-sec, 2M req), but Azure memory rate is higher ($0.000003 vs $0.0000025/GiB-sec — 20% more). For memory-intensive functions, prefer GCP.` });
+
+  if (v.lambdaApigw === 'rest') {
+    warns.push({ t:'w-warn', i:'⚠️', m:'<b>REST API Gateway is 3.5× more expensive</b> than HTTP API ($3.50 vs $1.00/M req). Switch to HTTP API unless you need API keys, usage plans, or legacy AWS SDK support.' });
+  }
+
+  $('warnings').innerHTML = warns.map(w =>
+    `<div class="warn-item ${w.t}"><span style="flex-shrink:0">${w.i}</span><span>${w.m}</span></div>`
   ).join('');
 
-  // Add-ons
-  const ao = calcAddOns();
-  const aoEl = (id, key) => { const el = $(id); if (el) el.textContent = ao.sel[key] ? fmtDec(ADDON_COST[key])+'/mo' : '$0/mo'; };
-  aoEl('ao_logging_cost','logging');
-  aoEl('ao_monitoring_cost','monitoring');
-  aoEl('ao_waf_cost','waf');
-  aoEl('ao_secrets_cost','secrets');
-  aoEl('ao_backup_cost','backup');
-  if ($('addons_subtotal')) $('addons_subtotal').textContent = fmt(ao.subtotal)+'/mo';
-
-  const cheapLow = Math.min(aws_low.total, stk_low.total, gcp_low.total, hyb_low.total, az_low.total);
-  const cheapMed = Math.min(aws_med.total, stk_med.total, gcp_med.total, hyb_med.total, az_med.total);
-  const cheapHi  = Math.min(aws_high.total, stk_high.total, gcp_high.total, hyb_high.total, az_high.total);
-
-  if ($('total_addons_low'))  $('total_addons_low').textContent  = fmt(cheapLow + ao.subtotal);
-  if ($('total_addons_med'))  $('total_addons_med').textContent  = fmt(cheapMed + ao.subtotal);
-  if ($('total_addons_high')) $('total_addons_high').textContent = fmt(cheapHi  + ao.subtotal);
-
-  const nameOfCheap = (aws, stk, gcp, hyb, az) => {
-    const m = Math.min(aws, stk, gcp, hyb, az);
-    if (m === aws) return '① AWS';
-    if (m === stk) return '② Stack';
-    if (m === gcp) return '③ GCP';
-    if (m === hyb) return '④ Hybrid';
-    return '⑤ Azure';
-  };
-  if ($('total_addons_low_hint'))  $('total_addons_low_hint').textContent  = nameOfCheap(aws_low.total, stk_low.total, gcp_low.total, hyb_low.total, az_low.total) + ' cheapest';
-  if ($('total_addons_med_hint'))  $('total_addons_med_hint').textContent  = nameOfCheap(aws_med.total, stk_med.total, gcp_med.total, hyb_med.total, az_med.total) + ' cheapest';
-  if ($('total_addons_high_hint')) $('total_addons_high_hint').textContent = nameOfCheap(aws_high.total, stk_high.total, gcp_high.total, hyb_high.total, az_high.total) + ' cheapest';
-
-  // Range labels
-  $('req_range_label').textContent =
-    Math.round(v.reqPerDay*.1).toLocaleString() + ' / ' +
-    v.reqPerDay.toLocaleString() + ' / ' +
-    (v.reqPerDay*10).toLocaleString();
+  // Range label
+  $('req_range_lbl').textContent =
+    fmtK(Math.round(v.reqPerDay*.1)) + ' / ' +
+    fmtK(v.reqPerDay) + ' / ' +
+    fmtK(v.reqPerDay*10) + '/day';
 }
 
-// ─── Variant / Traffic tab toggles ───────────────────────────────────────────
-function setVariant(vt) {
-  activeVariant = vt;
-  ['all','aws','stack','gcp','hybrid','azure'].forEach(id => {
-    const el = $('vtab_' + id);
-    if (!el) return;
-    el.className = id === 'all' ? 'vtab-all vtab' : 'vtab';
-    if (id === vt) el.classList.add(id === 'all' ? 'active' : 'active-' + id);
-  });
+// ── Slider wiring ──────────────────────────────────────────────────────────────
+function link(rid, iid) {
+  const r = $(rid), inp = $(iid);
+  if (!r || !inp) return;
+  r.addEventListener('input', () => { inp.value = r.value; render(); });
+  inp.addEventListener('input', () => { r.value = inp.value; render(); });
 }
+link('projects_r','projects_i');
+link('req_r','req_i');
+link('dur_r','dur_i');
+link('resp_r','resp_i');
+link('cf_cpu_r','cf_cpu_i');
+link('vercel_seats_r','vercel_seats_i');
 
-function setTraffic(tf) {
-  activeTraffic = tf;
-  ['all','low','medium','high'].forEach(id => {
-    const el = $('ttab_' + id);
-    if (!el) return;
-    el.className = 'ttab';
-    if (id === tf) el.classList.add(id === 'all' ? 'active-all' : 'active-' + id);
-  });
-  $('detail_traffic_label').textContent = tf === 'all' ? 'all traffic levels' : tf + ' traffic only';
-}
+['lambda_arch','lambda_apigw','gcp_cpu','az_cpu','mem_sel'].forEach(id => {
+  const el = $(id); if (el) el.addEventListener('change', render);
+});
 
-// ─── Wire up sliders ──────────────────────────────────────────────────────────
-function linkSlider(sliderId, inputId) {
-  const s = $(sliderId), inp = $(inputId);
-  if (!s || !inp) return;
-  s.addEventListener('input', () => { inp.value = s.value; render(); });
-  inp.addEventListener('input', () => { s.value = inp.value; render(); });
-}
-linkSlider('num_frontend',  'num_frontend_input');
-linkSlider('num_backend',   'num_backend_input');
-linkSlider('req_per_day',   'req_per_day_input');
-linkSlider('response_size', 'response_size_input');
-linkSlider('active_hours',  'active_hours_input');
-linkSlider('vercel_seats',  'vercel_seats_input');
-linkSlider('gcp_concurrency','gcp_concurrency_input');
-linkSlider('az_active_hr',  'az_active_hr_input');
-
-['rail_ram','aws_compute','aws_vcpu','aws_ram','aws_cloudfront','aws_waf','serverless_enabled','railway_plan','gcp_mem','gcp_cpu','gcp_lb',
- 'az_mem','az_cpu','az_front_door','az_waf',
- 'addon_logging','addon_monitoring','addon_waf','addon_secrets','addon_backup']
-  .forEach(id => { const el = $(id); if (el) el.addEventListener('change', () => { render(); }); });
-
-// Display-only syncs
-$('aws_vcpu').addEventListener('change', () => { $('aws_vcpu_display').textContent = $('aws_vcpu').value; });
-$('aws_ram').addEventListener('change', () => { $('aws_ram_display').textContent = $('aws_ram').value + ' MB'; });
-$('rail_ram').addEventListener('change', () => { $('rail_ram_display').textContent = $('rail_ram').value + ' MB'; });
-$('gcp_mem').addEventListener('change', () => { $('gcp_mem_display').textContent = $('gcp_mem').value + ' MiB'; });
-$('gcp_cpu').addEventListener('change', () => { $('gcp_cpu_display').textContent = $('gcp_cpu').value; });
-$('az_mem').addEventListener('change', () => { $('az_mem_display').textContent = $('az_mem').value + ' MiB'; });
-$('az_cpu').addEventListener('change', () => { $('az_cpu_display').textContent = $('az_cpu').value; });
-
-// ─── Reset ────────────────────────────────────────────────────────────────────
+// ── Reset ──────────────────────────────────────────────────────────────────────
 function resetDefaults() {
-  $('num_frontend').value = 100;   $('num_frontend_input').value = 100;
-  $('num_backend').value = 200;    $('num_backend_input').value = 200;
-  $('req_per_day').value = 1000;   $('req_per_day_input').value = 1000;
-  $('response_size').value = 10;   $('response_size_input').value = 10;
-  $('aws_compute').value = 'fargate';
-  $('aws_vcpu').value = '0.25';    $('aws_vcpu_display').textContent = '0.25';
-  $('aws_ram').value = '512';      $('aws_ram_display').textContent = '512 MB';
-  $('aws_cloudfront').checked = true;
-  $('aws_waf').checked = true;
-  $('rail_ram').value = '128';     $('rail_ram_display').textContent = '128 MB';
-  $('active_hours').value = 4;     $('active_hours_input').value = 4;
-  $('serverless_enabled').checked = true;
-  $('railway_plan').value = '20';
-  $('vercel_seats').value = 1;     $('vercel_seats_input').value = 1;
-  $('gcp_mem').value = '256';      $('gcp_mem_display').textContent = '256 MiB';
-  $('gcp_cpu').value = '1';        $('gcp_cpu_display').textContent = '1';
-  $('gcp_concurrency').value = 80; $('gcp_concurrency_input').value = 80;
-  $('gcp_lb').checked = true;
-  $('az_mem').value = '512';       $('az_mem_display').textContent = '512 MiB';
-  $('az_cpu').value = '0.5';       $('az_cpu_display').textContent = '0.5';
-  $('az_active_hr').value = 4;     $('az_active_hr_input').value = 4;
-  $('az_front_door').checked = true;
-  $('az_waf').checked = true;
-  $('addon_logging').checked = true;
-  $('addon_monitoring').checked = true;
-  ['addon_waf','addon_secrets','addon_backup'].forEach(id => { const el=$(id); if(el) el.checked=false; });
-  setVariant('all');
-  setTraffic('all');
+  $('projects_r').value = 10;      $('projects_i').value = 10;
+  $('req_r').value = 10000;        $('req_i').value = 10000;
+  $('dur_r').value = 100;          $('dur_i').value = 100;
+  $('mem_sel').value = '256';
+  $('resp_r').value = 10;          $('resp_i').value = 10;
+  $('lambda_arch').value = 'x86';
+  $('lambda_apigw').value = 'http';
+  $('gcp_cpu').value = '1';
+  $('az_cpu').value = '0.5';
+  $('cf_cpu_r').value = 2;         $('cf_cpu_i').value = 2;
+  $('vercel_seats_r').value = 2;   $('vercel_seats_i').value = 2;
   render();
 }
 
-// Initial render
 render();
 </script>
 </body>
