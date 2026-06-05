@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cloud Cost Simulator — Interactive Estimator</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #21262d;
+    --surface3: #2d333b;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-dim: #6e7681;
+    --low: #3fb950;
+    --low-bg: #0f2a1a;
+    --low-border: #238636;
+    --medium: #d29922;
+    --medium-bg: #2a1f0a;
+    --medium-border: #9e6a03;
+    --high: #f85149;
+    --high-bg: #2a0f0f;
+    --high-border: #da3633;
+    --accent: #58a6ff;
+    --cf: #f6821f;
+    --vercel: #a8b3c1;
+    --railway: #a855f7;
+    --azure: #0078d4;
+    --azure-light: #50a0e0;
+    --input-bg: #0d1117;
+    --slider-track: #30363d;
+    --slider-thumb: #58a6ff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Top bar */
+  .topbar {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 12px 24px; display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .topbar-title { font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+  .topbar-links { display: flex; gap: 16px; font-size: 12px; }
+
+  /* Main layout */
+  .layout {
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    min-height: calc(100vh - 49px);
+  }
+
+  /* Sidebar */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 20px;
+    height: calc(100vh - 49px);
+    position: sticky;
+    top: 49px;
+  }
+
+  .sidebar-section { margin-bottom: 24px; }
+  .sidebar-section-title {
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--text-dim); margin-bottom: 12px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .sidebar-section-title::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  /* Slider control */
+  .control { margin-bottom: 16px; }
+  .control-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+  .control-label { font-size: 13px; color: var(--text-muted); }
+  .control-value {
+    font-size: 15px; font-weight: 700; color: var(--text);
+    min-width: 80px; text-align: right;
+  }
+  .control-value input[type="number"] {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); border-radius: 6px; padding: 2px 8px;
+    font-size: 14px; font-weight: 700; width: 90px; text-align: right;
+    outline: none;
+  }
+  .control-value input[type="number"]:focus { border-color: var(--accent); }
+  input[type="range"] {
+    width: 100%; height: 4px; appearance: none; background: var(--slider-track);
+    border-radius: 2px; outline: none; cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    appearance: none; width: 16px; height: 16px; border-radius: 50%;
+    background: var(--slider-thumb); cursor: pointer;
+    box-shadow: 0 0 0 3px rgba(88,166,255,0.2);
+    transition: box-shadow 0.15s;
+  }
+  input[type="range"]::-webkit-slider-thumb:hover {
+    box-shadow: 0 0 0 5px rgba(88,166,255,0.3);
+  }
+  .control-hint { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+
+  /* Select */
+  select {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); border-radius: 8px; padding: 8px 12px;
+    font-size: 13px; outline: none; cursor: pointer; appearance: none;
+  }
+  select:focus { border-color: var(--accent); }
+
+  /* Toggle switch */
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .toggle-label { font-size: 13px; color: var(--text-muted); }
+  .toggle {
+    position: relative; width: 36px; height: 20px;
+    display: inline-block; flex-shrink: 0;
+  }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute; inset: 0; background: var(--surface3);
+    border-radius: 20px; cursor: pointer; transition: background 0.2s;
+    border: 1px solid var(--border);
+  }
+  .toggle-slider::before {
+    content: ''; position: absolute; width: 14px; height: 14px;
+    left: 2px; top: 2px; background: white; border-radius: 50%;
+    transition: transform 0.2s;
+  }
+  .toggle input:checked + .toggle-slider { background: var(--accent); border-color: var(--accent); }
+  .toggle input:checked + .toggle-slider::before { transform: translateX(16px); }
+
+  /* Reset button */
+  .btn-reset {
+    width: 100%; padding: 8px; border: 1px solid var(--border);
+    background: transparent; color: var(--text-muted); border-radius: 8px;
+    cursor: pointer; font-size: 12px; transition: all 0.15s;
+  }
+  .btn-reset:hover { background: var(--surface2); color: var(--text); }
+
+  /* Main content */
+  .main { padding: 24px; overflow-y: auto; }
+
+  /* Cost cards row */
+  .cost-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+  .cost-card {
+    border-radius: 12px; padding: 20px; position: relative; overflow: hidden;
+    transition: transform 0.15s;
+  }
+  .cost-card:hover { transform: translateY(-2px); }
+  .cost-card-low { background: var(--low-bg); border: 2px solid var(--low-border); }
+  .cost-card-medium { background: var(--medium-bg); border: 2px solid var(--medium-border); }
+  .cost-card-high { background: var(--high-bg); border: 2px solid var(--high-border); }
+  .cc-tier { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+  .cc-total { font-size: 40px; font-weight: 800; line-height: 1; margin-bottom: 2px; }
+  .cc-sub { font-size: 12px; opacity: 0.7; margin-bottom: 16px; }
+  .cc-breakdown { border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px; }
+  .ccb-row { display: flex; justify-content: space-between; font-size: 12px; padding: 2px 0; }
+  .ccb-label { opacity: 0.7; }
+  .ccb-val { font-weight: 600; }
+  .low-text { color: var(--low); }
+  .medium-text { color: var(--medium); }
+  .high-text { color: var(--high); }
+  .cf-text { color: var(--cf); }
+  .vercel-text { color: var(--vercel); }
+  .railway-text { color: var(--railway); }
+  .azure-text { color: var(--azure-light); }
+
+  /* Detailed table */
+  .panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; overflow: hidden; margin-bottom: 20px;
+  }
+  .panel-header {
+    background: var(--surface2); padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .panel-title { font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+  .panel-body { padding: 20px; }
+
+  .detail-table { width: 100%; border-collapse: collapse; }
+  .detail-table th {
+    text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.5px; color: var(--text-dim); padding: 8px 12px;
+    border-bottom: 1px solid var(--border); background: var(--surface2);
+  }
+  .detail-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .detail-table tr:last-child td { border-bottom: none; }
+  .detail-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .detail-table .total-row td { background: var(--surface2); font-weight: 700; font-size: 14px; }
+
+  /* Chart bars */
+  .chart-section { margin-bottom: 20px; }
+  .chart-bar-group { margin-bottom: 14px; }
+  .chart-label { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; display: flex; justify-content: space-between; }
+  .chart-bars { display: flex; gap: 4px; height: 28px; align-items: stretch; }
+  .chart-bar {
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; border-radius: 4px;
+    min-width: 4px; transition: width 0.4s ease; overflow: hidden;
+    color: rgba(0,0,0,0.7);
+  }
+  .chart-bar-cf { background: var(--cf); }
+  .chart-bar-vercel { background: #c8d3e0; }
+  .chart-bar-railway { background: var(--railway); color: white; }
+  .chart-bar-azure { background: var(--azure); color: white; }
+
+  /* Assumptions display */
+  .assumption-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 4px 10px; font-size: 11px; color: var(--text-muted);
+  }
+  .chip strong { color: var(--text); }
+
+  /* Warnings */
+  .warning-list { display: flex; flex-direction: column; gap: 8px; }
+  .warning-item {
+    display: flex; gap: 10px; padding: 10px 14px; border-radius: 8px; font-size: 12px;
+  }
+  .w-warn { background: #2a1f0a; border: 1px solid var(--medium-border); color: #d29922; }
+  .w-info { background: #0f1f2a; border: 1px solid #1f6feb; color: #58a6ff; }
+  .w-success { background: var(--low-bg); border: 1px solid var(--low-border); color: var(--low); }
+  .w-icon { flex-shrink: 0; }
+
+  /* Sources footer */
+  .sources-section { margin-top: 24px; }
+  .sources-title { font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px; }
+  .sources-title-hint { font-size: 11px; font-weight: 400; color: var(--text-dim); }
+  .sources-links { display: flex; flex-wrap: wrap; gap: 8px; }
+  .source-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; padding: 4px 12px; font-size: 11px; color: var(--text-muted);
+    transition: border-color 0.15s;
+  }
+  .source-pill:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+
+  /* Operational add-ons panel */
+  .addons-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  .addon-card {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px;
+  }
+  .addon-card-title {
+    font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px;
+    color: var(--text-dim); margin-bottom: 12px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .addon-line {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 12px;
+  }
+  .addon-line:last-child { border-bottom: none; }
+  .addon-line-label { color: var(--text-muted); flex: 1; padding-right: 8px; }
+  .addon-line-cost { font-weight: 600; color: var(--text); white-space: nowrap; }
+  .addon-line-note { font-size: 10px; color: var(--text-dim); }
+  .addon-total-row {
+    display: flex; justify-content: space-between;
+    margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);
+    font-size: 13px; font-weight: 700;
+  }
+  .addon-estimate-badge {
+    display: inline-block; background: rgba(88,166,255,0.12); border: 1px solid rgba(88,166,255,0.3);
+    color: var(--accent); border-radius: 4px; padding: 1px 5px; font-size: 10px;
+    font-weight: 600; margin-left: 4px; vertical-align: middle;
+  }
+  .addon-grand-total {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px; margin-top: 16px;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+  }
+  .addon-grand-label { font-size: 13px; color: var(--text-muted); }
+  .addon-grand-value { font-size: 22px; font-weight: 800; }
+
+  /* Add-ons panel helpers */
+  .panel-header-sub { font-size: 11px; color: var(--text-dim); }
+  .addon-line-note-text { font-size: 10px; color: var(--text-dim); }
+  .addon-cost-free { color: var(--low); }
+  .addon-cost-muted { color: var(--text-muted); }
+  .addon-grand-hint { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+  .addon-totals-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-top: 12px; }
+  .addon-total-cell { border-radius: 8px; padding: 12px; }
+  .addon-total-cell-low { background: var(--low-bg); border: 1px solid var(--low-border); }
+  .addon-total-cell-medium { background: var(--medium-bg); border: 1px solid var(--medium-border); }
+  .addon-total-cell-high { background: var(--high-bg); border: 1px solid var(--high-border); }
+  .addon-total-tier { font-size: 11px; font-weight: 700; margin-bottom: 4px; }
+  .addon-total-value { font-size: 22px; font-weight: 800; }
+  .addon-total-hint { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+
+  /* Tag */
+  .tag {
+    display: inline-block; background: rgba(255,255,255,0.08); border-radius: 4px;
+    padding: 1px 6px; font-size: 11px; font-family: monospace; color: var(--text-muted);
+  }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar { position: static; height: auto; }
+    .cost-cards { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="topbar">
+  <div class="topbar-title">
+    🧮 Cloud Cost Simulator
+    <span style="font-size:11px; color:var(--text-dim); font-weight:400;">FastAPI + Spring Boot · Vercel + Railway + Cloudflare · Azure</span>
+  </div>
+  <div class="topbar-links">
+    <a href="cost-estimate.html" target="_blank">📊 Static Report ↗</a>
+    <a href="https://developers.cloudflare.com/workers/platform/pricing/" target="_blank">CF Pricing ↗</a>
+    <a href="https://vercel.com/pricing" target="_blank">Vercel Pricing ↗</a>
+    <a href="https://docs.railway.com/pricing" target="_blank">Railway Pricing ↗</a>
+    <a href="https://azure.microsoft.com/en-us/pricing/details/container-apps/" target="_blank">Azure Pricing ↗</a>
+  </div>
+</div>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+
+    <!-- Projects -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">📁 Projects</div>
+
+      <div class="control">
+        <div class="control-header">
+          <label class="control-label">Vercel Projects</label>
+          <div class="control-value"><input type="number" id="num_vercel_input" value="100" min="0" max="500"></div>
+        </div>
+        <input type="range" id="num_vercel" min="0" max="500" step="1" value="100">
+        <div class="control-hint">Frontend / SSR / static projects on Vercel Pro</div>
+      </div>
+
+      <div class="control">
+        <div class="control-header">
+          <label class="control-label">Railway FastAPI Projects</label>
+          <div class="control-value"><input type="number" id="num_fastapi_input" value="100" min="0" max="500"></div>
+        </div>
+        <input type="range" id="num_fastapi" min="0" max="500" step="1" value="100">
+        <div class="control-hint">Python FastAPI services · cold start ~2 sec</div>
+      </div>
+
+      <div class="control">
+        <div class="control-header">
+          <label class="control-label">Railway Spring Boot Projects</label>
+          <div class="control-value"><input type="number" id="num_spring_input" value="100" min="0" max="500"></div>
+        </div>
+        <input type="range" id="num_spring" min="0" max="500" step="1" value="100">
+        <div class="control-hint">Java Spring Boot (GraalVM native) · cold start ~700ms</div>
+      </div>
+    </div>
+
+    <!-- Traffic -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">📈 Traffic (Base = Medium)</div>
+
+      <div class="control">
+        <div class="control-header">
+          <label class="control-label">Requests/Day per Project</label>
+          <div class="control-value"><input type="number" id="req_per_day_input" value="1000" min="10" max="500000"></div>
+        </div>
+        <input type="range" id="req_per_day" min="10" max="100000" step="10" value="1000">
+        <div class="control-hint">
+          Low = 10%, High = 10× this value<br>
+          Range: <span id="req_range_label">100 / 1,000 / 10,000</span>
+        </div>
+      </div>
+
+      <div class="control">
+        <div class="control-header">
+          <label class="control-label">Avg Response Size (KB)</label>
+          <div class="control-value"><input type="number" id="response_size_input" value="10" min="1" max="5000"></div>
+        </div>
+        <input type="range" id="response_size" min="1" max="2000" step="1" value="10">
+        <div class="control-hint">Typical JSON API: 5–20 KB · HTML page: 50–200 KB</div>
+      </div>
+    </div>
+
+    <!-- Railway Config -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">🚂 Railway Config</div>
+
+      <div class="control">
+        <div class="control-header">
+          <label class="control-label">RAM per Service</label>
+          <div class="control-value" id="ram_display">128 MB</div>
+        </div>
+        <select id="ram_per_service">
+          <option value="64">64 MB — ultra-minimal</option>
+          <option value="128" selected>128 MB — minimal (recommended)</option>
+          <option value="256">256 MB — standard</option>
+          <option value="512">512 MB — medium</option>
+          <option value="1024">1024 MB — heavy / JVM</option>
+          <option value="2048">2048 MB — ML / large apps</option>
+        </select>
+        <div class="control-hint">GraalVM Spring Boot: 128–256 MB · JVM: 512+ MB</div>
+      </div>
+
+      <div class="control">
+        <div class="control-header">
+          <label class="control-label">Active Hours/Day (Medium)</label>
+          <div class="control-value"><input type="number" id="active_hours_input" value="4" min="0.5" max="24" step="0.5"></div>
+        </div>
+        <input type="range" id="active_hours" min="0.5" max="24" step="0.5" value="4">
+        <div class="control-hint">
+          Low = 25%, High = capped at 24hr<br>
+          L/M/H: <span id="active_range_label">1hr / 4hr / 10hr</span>
+        </div>
+      </div>
+
+      <div class="toggle-row">
+        <span class="toggle-label">Serverless Sleep Enabled</span>
+        <label class="toggle">
+          <input type="checkbox" id="serverless_enabled" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="control">
+        <label class="control-label" style="display:block;margin-bottom:6px;">Railway Plan</label>
+        <select id="railway_plan">
+          <option value="20">Pro — $20/mo (includes $20 credit)</option>
+          <option value="5">Hobby — $5/mo (includes $5 credit)</option>
+        </select>
+        <div class="control-hint"><a href="https://docs.railway.com/pricing/plans" target="_blank">docs.railway.com/pricing/plans ↗</a></div>
+      </div>
+    </div>
+
+    <!-- Vercel Config -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">▲ Vercel Config</div>
+
+      <div class="control">
+        <div class="control-header">
+          <label class="control-label">Developer Seats</label>
+          <div class="control-value"><input type="number" id="vercel_seats_input" value="1" min="1" max="50"></div>
+        </div>
+        <input type="range" id="vercel_seats" min="1" max="50" step="1" value="1">
+        <div class="control-hint">$20/seat/mo · <a href="https://vercel.com/pricing" target="_blank">vercel.com/pricing ↗</a></div>
+      </div>
+    </div>
+
+    <!-- Azure Container Apps Config -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title" style="color:#50a0e0;">☁ Azure Config</div>
+
+      <div class="control">
+        <label class="control-label" style="display:block;margin-bottom:6px;">Container Memory (MiB)</label>
+        <select id="az_memory_mib">
+          <option value="256">256 MiB — minimal</option>
+          <option value="512" selected>512 MiB — standard</option>
+          <option value="1024">1024 MiB — medium</option>
+          <option value="2048">2048 MiB — heavy</option>
+        </select>
+        <div class="control-hint">Azure Container Apps Consumption plan memory per replica</div>
+      </div>
+
+      <div class="control">
+        <label class="control-label" style="display:block;margin-bottom:6px;">vCPU per Replica</label>
+        <select id="az_vcpu">
+          <option value="0.25">0.25 vCPU — minimal</option>
+          <option value="0.5" selected>0.5 vCPU — standard</option>
+          <option value="1.0">1.0 vCPU — performance</option>
+        </select>
+        <div class="control-hint">$0.000024/vCPU-sec · free tier: 180k vCPU-sec/mo</div>
+      </div>
+
+      <div class="toggle-row">
+        <span class="toggle-label" title="Azure Front Door Standard: $35/mo base + $0.008/GB transfer">Azure Front Door Standard</span>
+        <label class="toggle">
+          <input type="checkbox" id="az_front_door" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row">
+        <span class="toggle-label" title="Azure WAF: $5/policy + $1/rule/mo. Assumes 1 policy + 10 rules = $15/mo">Azure WAF Policy</span>
+        <label class="toggle">
+          <input type="checkbox" id="az_waf">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Operational Add-ons -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">🔒 Prod-Ready Add-ons</div>
+
+      <div class="toggle-row">
+        <span class="toggle-label" title="Better Stack Nano: ~$30/mo EU · ~$45/mo US monthly (avg ~$35/mo). 40GB logs+traces, 30-day retention.">Logging (Better Stack Nano)</span>
+        <label class="toggle" aria-label="Logging (Better Stack Nano)">
+          <input type="checkbox" id="addon_logging" aria-label="Logging (Better Stack Nano)" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row">
+        <span class="toggle-label" title="Sentry Team: $29/mo (monthly) · $26/mo (annual) — 50k errors, 5M spans, unlimited users. Aug 2025: spans pricing updated.">Error Monitoring (Sentry Team)</span>
+        <label class="toggle" aria-label="Error Monitoring (Sentry Team)">
+          <input type="checkbox" id="addon_monitoring" aria-label="Error Monitoring (Sentry Team)" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row">
+        <span class="toggle-label" title="Cloudflare WAF is included in CF Pro ($25/mo zone plan). Custom firewall rules available in all Workers paid plans.">CF WAF / Firewall Rules</span>
+        <label class="toggle" aria-label="CF WAF / Firewall Rules">
+          <input type="checkbox" id="addon_waf" aria-label="CF WAF / Firewall Rules">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row">
+        <span class="toggle-label" title="Cloudflare R2 for log storage: ~$0.015/GB-mo. Est. 20GB logs → ~$0.30/mo. Also covers Cloudflare Logpush (Workers Paid plan required).">CF Logpush → R2 Storage</span>
+        <label class="toggle" aria-label="CF Logpush to R2 Storage">
+          <input type="checkbox" id="addon_logpush" aria-label="CF Logpush to R2 Storage">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row">
+        <span class="toggle-label" title="Estimated secrets management + dependency scanning. e.g. Doppler free-to-$24/mo or GitHub Advanced Security.">Secrets / Scanning</span>
+        <label class="toggle" aria-label="Secrets and Scanning">
+          <input type="checkbox" id="addon_secrets" aria-label="Secrets and Scanning">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row">
+        <span class="toggle-label" title="Vercel Pro support is included. Railway Pro support included. Better Stack support included. Optional: vendor paid support tiers.">Vendor Support Tiers</span>
+        <label class="toggle" aria-label="Vendor Support Tiers">
+          <input type="checkbox" id="addon_support" aria-label="Vendor Support Tiers">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row">
+        <span class="toggle-label" title="Basic DR: daily snapshot/backup via Cloudflare R2 or Railway volumes. Estimated $5–15/mo for small state.">Backup / DR (est.)</span>
+        <label class="toggle" aria-label="Backup and DR">
+          <input type="checkbox" id="addon_backup" aria-label="Backup and DR">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div style="font-size:11px;color:var(--text-dim);margin-top:4px;padding:8px;background:var(--surface2);border-radius:6px;border:1px solid var(--border);">
+        Toggles add fixed monthly estimates to the grand totals. Detailed line items appear in the panel below.
+      </div>
+    </div>
+
+    <button class="btn-reset" onclick="resetDefaults()">↺ Reset to Defaults</button>
+  </div>
+
+  <!-- Main content -->
+  <div class="main">
+
+    <!-- Cost cards -->
+    <div class="cost-cards">
+      <div class="cost-card cost-card-low">
+        <div class="cc-tier low-text">🟢 Low Traffic</div>
+        <div class="cc-total low-text" id="total_low">$0</div>
+        <div class="cc-sub low-text" id="sub_low">per month</div>
+        <div class="cc-breakdown">
+          <div class="ccb-row"><span class="ccb-label">☁ Cloudflare</span><span class="ccb-val cf-text" id="cf_low">$0</span></div>
+          <div class="ccb-row"><span class="ccb-label">▲ Vercel</span><span class="ccb-val vercel-text" id="vercel_low">$0</span></div>
+          <div class="ccb-row"><span class="ccb-label">🚂 Railway</span><span class="ccb-val railway-text" id="railway_low">$0</span></div>
+          <div class="ccb-row"><span class="ccb-label">☁ Azure</span><span class="ccb-val azure-text" id="azure_low">$0</span></div>
+        </div>
+      </div>
+
+      <div class="cost-card cost-card-medium">
+        <div class="cc-tier medium-text">🟡 Medium Traffic</div>
+        <div class="cc-total medium-text" id="total_medium">$0</div>
+        <div class="cc-sub medium-text" id="sub_medium">per month</div>
+        <div class="cc-breakdown">
+          <div class="ccb-row"><span class="ccb-label">☁ Cloudflare</span><span class="ccb-val cf-text" id="cf_medium">$0</span></div>
+          <div class="ccb-row"><span class="ccb-label">▲ Vercel</span><span class="ccb-val vercel-text" id="vercel_medium">$0</span></div>
+          <div class="ccb-row"><span class="ccb-label">🚂 Railway</span><span class="ccb-val railway-text" id="railway_medium">$0</span></div>
+          <div class="ccb-row"><span class="ccb-label">☁ Azure</span><span class="ccb-val azure-text" id="azure_medium">$0</span></div>
+        </div>
+      </div>
+
+      <div class="cost-card cost-card-high">
+        <div class="cc-tier high-text">🔴 High Traffic</div>
+        <div class="cc-total high-text" id="total_high">$0</div>
+        <div class="cc-sub high-text" id="sub_high">per month</div>
+        <div class="cc-breakdown">
+          <div class="ccb-row"><span class="ccb-label">☁ Cloudflare</span><span class="ccb-val cf-text" id="cf_high">$0</span></div>
+          <div class="ccb-row"><span class="ccb-label">▲ Vercel</span><span class="ccb-val vercel-text" id="vercel_high">$0</span></div>
+          <div class="ccb-row"><span class="ccb-label">🚂 Railway</span><span class="ccb-val railway-text" id="railway_high">$0</span></div>
+          <div class="ccb-row"><span class="ccb-label">☁ Azure</span><span class="ccb-val azure-text" id="azure_high">$0</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Visual bar chart -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">📊 Cost Breakdown by Component</div>
+        <div style="font-size:11px;color:var(--text-dim);">Proportional bars</div>
+      </div>
+      <div class="panel-body">
+        <div class="chart-section">
+          <div class="chart-bar-group">
+            <div class="chart-label"><span>🟢 Low Traffic</span><span id="chart_low_total">$0/mo</span></div>
+            <div class="chart-bars" id="bars_low">
+              <div class="chart-bar chart-bar-cf" id="bar_low_cf" style="width:0%"></div>
+              <div class="chart-bar chart-bar-vercel" id="bar_low_vercel" style="width:0%"></div>
+              <div class="chart-bar chart-bar-railway" id="bar_low_railway" style="width:0%"></div>
+              <div class="chart-bar chart-bar-azure" id="bar_low_azure" style="width:0%"></div>
+            </div>
+          </div>
+          <div class="chart-bar-group">
+            <div class="chart-label"><span>🟡 Medium Traffic</span><span id="chart_medium_total">$0/mo</span></div>
+            <div class="chart-bars" id="bars_medium">
+              <div class="chart-bar chart-bar-cf" id="bar_medium_cf" style="width:0%"></div>
+              <div class="chart-bar chart-bar-vercel" id="bar_medium_vercel" style="width:0%"></div>
+              <div class="chart-bar chart-bar-railway" id="bar_medium_railway" style="width:0%"></div>
+              <div class="chart-bar chart-bar-azure" id="bar_medium_azure" style="width:0%"></div>
+            </div>
+          </div>
+          <div class="chart-bar-group">
+            <div class="chart-label"><span>🔴 High Traffic</span><span id="chart_high_total">$0/mo</span></div>
+            <div class="chart-bars" id="bars_high">
+              <div class="chart-bar chart-bar-cf" id="bar_high_cf" style="width:0%"></div>
+              <div class="chart-bar chart-bar-vercel" id="bar_high_vercel" style="width:0%"></div>
+              <div class="chart-bar chart-bar-railway" id="bar_high_railway" style="width:0%"></div>
+              <div class="chart-bar chart-bar-azure" id="bar_high_azure" style="width:0%"></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:16px;margin-top:12px;font-size:11px;color:var(--text-dim);">
+            <div style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;background:var(--cf);border-radius:2px;display:inline-block;"></span>Cloudflare</div>
+            <div style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;background:#c8d3e0;border-radius:2px;display:inline-block;"></span>Vercel</div>
+            <div style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;background:var(--railway);border-radius:2px;display:inline-block;"></span>Railway</div>
+            <div style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;background:var(--azure);border-radius:2px;display:inline-block;"></span>Azure</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detailed breakdown table -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">🔍 Detailed Line-Item Breakdown</div>
+        <div style="font-size:11px;color:var(--text-dim);">All costs in USD/month</div>
+      </div>
+      <div class="panel-body" style="padding:0;overflow-x:auto;">
+        <table class="detail-table" style="width:100%;">
+          <thead>
+            <tr>
+              <th style="min-width:220px;">Line Item</th>
+              <th>🟢 Low</th>
+              <th>🟡 Medium</th>
+              <th>🔴 High</th>
+              <th>Pricing Ref</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="5" style="background:rgba(246,130,31,0.06);color:var(--cf);font-size:11px;font-weight:700;padding:8px 12px;letter-spacing:0.5px;">🔶 CLOUDFLARE WORKERS</td></tr>
+            <tr>
+              <td>Worker Invocations<div style="font-size:10px;color:var(--text-dim);" id="cf_req_note">— req/mo total</div></td>
+              <td id="cf_req_low">—</td>
+              <td id="cf_req_medium">—</td>
+              <td id="cf_req_high">—</td>
+              <td><a href="https://developers.cloudflare.com/workers/platform/pricing/" target="_blank">CF Pricing ↗</a></td>
+            </tr>
+            <tr>
+              <td>Workers Plan Base<div style="font-size:10px;color:var(--text-dim);">Free (100k/day cap, ~3M/mo) / $5 paid (≤10M/mo)</div></td>
+              <td id="cf_base_low">—</td>
+              <td id="cf_base_medium">—</td>
+              <td id="cf_base_high">—</td>
+              <td><a href="https://workers.cloudflare.com/plans" target="_blank">CF Plans ↗</a></td>
+            </tr>
+            <tr>
+              <td>Workers Request Overage<div style="font-size:10px;color:var(--text-dim);">$0.30 per 1M over 10M/mo included</div></td>
+              <td id="cf_overage_low">—</td>
+              <td id="cf_overage_medium">—</td>
+              <td id="cf_overage_high">—</td>
+              <td></td>
+            </tr>
+
+            <tr><td colspan="5" style="background:rgba(168,179,193,0.06);color:var(--vercel);font-size:11px;font-weight:700;padding:8px 12px;letter-spacing:0.5px;">▲ VERCEL</td></tr>
+            <tr>
+              <td>Pro Plan Base<div style="font-size:10px;color:var(--text-dim);" id="vercel_seat_note">— seats × $20/seat</div></td>
+              <td id="vercel_base_low">—</td>
+              <td id="vercel_base_medium">—</td>
+              <td id="vercel_base_high">—</td>
+              <td><a href="https://vercel.com/pricing" target="_blank">Vercel Pricing ↗</a></td>
+            </tr>
+            <tr>
+              <td>Edge Requests<div style="font-size:10px;color:var(--text-dim);">10M/mo included · $2/M over</div></td>
+              <td id="vercel_edge_low">—</td>
+              <td id="vercel_edge_medium">—</td>
+              <td id="vercel_edge_high">—</td>
+              <td><a href="https://vercel.com/docs/pricing" target="_blank">Vercel Pricing Docs ↗</a></td>
+            </tr>
+            <tr>
+              <td>Bandwidth (Fast Data Transfer)<div style="font-size:10px;color:var(--text-dim);">1TB/mo included · $0.15/GB over</div></td>
+              <td id="vercel_bw_low">—</td>
+              <td id="vercel_bw_medium">—</td>
+              <td id="vercel_bw_high">—</td>
+              <td><a href="https://vercel.com/docs/plans/pro-plan" target="_blank">Vercel Pro Plan ↗</a></td>
+            </tr>
+
+            <tr><td colspan="5" style="background:rgba(168,85,247,0.06);color:var(--railway);font-size:11px;font-weight:700;padding:8px 12px;letter-spacing:0.5px;">🚂 RAILWAY</td></tr>
+            <tr>
+              <td>Pro/Hobby Plan Base<div style="font-size:10px;color:var(--text-dim);">Includes usage credit equal to plan cost</div></td>
+              <td id="rail_base_low">—</td>
+              <td id="rail_base_medium">—</td>
+              <td id="rail_base_high">—</td>
+              <td><a href="https://docs.railway.com/pricing/plans" target="_blank">Railway Plans ↗</a></td>
+            </tr>
+            <tr>
+              <td>RAM Cost<div style="font-size:10px;color:var(--text-dim);" id="ram_cost_note">services × GB × active hrs × $0.0139/GB-hr ($10/GB-mo ÷ 720)</div></td>
+              <td id="rail_ram_low">—</td>
+              <td id="rail_ram_medium">—</td>
+              <td id="rail_ram_high">—</td>
+              <td><a href="https://docs.railway.com/pricing" target="_blank">Railway Pricing ↗</a></td>
+            </tr>
+            <tr>
+              <td>Network Egress<div style="font-size:10px;color:var(--text-dim);">$0.05 per GB outbound</div></td>
+              <td id="rail_egress_low">—</td>
+              <td id="rail_egress_medium">—</td>
+              <td id="rail_egress_high">—</td>
+              <td><a href="https://docs.railway.com/pricing" target="_blank">Railway Pricing ↗</a></td>
+            </tr>
+            <tr>
+              <td>Usage Credit Applied<div style="font-size:10px;color:var(--text-dim);">Plan credit offsets resource usage</div></td>
+              <td id="rail_credit_low">—</td>
+              <td id="rail_credit_medium">—</td>
+              <td id="rail_credit_high">—</td>
+              <td><a href="https://docs.railway.com/pricing/cost-control" target="_blank">Cost Control ↗</a></td>
+            </tr>
+
+            <tr><td colspan="5" style="background:rgba(0,120,212,0.08);color:var(--azure-light);font-size:11px;font-weight:700;padding:8px 12px;letter-spacing:0.5px;">☁ AZURE CONTAINER APPS</td></tr>
+            <tr>
+              <td>vCPU Compute<div style="font-size:10px;color:var(--text-dim);" id="az_cpu_note">$0.000024/vCPU-sec · 180k vCPU-sec free/mo</div></td>
+              <td id="az_cpu_low">—</td>
+              <td id="az_cpu_medium">—</td>
+              <td id="az_cpu_high">—</td>
+              <td><a href="https://azure.microsoft.com/en-us/pricing/details/container-apps/" target="_blank">ACA Pricing ↗</a></td>
+            </tr>
+            <tr>
+              <td>Memory Cost<div style="font-size:10px;color:var(--text-dim);" id="az_mem_note">$0.000003/GiB-sec · 360k GiB-sec free/mo</div></td>
+              <td id="az_mem_low">—</td>
+              <td id="az_mem_medium">—</td>
+              <td id="az_mem_high">—</td>
+              <td><a href="https://azure.microsoft.com/en-us/pricing/details/container-apps/" target="_blank">ACA Pricing ↗</a></td>
+            </tr>
+            <tr>
+              <td>Azure Front Door Standard<div style="font-size:10px;color:var(--text-dim);">$35/mo base + $0.008/GB transfer</div></td>
+              <td id="az_fd_low">—</td>
+              <td id="az_fd_medium">—</td>
+              <td id="az_fd_high">—</td>
+              <td><a href="https://azure.microsoft.com/en-us/pricing/details/frontdoor/" target="_blank">AFD Pricing ↗</a></td>
+            </tr>
+            <tr>
+              <td>Azure WAF Policy<div style="font-size:10px;color:var(--text-dim);">$5/policy + $1/rule/mo (est. 1 policy + 10 rules)</div></td>
+              <td id="az_waf_low">—</td>
+              <td id="az_waf_medium">—</td>
+              <td id="az_waf_high">—</td>
+              <td><a href="https://azure.microsoft.com/en-us/pricing/details/web-application-firewall/" target="_blank">Azure WAF ↗</a></td>
+            </tr>
+            <tr>
+              <td>Egress<div style="font-size:10px;color:var(--text-dim);">$0.087/GB first 10TB outbound</div></td>
+              <td id="az_egress_low">—</td>
+              <td id="az_egress_medium">—</td>
+              <td id="az_egress_high">—</td>
+              <td><a href="https://azure.microsoft.com/en-us/pricing/details/bandwidth/" target="_blank">Azure Bandwidth ↗</a></td>
+            </tr>
+
+            <tr class="total-row">
+              <td>💰 TOTAL / MONTH</td>
+              <td class="low-text" id="grand_low">$0</td>
+              <td class="medium-text" id="grand_medium">$0</td>
+              <td class="high-text" id="grand_high">$0</td>
+              <td></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Active assumptions panel -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">📋 Current Assumptions</div>
+      </div>
+      <div class="panel-body">
+        <div class="assumption-chips" id="assumptions_display"></div>
+      </div>
+    </div>
+
+    <!-- Warnings -->
+    <div class="panel" id="warnings_panel">
+      <div class="panel-header">
+        <div class="panel-title">💡 Notes &amp; Warnings</div>
+      </div>
+      <div class="panel-body">
+        <div class="warning-list" id="warnings_list"></div>
+      </div>
+    </div>
+
+    <!-- Operational & Security Add-ons panel -->
+    <div class="panel" id="addons_panel">
+      <div class="panel-header">
+        <div class="panel-title">🔒 Operational &amp; Security Add-ons <span class="addon-estimate-badge">estimates</span></div>
+        <div class="panel-header-sub">Production-ready costs not in base calculator · toggle to include in totals</div>
+      </div>
+      <div class="panel-body">
+        <div class="addons-grid">
+
+          <!-- Logging -->
+          <div class="addon-card">
+            <div class="addon-card-title">📋 Logging</div>
+            <div class="addon-line">
+              <span class="addon-line-label">Better Stack Nano <span class="addon-estimate-badge">est.</span></span>
+              <span class="addon-line-cost" id="ao_logging_cost">$35/mo</span>
+            </div>
+            <div class="addon-line">
+              <span class="addon-line-label addon-line-note-text">40 GB logs+traces, 30-day retention · ~$30/mo EU / ~$45/mo US (monthly) · <a href="https://betterstack.com/pricing" target="_blank" rel="noopener noreferrer">betterstack.com/pricing ↗</a></span>
+              <span></span>
+            </div>
+            <div class="addon-line">
+              <span class="addon-line-label">CF Logpush → R2 <span class="addon-estimate-badge">est.</span></span>
+              <span class="addon-line-cost" id="ao_logpush_cost">$0/mo</span>
+            </div>
+            <div class="addon-line">
+              <span class="addon-line-label addon-line-note-text">R2 standard $0.015/GB-mo · ~20 GB logs → $0.30/mo · egress free · Workers Paid req'd · <a href="https://developers.cloudflare.com/r2/pricing/" target="_blank" rel="noopener noreferrer">R2 pricing ↗</a></span>
+              <span></span>
+            </div>
+          </div>
+
+          <!-- Monitoring & APM -->
+          <div class="addon-card">
+            <div class="addon-card-title">📡 Monitoring &amp; Error Tracking</div>
+            <div class="addon-line">
+              <span class="addon-line-label">Sentry Team Plan <span class="addon-estimate-badge">est.</span></span>
+              <span class="addon-line-cost" id="ao_monitoring_cost">$29/mo</span>
+            </div>
+            <div class="addon-line">
+              <span class="addon-line-label addon-line-note-text">50k errors, 5M spans, unlimited users · $29/mo monthly ($26/mo annual) · updated Aug 2025 · <a href="https://sentry.io/pricing/" target="_blank" rel="noopener noreferrer">sentry.io/pricing ↗</a></span>
+              <span></span>
+            </div>
+            <div class="addon-line">
+              <span class="addon-line-label">CF Analytics (built-in)</span>
+              <span class="addon-line-cost addon-cost-free">$0 included</span>
+            </div>
+            <div class="addon-line">
+              <span class="addon-line-label addon-line-note-text">Workers metrics, request logs · Workers Paid dashboard</span>
+              <span></span>
+            </div>
+          </div>
+
+          <!-- Security / WAF -->
+          <div class="addon-card">
+            <div class="addon-card-title">🛡 Security &amp; WAF</div>
+            <div class="addon-line">
+              <span class="addon-line-label">CF WAF (custom rules) <span class="addon-estimate-badge">est.</span></span>
+              <span class="addon-line-cost" id="ao_waf_cost">$0/mo</span>
+            </div>
+            <div class="addon-line">
+              <span class="addon-line-label addon-line-note-text">Custom rules via Workers (code-level). CF zone WAF Pro plan $25/mo if needed · <a href="https://www.cloudflare.com/plans/" target="_blank" rel="noopener noreferrer">CF plans ↗</a></span>
+              <span></span>
+            </div>
+            <div class="addon-line">
+              <span class="addon-line-label">DDoS Protection</span>
+              <span class="addon-line-cost addon-cost-free">$0 unmetered</span>
+            </div>
+            <div class="addon-line">
+              <span class="addon-line-label addon-line-note-text">Unmetered DDoS included on all CF plans · <a href="https://www.cloudflare.com/ddos/" target="_blank" rel="noopener noreferrer">CF DDoS ↗</a></span>
+              <span></span>
+            </div>
+            <div class="addon-line">
+              <span class="addon-line-label">Secrets / Scanning <span class="addon-estimate-badge">est.</span></span>
+              <span class="addon-line-cost" id="ao_secrets_cost">$0/mo</span>
+            </div>
+            <div class="addon-line">
+              <span class="addon-line-label addon-line-note-text">Doppler free–$24/mo · GitHub secret scanning included in GitHub plans</span>
+              <span></span>
+            </div>
+          </div>
+
+          <!-- Support -->
+          <div class="addon-card">
+            <div class="addon-card-title">🎧 Support &amp; SLA</div>
+            <div class="addon-line">
+              <span class="addon-line-label">Vercel Pro Support</span>
+              <span class="addon-line-cost addon-cost-free">included</span>
+            </div>
+            <div class="addon-line">
+              <span class="addon-line-label">Railway Pro Support</span>
+              <span class="addon-line-cost addon-cost-free">included</span>
+            </div>
+            <div class="addon-line">
+              <span class="addon-line-label">Better Stack Support</span>
+              <span class="addon-line-cost addon-cost-free">included</span>
+            </div>
+            <div class="addon-line">
+              <span class="addon-line-label">CF Priority Support <span class="addon-estimate-badge">est.</span></span>
+              <span class="addon-line-cost" id="ao_support_cost">$0/mo</span>
+            </div>
+            <div class="addon-line">
+              <span class="addon-line-label addon-line-note-text">CF Business plan (zone) adds priority email support ~$250/mo if required · <a href="https://www.cloudflare.com/plans/" target="_blank" rel="noopener noreferrer">CF plans ↗</a></span>
+              <span></span>
+            </div>
+          </div>
+
+          <!-- Backup / DR -->
+          <div class="addon-card">
+            <div class="addon-card-title">💾 Backup &amp; DR</div>
+            <div class="addon-line">
+              <span class="addon-line-label">CF R2 backup storage <span class="addon-estimate-badge">est.</span></span>
+              <span class="addon-line-cost" id="ao_backup_cost">$0/mo</span>
+            </div>
+            <div class="addon-line">
+              <span class="addon-line-label addon-line-note-text">R2 standard: $0.015/GB-mo · 50 GB snapshots → ~$0.75/mo · free tier: 10 GB-mo/mo · egress free · <a href="https://developers.cloudflare.com/r2/pricing/" target="_blank" rel="noopener noreferrer">R2 pricing ↗</a></span>
+              <span></span>
+            </div>
+            <div class="addon-line">
+              <span class="addon-line-label">Railway volume snapshots</span>
+              <span class="addon-line-cost addon-cost-muted">$0.15/GB-mo</span>
+            </div>
+            <div class="addon-line">
+              <span class="addon-line-label addon-line-note-text">Railway volume storage billing · <a href="https://docs.railway.com/pricing" target="_blank" rel="noopener noreferrer">Railway pricing ↗</a></span>
+              <span></span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Add-ons grand total row -->
+        <div class="addon-grand-total">
+          <div>
+            <div class="addon-grand-label">Selected add-ons monthly subtotal <span class="addon-estimate-badge">estimates</span></div>
+            <div class="addon-grand-hint">Added to all three traffic totals below. Toggle items in sidebar to include/exclude.</div>
+          </div>
+          <div class="addon-grand-value medium-text" id="addons_subtotal">$0/mo</div>
+        </div>
+
+        <!-- Combined totals row -->
+        <div class="addon-totals-grid">
+          <div class="addon-total-cell addon-total-cell-low">
+            <div class="addon-total-tier low-text">🟢 Low + Add-ons</div>
+            <div class="addon-total-value low-text" id="total_with_addons_low">$0</div>
+            <div class="addon-total-hint">base + selected add-ons</div>
+          </div>
+          <div class="addon-total-cell addon-total-cell-medium">
+            <div class="addon-total-tier medium-text">🟡 Medium + Add-ons</div>
+            <div class="addon-total-value medium-text" id="total_with_addons_medium">$0</div>
+            <div class="addon-total-hint">base + selected add-ons</div>
+          </div>
+          <div class="addon-total-cell addon-total-cell-high">
+            <div class="addon-total-tier high-text">🔴 High + Add-ons</div>
+            <div class="addon-total-value high-text" id="total_with_addons_high">$0</div>
+            <div class="addon-total-hint">base + selected add-ons</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sources -->
+    <div class="sources-section">
+      <div class="sources-title">📎 Pricing Reference Sources <span class="sources-title-hint">— last verified June 2026</span></div>
+      <div class="sources-links">
+        <a href="https://developers.cloudflare.com/workers/platform/pricing/" target="_blank" class="source-pill">🔶 CF Workers Pricing</a>
+        <a href="https://www.cloudflare.com/plans/developer-platform/" target="_blank" class="source-pill">🔶 CF Developer Platform</a>
+        <a href="https://workers.cloudflare.com/plans" target="_blank" class="source-pill">🔶 CF Workers Plans</a>
+        <a href="https://vercel.com/pricing" target="_blank" class="source-pill">▲ Vercel Pricing</a>
+        <a href="https://vercel.com/docs/plans/pro-plan" target="_blank" class="source-pill">▲ Vercel Pro Plan</a>
+        <a href="https://vercel.com/docs/pricing" target="_blank" class="source-pill">▲ Vercel Pricing Docs</a>
+        <a href="https://docs.railway.com/pricing" target="_blank" class="source-pill">🚂 Railway Pricing</a>
+        <a href="https://docs.railway.com/pricing/plans" target="_blank" class="source-pill">🚂 Railway Plans</a>
+        <a href="https://docs.railway.com/deployments/serverless" target="_blank" class="source-pill">🚂 Railway Serverless</a>
+        <a href="https://docs.railway.com/pricing/cost-control" target="_blank" class="source-pill">🚂 Railway Cost Control</a>
+        <a href="https://railway.com/pricing" target="_blank" class="source-pill">🚂 Railway Pricing Page</a>
+        <a href="https://azure.microsoft.com/en-us/pricing/details/container-apps/" target="_blank" class="source-pill">☁ Azure Container Apps</a>
+        <a href="https://azure.microsoft.com/en-us/pricing/details/frontdoor/" target="_blank" class="source-pill">☁ Azure Front Door</a>
+        <a href="https://azure.microsoft.com/en-us/pricing/details/web-application-firewall/" target="_blank" class="source-pill">☁ Azure WAF</a>
+        <a href="https://azure.microsoft.com/en-us/pricing/details/bandwidth/" target="_blank" class="source-pill">☁ Azure Bandwidth</a>
+        <a href="https://www.cloudflare.com/products/registrar/" target="_blank" class="source-pill">🌐 CF Registrar</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ─── Config ──────────────────────────────────────────────────────────────
+// Pricing last verified: June 2026
+// Sources: CF Workers pricing, Vercel pricing, Railway docs, Better Stack, Sentry, Azure
+const DAYS_PER_MONTH = 30;
+// CF free tier: 100,000 req/day (hard daily cap) = ~3M/mo; paid plan includes 10M/mo
+const CF_FREE_REQ = 3_000_000;       // 100k/day × 30 days ≈ 3M/mo effective free
+const CF_PAID_INCLUDED = 10_000_000;  // Paid plan ($5/mo) includes 10M req/mo
+const CF_PAID_BASE = 5;               // $5/mo Workers Paid plan base (verified June 2026)
+const CF_OVERAGE_RATE = 0.30;         // $0.30 per 1M requests over 10M (verified June 2026)
+const VERCEL_SEAT_PRICE = 20;         // $20/seat/mo on Vercel Pro (verified June 2026)
+const VERCEL_INCLUDED_BANDWIDTH_GB = 1024; // 1 TB Fast Data Transfer included on Pro
+const VERCEL_INCLUDED_EDGE_REQ = 10_000_000; // 10M edge requests/mo included on Pro
+const VERCEL_BW_OVERAGE = 0.15;       // $0.15/GB Fast Data Transfer overage (verified June 2026)
+const VERCEL_EDGE_OVERAGE = 2.00;     // $2.00/M edge requests overage (verified June 2026)
+// Railway: $10/GB-month RAM = $0.013889/GB-hr (÷720 hr/mo); CPU $20/vCPU-mo not modelled separately
+const RAIL_RAM_RATE = 0.013889;       // $10/GB-month ÷ 720 hr/month = $0.013889/GB-hr (verified June 2026)
+const RAIL_EGRESS_RATE = 0.05;        // $0.05/GB network egress (verified June 2026)
+
+// ─── Azure Container Apps pricing (June 2026) ────────────────────────────
+// Source: https://azure.microsoft.com/en-us/pricing/details/container-apps/
+const AZ_CPU_SEC    = 0.000024;   // $0.000024/vCPU-sec (Consumption plan)
+const AZ_MEM_SEC    = 0.000003;   // $0.000003/GiB-sec  (Consumption plan)
+const AZ_FREE_CPU   = 180_000;    // 180,000 vCPU-sec free per month
+const AZ_FREE_MEM   = 360_000;    // 360,000 GiB-sec free per month
+const AZ_FREE_REQ   = 2_000_000;  // 2M requests free per month
+const AZ_FRONT_DOOR = 35;         // Azure Front Door Standard: $35/mo base
+const AZ_FD_GB      = 0.008;      // $0.008/GB transfer through Front Door
+const AZ_EGRESS_GB  = 0.087;      // $0.087/GB outbound (first 10TB)
+const AZ_WAF_POLICY = 5;          // $5/policy/mo
+const AZ_WAF_RULE   = 1;          // $1/rule/mo (estimate 10 rules)
+
+// ─── Prod-ready add-on monthly estimates (fixed $/mo, tier-independent) ────
+// Verified June 2026 — see source links in footer
+const ADDON_COST = {
+  logging:    35,    // Better Stack Nano — 40GB logs, 30-day retention; ~$30/mo EU · ~$45/mo US (monthly billing)
+  monitoring: 29,    // Sentry Team — 50k errors, 5M spans; $29/mo monthly / $26/mo annual (Aug 2025 update)
+  waf:        25,    // Cloudflare Pro zone plan (managed WAF rulesets)
+  logpush:    0.3,   // CF Logpush → R2, ~20GB logs @ $0.015/GB-mo (R2 storage free up to 10GB/mo)
+  secrets:    24,    // Doppler Team (secrets mgmt + dependency scanning)
+  support:    250,   // CF Business plan — priority support / SLA
+  backup:     0.75,  // R2 backup storage, ~50GB snapshots @ $0.015/GB-mo (10GB free tier)
+};
+
+// Traffic multipliers from base (medium)
+const TRAFFIC = {
+  low: { reqMult: 0.1, activeHrMult: 0.25 },
+  medium: { reqMult: 1, activeHrMult: 1 },
+  high: { reqMult: 10, activeHrMult: 2.5 },
+};
+
+// ─── Helpers ─────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const fmt = n => n < 0.01 ? '$0' : '$' + (n < 1 ? n.toFixed(2) : Math.round(n).toLocaleString());
+const fmtDec = n => '$' + n.toFixed(2);
+const fmtReq = n => {
+  if (n >= 1_000_000_000) return (n / 1_000_000_000).toFixed(1) + 'B';
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
+  if (n >= 1_000) return Math.round(n / 1_000) + 'K';
+  return Math.round(n).toString();
+};
+const fmtGB = n => {
+  if (n >= 1024) return (n / 1024).toFixed(1) + 'TB';
+  if (n < 1) return (n * 1024).toFixed(0) + 'MB';
+  return n.toFixed(1) + 'GB';
+};
+
+// ─── Get current values ───────────────────────────────────────────────────
+function getVals() {
+  return {
+    numVercel: parseInt($('num_vercel').value) || 0,
+    numFastapi: parseInt($('num_fastapi').value) || 0,
+    numSpring: parseInt($('num_spring').value) || 0,
+    reqPerDay: parseInt($('req_per_day').value) || 100,
+    responseSizeKB: parseInt($('response_size').value) || 10,
+    ramMB: parseInt($('ram_per_service').value) || 128,
+    activeHours: parseFloat($('active_hours').value) || 4,
+    serverless: $('serverless_enabled').checked,
+    railwayPlan: parseInt($('railway_plan').value) || 20,
+    vercelSeats: parseInt($('vercel_seats').value) || 1,
+    azMemoryMiB: parseInt($('az_memory_mib').value) || 512,
+    azVcpu: parseFloat($('az_vcpu').value) || 0.5,
+    azFrontDoor: $('az_front_door').checked,
+    azWaf: $('az_waf').checked,
+  };
+}
+
+// ─── Calculate for one traffic level ─────────────────────────────────────
+function calcLevel(v, level) {
+  const t = TRAFFIC[level];
+  const railwayProjects = v.numFastapi + v.numSpring;
+  const totalProjects = v.numVercel + railwayProjects;
+
+  const effectiveReqPerDay = v.reqPerDay * t.reqMult;
+  const totalReqPerMonth = totalProjects * effectiveReqPerDay * DAYS_PER_MONTH;
+  const vercelReqPerMonth = v.numVercel * effectiveReqPerDay * DAYS_PER_MONTH;
+  const railwayReqPerMonth = railwayProjects * effectiveReqPerDay * DAYS_PER_MONTH;
+
+  // --- Cloudflare Workers ---
+  let cfBase = 0, cfOverage = 0;
+  if (totalReqPerMonth <= CF_FREE_REQ) {
+    cfBase = 0;
+  } else {
+    cfBase = CF_PAID_BASE;
+    const overReq = Math.max(0, totalReqPerMonth - CF_PAID_INCLUDED);
+    cfOverage = (overReq / 1_000_000) * CF_OVERAGE_RATE;
+  }
+  const cfTotal = cfBase + cfOverage;
+
+  // --- Vercel ---
+  const vercelBase = v.vercelSeats * VERCEL_SEAT_PRICE;
+  const vercelBwGB = (vercelReqPerMonth * v.responseSizeKB) / (1024 * 1024);
+  const vercelBwOverageGB = Math.max(0, vercelBwGB - VERCEL_INCLUDED_BANDWIDTH_GB);
+  const vercelBwCost = vercelBwOverageGB * VERCEL_BW_OVERAGE;
+  const vercelEdgeOverage = Math.max(0, vercelReqPerMonth - VERCEL_INCLUDED_EDGE_REQ);
+  const vercelEdgeCost = (vercelEdgeOverage / 1_000_000) * VERCEL_EDGE_OVERAGE;
+  const vercelTotal = vercelBase + vercelBwCost + vercelEdgeCost;
+
+  // --- Railway ---
+  const railPlanBase = v.railwayPlan;
+  const railCredit = v.railwayPlan;
+  let activeHoursPerDay = v.serverless
+    ? Math.min(24, v.activeHours * t.activeHrMult)
+    : 24;
+  const activeHoursPerMonth = activeHoursPerDay * DAYS_PER_MONTH;
+  const ramGB = v.ramMB / 1024;
+  const ramCost = railwayProjects * ramGB * activeHoursPerMonth * RAIL_RAM_RATE;
+  const railBwGB = (railwayReqPerMonth * v.responseSizeKB) / (1024 * 1024);
+  const railEgressCost = railBwGB * RAIL_EGRESS_RATE;
+  const totalResourceUsage = ramCost + railEgressCost;
+  const railOverage = Math.max(0, totalResourceUsage - railCredit);
+  const railTotal = railPlanBase + railOverage;
+
+  // --- Azure Container Apps ---
+  const azResult = calcAzure(v, level, t, totalProjects, totalReqPerMonth);
+
+  return {
+    cfBase, cfOverage, cfTotal,
+    vercelBase, vercelBwGB, vercelBwCost, vercelEdgeCost, vercelTotal,
+    railPlanBase, railCredit, ramCost, railEgressCost, totalResourceUsage, railOverage, railTotal,
+    ...azResult,
+    total: cfTotal + vercelTotal + railTotal + azResult.azTotal,
+    totalReqPerMonth, vercelReqPerMonth, railwayReqPerMonth,
+    vercelBwOverageGB, vercelEdgeOverage, activeHoursPerDay, activeHoursPerMonth,
+    railBwGB,
+  };
+}
+
+// ─── Azure Container Apps cost calculation ────────────────────────────────
+// Models total request traffic as workload for Azure Container Apps Consumption plan.
+// Assumes each project runs as one replica; active seconds scale with traffic multiplier.
+function calcAzure(v, level, t, totalProjects, totalReqPerMonth) {
+  const SECS_PER_MONTH = DAYS_PER_MONTH * 24 * 3600;
+
+  // Active seconds: scale by traffic multiplier (serverless-style billing)
+  // Assume each request takes ~100ms average active CPU/mem time
+  const avgRequestDurationSec = 0.1;
+  const activeSecPerMonth = totalReqPerMonth * avgRequestDurationSec;
+
+  // vCPU-seconds consumed
+  const cpuSecConsumed = activeSecPerMonth * v.azVcpu;
+  const cpuSecBillable = Math.max(0, cpuSecConsumed - AZ_FREE_CPU);
+  const azCpuCost = cpuSecBillable * AZ_CPU_SEC;
+
+  // GiB-seconds consumed (memory in MiB → GiB)
+  const memGiB = v.azMemoryMiB / 1024;
+  const memSecConsumed = activeSecPerMonth * memGiB;
+  const memSecBillable = Math.max(0, memSecConsumed - AZ_FREE_MEM);
+  const azMemCost = memSecBillable * AZ_MEM_SEC;
+
+  // Egress: total response bandwidth
+  const azBwGB = (totalReqPerMonth * v.responseSizeKB) / (1024 * 1024);
+  const azEgressCost = azBwGB * AZ_EGRESS_GB;
+
+  // Front Door Standard
+  const azFdCost = v.azFrontDoor
+    ? AZ_FRONT_DOOR + azBwGB * AZ_FD_GB
+    : 0;
+
+  // WAF Policy: 1 policy ($5) + 10 rules ($1 each) = $15/mo
+  const azWafCost = v.azWaf ? (AZ_WAF_POLICY + 10 * AZ_WAF_RULE) : 0;
+
+  const azTotal = azCpuCost + azMemCost + azEgressCost + azFdCost + azWafCost;
+
+  return {
+    azCpuCost, azMemCost, azEgressCost, azFdCost, azWafCost,
+    azTotal, azBwGB,
+    cpuSecConsumed, cpuSecBillable,
+    memSecConsumed, memSecBillable,
+  };
+}
+
+// ─── Calculate selected add-ons (fixed monthly, same across tiers) ─────────
+function calcAddOns() {
+  const on = id => { const el = $(id); return el ? el.checked : false; };
+  const sel = {
+    logging:    on('addon_logging'),
+    monitoring: on('addon_monitoring'),
+    waf:        on('addon_waf'),
+    logpush:    on('addon_logpush'),
+    secrets:    on('addon_secrets'),
+    support:    on('addon_support'),
+    backup:     on('addon_backup'),
+  };
+  let subtotal = 0;
+  for (const k in sel) if (sel[k]) subtotal += ADDON_COST[k];
+  return { sel, subtotal };
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────
+function render() {
+  const v = getVals();
+  const low = calcLevel(v, 'low');
+  const med = calcLevel(v, 'medium');
+  const high = calcLevel(v, 'high');
+  const railwayProjects = v.numFastapi + v.numSpring;
+  const totalProjects = v.numVercel + railwayProjects;
+
+  // Summary cards
+  $('total_low').textContent = fmt(low.total);
+  $('total_medium').textContent = fmt(med.total);
+  $('total_high').textContent = fmt(high.total);
+  $('sub_low').textContent = fmtReq(low.totalReqPerMonth) + ' req/mo · ' + fmtGB(low.vercelBwGB + low.railBwGB + low.azBwGB) + ' total BW';
+  $('sub_medium').textContent = fmtReq(med.totalReqPerMonth) + ' req/mo · ' + fmtGB(med.vercelBwGB + med.railBwGB + med.azBwGB) + ' total BW';
+  $('sub_high').textContent = fmtReq(high.totalReqPerMonth) + ' req/mo · ' + fmtGB(high.vercelBwGB + high.railBwGB + high.azBwGB) + ' total BW';
+
+  // Cost card breakdowns
+  for (const [level, r] of [['low', low], ['medium', med], ['high', high]]) {
+    $(`cf_${level}`).textContent = fmt(r.cfTotal);
+    $(`vercel_${level}`).textContent = fmt(r.vercelTotal);
+    $(`railway_${level}`).textContent = fmt(r.railTotal);
+    $(`azure_${level}`).textContent = fmt(r.azTotal);
+  }
+
+  // Detailed table
+  const levels = { low, medium: med, high };
+  for (const [name, r] of Object.entries(levels)) {
+    $(`cf_req_${name}`).textContent = fmtReq(r.totalReqPerMonth);
+    $(`cf_base_${name}`).textContent = r.cfBase === 0 ? '✓ Free' : fmt(r.cfBase);
+    $(`cf_overage_${name}`).textContent = r.cfOverage === 0 ? '—' : fmt(r.cfOverage);
+    $(`vercel_base_${name}`).textContent = fmt(r.vercelBase);
+    $(`vercel_edge_${name}`).textContent = r.vercelEdgeCost === 0
+      ? '✓ ' + fmtReq(r.vercelReqPerMonth) + ' incl'
+      : fmt(r.vercelEdgeCost) + ' ovg';
+    $(`vercel_bw_${name}`).textContent = r.vercelBwCost === 0
+      ? '✓ ' + fmtGB(r.vercelBwGB)
+      : fmt(r.vercelBwCost) + ' (' + fmtGB(r.vercelBwOverageGB) + ' over)';
+    $(`rail_base_${name}`).textContent = fmt(r.railPlanBase);
+    $(`rail_ram_${name}`).textContent = fmt(r.ramCost);
+    $(`rail_egress_${name}`).textContent = fmt(r.railEgressCost);
+    $(`rail_credit_${name}`).textContent = '-' + fmt(Math.min(r.railCredit, r.totalResourceUsage));
+    $(`grand_${name}`).textContent = fmt(r.total);
+
+    // Azure rows
+    $(`az_cpu_${name}`).textContent = r.azCpuCost < 0.01
+      ? '✓ ' + Math.round(r.cpuSecConsumed).toLocaleString() + 's incl'
+      : fmt(r.azCpuCost);
+    $(`az_mem_${name}`).textContent = r.azMemCost < 0.01
+      ? '✓ ' + Math.round(r.memSecConsumed).toLocaleString() + 's incl'
+      : fmt(r.azMemCost);
+    $(`az_fd_${name}`).textContent = v.azFrontDoor ? fmt(r.azFdCost) : '—';
+    $(`az_waf_${name}`).textContent = v.azWaf ? fmt(r.azWafCost) : '—';
+    $(`az_egress_${name}`).textContent = fmt(r.azEgressCost);
+  }
+
+  // Notes
+  $('cf_req_note').textContent = fmtReq(med.totalReqPerMonth) + ' req/mo (medium)';
+  $('vercel_seat_note').textContent = v.vercelSeats + ' seat' + (v.vercelSeats > 1 ? 's' : '') + ' × $20/mo';
+  $('ram_cost_note').textContent = railwayProjects + ' svc × ' + v.ramMB + 'MB × active hrs × $0.0139/GB-hr';
+  $('az_cpu_note').textContent = '$0.000024/vCPU-sec · ' + v.azVcpu + ' vCPU · 180k free/mo';
+  $('az_mem_note').textContent = '$0.000003/GiB-sec · ' + v.azMemoryMiB + ' MiB · 360k GiB-sec free/mo';
+
+  // Charts
+  const maxTotal = Math.max(low.total, med.total, high.total, 1);
+  const updateBars = (prefix, r) => {
+    const scale = (r.total / maxTotal) * 100;
+    const cfPct = r.total > 0 ? (r.cfTotal / r.total) * scale : 0;
+    const vPct = r.total > 0 ? (r.vercelTotal / r.total) * scale : 0;
+    const rPct = r.total > 0 ? (r.railTotal / r.total) * scale : 0;
+    const aPct = r.total > 0 ? (r.azTotal / r.total) * scale : 0;
+    $(`bar_${prefix}_cf`).style.width = cfPct + '%';
+    $(`bar_${prefix}_vercel`).style.width = vPct + '%';
+    $(`bar_${prefix}_railway`).style.width = rPct + '%';
+    $(`bar_${prefix}_azure`).style.width = aPct + '%';
+    $(`bar_${prefix}_cf`).textContent = cfPct > 8 ? fmt(r.cfTotal) : '';
+    $(`bar_${prefix}_vercel`).textContent = vPct > 8 ? fmt(r.vercelTotal) : '';
+    $(`bar_${prefix}_railway`).textContent = rPct > 8 ? fmt(r.railTotal) : '';
+    $(`bar_${prefix}_azure`).textContent = aPct > 8 ? fmt(r.azTotal) : '';
+  };
+  updateBars('low', low);
+  updateBars('medium', med);
+  updateBars('high', high);
+  $('chart_low_total').textContent = fmt(low.total) + '/mo';
+  $('chart_medium_total').textContent = fmt(med.total) + '/mo';
+  $('chart_high_total').textContent = fmt(high.total) + '/mo';
+
+  // Range labels
+  const lo = Math.round(v.reqPerDay * 0.1).toLocaleString();
+  const mi = v.reqPerDay.toLocaleString();
+  const hi = (v.reqPerDay * 10).toLocaleString();
+  $('req_range_label').textContent = lo + ' / ' + mi + ' / ' + hi;
+  const aLo = (v.activeHours * 0.25).toFixed(1);
+  const aMi = v.activeHours.toFixed(1);
+  const aHi = Math.min(24, v.activeHours * 2.5).toFixed(1);
+  $('active_range_label').textContent = aLo + 'hr / ' + aMi + 'hr / ' + aHi + 'hr';
+
+  // Assumptions chips
+  $('assumptions_display').innerHTML = [
+    `<div class="chip">Vercel: <strong>${v.numVercel}</strong> projects</div>`,
+    `<div class="chip">FastAPI: <strong>${v.numFastapi}</strong> services</div>`,
+    `<div class="chip">Spring Boot: <strong>${v.numSpring}</strong> services</div>`,
+    `<div class="chip">Base traffic: <strong>${v.reqPerDay.toLocaleString()}</strong> req/day/proj</div>`,
+    `<div class="chip">Avg response: <strong>${v.responseSizeKB} KB</strong></div>`,
+    `<div class="chip">RAM/service: <strong>${v.ramMB} MB</strong></div>`,
+    `<div class="chip">Active hrs: <strong>${v.activeHours}hr/day</strong> (medium)</div>`,
+    `<div class="chip">Serverless: <strong>${v.serverless ? 'On' : 'Off (always-on)'}</strong></div>`,
+    `<div class="chip">Railway plan: <strong>$${v.railwayPlan}/mo</strong></div>`,
+    `<div class="chip">Vercel seats: <strong>${v.vercelSeats}</strong></div>`,
+    `<div class="chip">Azure: <strong>${v.azVcpu} vCPU / ${v.azMemoryMiB} MiB</strong></div>`,
+    `<div class="chip">Azure Front Door: <strong>${v.azFrontDoor ? 'On' : 'Off'}</strong></div>`,
+    `<div class="chip">Azure WAF: <strong>${v.azWaf ? 'On' : 'Off'}</strong></div>`,
+  ].join('');
+
+  // Warnings
+  const warns = [];
+  if (!v.serverless) {
+    warns.push({ type: 'w-warn', icon: '⚠️', text: '<strong>Always-on mode:</strong> Serverless is disabled — Railway charges 24hr/day regardless of traffic. Costs significantly higher.' });
+  }
+  if (v.numSpring > 0 && v.ramMB < 128) {
+    warns.push({ type: 'w-warn', icon: '⚠️', text: '<strong>Spring Boot RAM warning:</strong> GraalVM native Spring Boot needs at least 128MB RAM. Current setting may cause OOM crashes.' });
+  }
+  if (v.numSpring > 0 && v.ramMB >= 512) {
+    warns.push({ type: 'w-info', icon: 'ℹ️', text: '<strong>High RAM for Spring Boot:</strong> If using GraalVM native image, 128–256MB is enough. 512MB+ suggests JVM mode — cold starts will be 10–30 seconds, breaking serverless UX. <a href="https://docs.railway.com/guides/spring-boot" target="_blank">Spring Boot on Railway ↗</a>' });
+  }
+  if (high.railTotal > 200) {
+    warns.push({ type: 'w-warn', icon: '⚠️', text: '<strong>High Railway cost at peak:</strong> Consider capping spend via Railway\'s <a href="https://docs.railway.com/pricing/cost-control" target="_blank">Cost Control ↗</a> to prevent surprise bills.' });
+  }
+  if (v.numVercel === 0) {
+    warns.push({ type: 'w-info', icon: 'ℹ️', text: 'No Vercel projects — all projects routed to Railway via Cloudflare Worker.' });
+  }
+  if (railwayProjects === 0) {
+    warns.push({ type: 'w-info', icon: 'ℹ️', text: 'No Railway projects — all projects on Vercel.' });
+  }
+  if (v.responseSizeKB > 500) {
+    warns.push({ type: 'w-warn', icon: '⚠️', text: '<strong>Large response size:</strong> ' + v.responseSizeKB + 'KB per request — bandwidth costs will dominate. Consider compression (gzip/brotli).' });
+  }
+  if (high.azTotal > 100) {
+    warns.push({ type: 'w-warn', icon: '⚠️', text: '<strong>High Azure cost at peak:</strong> Container Apps consumption costs scale with traffic. Consider minimum replica counts and scale-to-zero settings. <a href="https://learn.microsoft.com/en-us/azure/container-apps/scale-app" target="_blank">Azure scaling docs ↗</a>' });
+  }
+  warns.push({ type: 'w-success', icon: '✅', text: '<strong>Cloudflare subrequests are free:</strong> Worker forwarding to Vercel/Railway backends does not count as additional Worker invocations. <a href="https://developers.cloudflare.com/workers/platform/pricing/" target="_blank">CF pricing docs ↗</a>' });
+  warns.push({ type: 'w-info', icon: 'ℹ️', text: '<strong>Railway sleep blockers:</strong> Open DB connections, Next.js telemetry, or background polling prevent sleep. Ensure services close connections when idle. <a href="https://docs.railway.com/deployments/serverless" target="_blank">Serverless docs ↗</a>' });
+  warns.push({ type: 'w-info', icon: 'ℹ️', text: '<strong>Azure free tier refreshes monthly:</strong> 180k vCPU-sec + 360k GiB-sec + 2M requests per month are free on the Consumption plan. Low-traffic workloads may stay in free tier. <a href="https://azure.microsoft.com/en-us/pricing/details/container-apps/" target="_blank">ACA pricing ↗</a>' });
+
+  $('warnings_list').innerHTML = warns.map(w =>
+    `<div class="warning-item ${w.type}"><span class="w-icon">${w.icon}</span><span>${w.text}</span></div>`
+  ).join('');
+
+  // ── Add-ons: per-line cost spans, subtotal, and base+add-on totals ──
+  const ao = calcAddOns();
+  const aoSpan = (id, key) => {
+    const el = $(id);
+    if (el) el.textContent = ao.sel[key] ? fmtDec(ADDON_COST[key]) + '/mo' : '$0/mo';
+  };
+  aoSpan('ao_logging_cost', 'logging');
+  aoSpan('ao_monitoring_cost', 'monitoring');
+  aoSpan('ao_waf_cost', 'waf');
+  aoSpan('ao_logpush_cost', 'logpush');
+  aoSpan('ao_secrets_cost', 'secrets');
+  aoSpan('ao_support_cost', 'support');
+  aoSpan('ao_backup_cost', 'backup');
+  if ($('addons_subtotal')) $('addons_subtotal').textContent = fmt(ao.subtotal) + '/mo';
+  if ($('total_with_addons_low'))    $('total_with_addons_low').textContent    = fmt(low.total  + ao.subtotal);
+  if ($('total_with_addons_medium')) $('total_with_addons_medium').textContent = fmt(med.total  + ao.subtotal);
+  if ($('total_with_addons_high'))   $('total_with_addons_high').textContent   = fmt(high.total + ao.subtotal);
+}
+
+// ─── Sync sliders ↔ number inputs ─────────────────────────────────────────
+function linkSlider(sliderId, inputId, onUpdate) {
+  const slider = $(sliderId);
+  const input = $(inputId);
+  slider.addEventListener('input', () => { input.value = slider.value; render(); });
+  input.addEventListener('input', () => { slider.value = input.value; render(); });
+}
+
+linkSlider('num_vercel', 'num_vercel_input');
+linkSlider('num_fastapi', 'num_fastapi_input');
+linkSlider('num_spring', 'num_spring_input');
+linkSlider('req_per_day', 'req_per_day_input');
+linkSlider('response_size', 'response_size_input');
+linkSlider('active_hours', 'active_hours_input');
+linkSlider('vercel_seats', 'vercel_seats_input');
+
+$('ram_per_service').addEventListener('change', () => {
+  $('ram_display').textContent = $('ram_per_service').value + ' MB';
+  render();
+});
+$('railway_plan').addEventListener('change', render);
+$('serverless_enabled').addEventListener('change', render);
+$('az_memory_mib').addEventListener('change', render);
+$('az_vcpu').addEventListener('change', render);
+$('az_front_door').addEventListener('change', render);
+$('az_waf').addEventListener('change', render);
+
+// Prod-ready add-on toggles → recompute totals
+['addon_logging','addon_monitoring','addon_waf','addon_logpush','addon_secrets','addon_support','addon_backup']
+  .forEach(id => { const el = $(id); if (el) el.addEventListener('change', render); });
+
+function resetDefaults() {
+  $('num_vercel').value = 100; $('num_vercel_input').value = 100;
+  $('num_fastapi').value = 100; $('num_fastapi_input').value = 100;
+  $('num_spring').value = 100; $('num_spring_input').value = 100;
+  $('req_per_day').value = 1000; $('req_per_day_input').value = 1000;
+  $('response_size').value = 10; $('response_size_input').value = 10;
+  $('ram_per_service').value = 128; $('ram_display').textContent = '128 MB';
+  $('active_hours').value = 4; $('active_hours_input').value = 4;
+  $('serverless_enabled').checked = true;
+  $('railway_plan').value = 20;
+  $('vercel_seats').value = 1; $('vercel_seats_input').value = 1;
+  $('az_memory_mib').value = 512;
+  $('az_vcpu').value = 0.5;
+  $('az_front_door').checked = true;
+  $('az_waf').checked = false;
+  if ($('addon_logging'))    $('addon_logging').checked = true;
+  if ($('addon_monitoring')) $('addon_monitoring').checked = true;
+  ['addon_waf','addon_logpush','addon_secrets','addon_support','addon_backup']
+    .forEach(id => { const el = $(id); if (el) el.checked = false; });
+  render();
+}
+
+// Initial render
+render();
+</script>
+</body>
+</html>

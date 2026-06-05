@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Best Low-Budget Serverless Stack — 100 Next.js + 200 APIs under one Cloudflare domain</title>
+<style>
+  :root{
+    --bg:#0a0d13; --panel:#131824; --panel2:#1a2130; --line:#26303f;
+    --txt:#e6edf3; --muted:#8b98a9; --dim:#5d6b7d;
+    --cf:#f6821f; --next:#ffffff; --run:#4285f4; --neon:#22d3ee;
+    --green:#22c55e; --amber:#f59e0b; --red:#ef4444; --purp:#a855f7;
+    --azure:#0078d4;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;
+    background:radial-gradient(1100px 560px at 82% -8%,#1a1230 0%,transparent 58%),var(--bg);
+    color:var(--txt); line-height:1.55; padding-bottom:80px}
+  header{padding:46px 28px 34px; text-align:center; border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,rgba(19,24,36,.6),transparent)}
+  header .badge{display:inline-block; background:rgba(34,197,94,.13); color:var(--green);
+    border:1px solid rgba(34,197,94,.3); border-radius:30px; padding:5px 16px; font-size:12.5px;
+    font-weight:600; margin-bottom:14px; letter-spacing:.3px}
+  header h1{font-size:28px; font-weight:700; letter-spacing:-.5px; margin-bottom:10px; max-width:880px; margin-inline:auto}
+  header p{color:var(--muted); max-width:760px; margin:0 auto; font-size:14.5px}
+  .wrap{max-width:1080px; margin:0 auto; padding:0 22px}
+  section{margin-top:42px}
+  h2{font-size:21px; margin-bottom:6px; display:flex; align-items:center; gap:10px}
+  h2 .num{font-size:12.5px; background:var(--panel2); color:var(--neon); border:1px solid var(--line);
+    border-radius:8px; padding:3px 9px; font-weight:600}
+  .sub{color:var(--muted); font-size:14px; margin-bottom:18px}
+
+  /* hero price */
+  .hero{display:grid; grid-template-columns:1.1fr 1fr; gap:20px; margin-top:24px}
+  .heroBig{background:linear-gradient(150deg,#16261b,#131824); border:1px solid rgba(34,197,94,.3);
+    border-radius:18px; padding:26px; position:relative; overflow:hidden}
+  .heroBig::after{content:'SERVERLESS · SCALE-TO-ZERO'; position:absolute; top:14px; right:-30px;
+    transform:rotate(40deg); background:rgba(34,197,94,.15); color:var(--green); font-size:9px;
+    font-weight:700; letter-spacing:1px; padding:4px 40px}
+  .heroBig .l{color:var(--muted); font-size:13px; text-transform:uppercase; letter-spacing:.5px}
+  .heroBig .big{font-size:46px; font-weight:800; color:var(--green); line-height:1.1; margin:6px 0}
+  .heroBig .big small{font-size:16px; color:var(--muted); font-weight:500}
+  .heroBig .row{display:flex; justify-content:space-between; font-size:13px; padding:6px 0; border-top:1px solid var(--line); color:var(--muted)}
+  .heroBig .row:first-of-type{margin-top:14px}
+  .heroBig .row b{color:var(--txt)}
+  .stackList{display:flex; flex-direction:column; gap:12px}
+  .si{display:flex; align-items:center; gap:14px; background:var(--panel); border:1px solid var(--line);
+    border-radius:13px; padding:14px 16px}
+  .si .ic{width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center;
+    font-weight:800; font-size:15px; flex-shrink:0}
+  .si .t{flex:1}
+  .si .t b{font-size:14.5px} .si .t span{display:block; color:var(--muted); font-size:12.5px}
+  .si .px{font-size:13px; font-weight:700; text-align:right}
+
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:20px}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:16px}
+  .grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:14px}
+  h4{font-size:15px; margin-bottom:10px; display:flex; align-items:center; gap:8px}
+  h4 .dot{width:10px;height:10px;border-radius:50%}
+  .card p{font-size:13.5px; color:var(--muted); margin-bottom:7px}
+  .card p b{color:var(--txt)}
+
+  .arch{background:#0a0e16; border:1px solid var(--line); border-radius:12px; padding:18px;
+    font-family:'Cascadia Code',Consolas,monospace; font-size:12.5px; color:var(--muted);
+    overflow-x:auto; white-space:pre; line-height:1.75}
+  .arch .cf{color:var(--cf)} .arch .nx{color:#fff} .arch .rn{color:var(--run)} .arch .nn{color:var(--neon)} .arch .c{color:var(--dim)} .arch .az{color:var(--azure)}
+
+  table{width:100%; border-collapse:collapse; margin-top:8px; font-size:13.5px;
+    background:var(--panel); border:1px solid var(--line); border-radius:12px; overflow:hidden}
+  th,td{padding:11px 13px; text-align:left; border-bottom:1px solid var(--line)}
+  th{background:var(--panel2); font-size:12px; text-transform:uppercase; letter-spacing:.4px; font-weight:600}
+  tr:last-child td{border-bottom:none}
+  .pill{display:inline-block; padding:2px 9px; border-radius:20px; font-size:11.5px; font-weight:600}
+  .free{background:rgba(34,197,94,.15); color:var(--green)}
+  .cheap{background:rgba(245,158,11,.15); color:var(--amber)}
+  .paid{background:rgba(239,68,68,.13); color:var(--red)}
+  .azure-pill{background:rgba(0,120,212,.15); color:var(--azure)}
+
+  pre.code{background:#0a0e16; border:1px solid var(--line); border-radius:12px; padding:16px 18px;
+    overflow-x:auto; font-family:'Cascadia Code',Consolas,monospace; font-size:12.5px; line-height:1.65; color:#cdd9e5}
+  pre.code .k{color:#ff7b72} pre.code .s{color:#a5d6ff} pre.code .f{color:#d2a8ff} pre.code .c{color:#5d6b7d} pre.code .n{color:#79c0ff}
+  .tabs{display:flex; gap:8px; margin-bottom:0}
+  .tab{background:var(--panel2); border:1px solid var(--line); border-bottom:none; border-radius:9px 9px 0 0;
+    padding:7px 14px; font-size:12.5px; color:var(--muted); font-weight:600}
+  .tab.on{background:#0a0e16; color:var(--neon)}
+
+  .note{background:linear-gradient(90deg,rgba(34,211,238,.07),transparent); border-left:3px solid var(--neon);
+    border-radius:0 10px 10px 0; padding:13px 17px; margin-top:15px; font-size:13.5px; color:var(--muted)}
+  .note b{color:var(--txt)}
+  .ok{background:linear-gradient(90deg,rgba(34,197,94,.08),transparent); border-left-color:var(--green)}
+  .warn{background:linear-gradient(90deg,rgba(245,158,11,.08),transparent); border-left-color:var(--amber)}
+  .azure-note{background:linear-gradient(90deg,rgba(0,120,212,.08),transparent); border-left-color:var(--azure)}
+
+  .steps{counter-reset:s; list-style:none}
+  .steps li{counter-increment:s; position:relative; padding:10px 0 10px 44px; border-bottom:1px solid var(--line); font-size:13.5px; color:var(--muted)}
+  .steps li:last-child{border-bottom:none}
+  .steps li::before{content:counter(s); position:absolute; left:0; top:10px; width:28px; height:28px;
+    background:var(--panel2); border:1px solid var(--line); border-radius:50%; color:var(--neon);
+    font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center}
+  .steps li b{color:var(--txt)}
+  .steps code{background:#0a0e16; border:1px solid var(--line); border-radius:5px; padding:1px 6px; font-size:12px; color:var(--neon)}
+
+  .sources{display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:10px; margin-top:14px}
+  .sources a{display:block; background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    padding:11px 14px; color:var(--neon); text-decoration:none; font-size:13px; transition:.15s}
+  .sources a:hover{border-color:var(--neon); background:var(--panel2)}
+  .sources a span{display:block; color:var(--dim); font-size:11px; margin-top:2px}
+  footer{text-align:center; color:var(--dim); font-size:12.5px; margin-top:46px; padding-top:22px; border-top:1px solid var(--line)}
+  @media(max-width:860px){.hero,.grid2,.grid3{grid-template-columns:1fr}}
+
+  /* Azure section accent */
+  .azure-section{border:1px solid rgba(0,120,212,.3); border-radius:14px; padding:20px; background:linear-gradient(150deg,rgba(0,120,212,.05),transparent)}
+  .azure-tier-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:12px; margin-top:14px}
+  .azure-tier{background:var(--panel); border:1px solid rgba(0,120,212,.25); border-radius:12px; padding:14px 16px}
+  .azure-tier h5{font-size:13.5px; color:var(--azure); margin-bottom:8px; font-weight:700}
+  .azure-tier p{font-size:12.5px; color:var(--muted); margin-bottom:5px}
+  .azure-tier p b{color:var(--txt)}
+</style>
+</head>
+<body>
+<header>
+  <div class="badge">★ RECOMMENDED · LOWEST BUDGET · 100% SERVERLESS</div>
+  <h1>Best Low-Budget Serverless Stack<br>100 Next.js apps + 200 APIs under one Cloudflare domain</h1>
+  <p>Everything scales to zero. You pay almost nothing when idle. One domain, one router, free tiers do most of the heavy lifting. Pricing verified and updated June 2026 against official Cloudflare, GCP, Azure, Neon, Vercel, Railway, Sentry, Better Stack, and UptimeRobot pricing pages.</p>
+</header>
+
+<div class="wrap">
+
+<!-- HERO -->
+<section>
+  <div class="hero">
+    <div class="heroBig">
+      <div class="l">Estimated monthly cost (low traffic)</div>
+      <div class="big">$5&ndash;$20<small>/mo</small></div>
+      <div style="color:var(--muted);font-size:13px">for the entire 300-project fleet, mostly on free tiers (Neon usage-based, no fixed floor)</div>
+      <div class="row"><span>Cloudflare (Worker + Pages)</span><b>$0&ndash;$5</b></div>
+      <div class="row"><span>Cloud Run (200 APIs, scale-to-zero)</span><b>$0&ndash;$10</b></div>
+      <div class="row"><span>Neon Postgres (serverless)</span><b>$0+ usage-based</b></div>
+      <div class="row"><span>Medium traffic ramps to</span><b>~$40&ndash;$90</b></div>
+    </div>
+    <div class="stackList">
+      <div class="si">
+        <div class="ic" style="background:rgba(246,130,31,.15);color:var(--cf)">CF</div>
+        <div class="t"><b>Cloudflare Worker</b><span>Single domain · router · WAF · DDoS · TLS</span></div>
+        <div class="px free">$0&ndash;5</div>
+      </div>
+      <div class="si">
+        <div class="ic" style="background:rgba(255,255,255,.1);color:#fff">N</div>
+        <div class="t"><b>Cloudflare Workers + OpenNext</b><span>100 Next.js frontends · same cloud · scale-to-zero</span></div>
+        <div class="px free">$0&ndash;5</div>
+      </div>
+      <div class="si">
+        <div class="ic" style="background:rgba(66,133,244,.15);color:var(--run)">GR</div>
+        <div class="t"><b>Google Cloud Run</b><span>200 FastAPI / Spring APIs · scale-to-zero · 2M req free</span></div>
+        <div class="px cheap">$0&ndash;10</div>
+      </div>
+      <div class="si">
+        <div class="ic" style="background:rgba(34,211,238,.15);color:var(--neon)">DB</div>
+        <div class="t"><b>Neon Serverless Postgres</b><span>Scales to zero · no idle cost · branching</span></div>
+        <div class="px free">$0+ usage</div>
+      </div>
+      <div class="si">
+        <div class="ic" style="background:rgba(0,120,212,.15);color:var(--azure)">AZ</div>
+        <div class="t"><b>Azure Container Apps (alt)</b><span>180k vCPU-sec + 360k GiB-sec + 2M req/mo free · every month</span></div>
+        <div class="px free">$0 free</div>
+      </div>
+    </div>
+  </div>
+  <div class="note ok"><b>Why this is the cheapest serverless combo:</b> every layer scales to zero, so 300 mostly-idle projects cost almost nothing. Frontends sit on the <i>same cloud as the router</i> (no cross-vendor egress). Cloud Run's free tier (2M requests + 360k vCPU-seconds + 180k GiB-seconds/month) absorbs most low-traffic API load. Neon idles the database instead of billing 24/7. Azure Container Apps offers an equivalent free tier as a strong alternative backend.</div>
+</section>
+
+<!-- ARCHITECTURE -->
+<section>
+  <h2><span class="num">1</span> The architecture</h2>
+  <p class="sub">One domain. The Worker is the only thing you "operate" — everything else is fully managed and idles to zero.</p>
+  <div class="arch"><span class="nn">yourdomain.com</span>  (Cloudflare DNS — one zone)
+        │
+   <span class="cf">┌──────────────────────────────────┐</span>
+   <span class="cf">│   CLOUDFLARE WORKER (front door) │</span>  <span class="c">← WAF · DDoS · TLS · routing</span>
+   <span class="cf">└──────────────────────────────────┘</span>
+        │
+        ├─ <span class="nx">app1.yourdomain.com</span> ─┐
+        ├─ <span class="nx">app2.yourdomain.com</span> ─┤→ <span class="nx">Cloudflare Workers + OpenNext</span>
+        │   … ×100 Next.js apps  │   <span class="c">(SSR/ISR/RSC · scale-to-zero · same cloud)</span>
+        │                        ┘
+        │
+        ├─ <span class="rn">yourdomain.com/api/*</span> ──→ <span class="rn">Google Cloud Run</span>  ×200
+        │                             <span class="c">├ FastAPI   (native scale-to-zero)</span>
+        │                             <span class="c">└ Spring    (GraalVM native image)</span>
+        │                                      │
+        │                               <span class="nn">Neon Postgres</span>  <span class="c">(serverless, idles to zero)</span>
+        │
+        └─ <span class="az">yourdomain.com/api/*</span> ──→ <span class="az">Azure Container Apps</span>  <span class="c">(alt backend)</span>
+                                      <span class="c">180k vCPU-sec + 360k GiB-sec + 2M req/mo FREE always</span></div>
+  <div class="note"><b>No load balancer, no NAT, no VPC to run.</b> The Worker does host/path routing at the edge. Frontends are on Cloudflare itself — adding the Worker route is enough, no proxy hop. Backends get a stable <code style="color:var(--neon)">*.run.app</code> URL each; the Worker forwards <code style="color:var(--neon)">/api/*</code> to them. Azure Container Apps backends get a stable <code style="color:var(--azure)">*.azurecontainerapps.io</code> URL.</div>
+</section>
+
+<!-- AZURE SECTION -->
+<section>
+  <h2><span class="num">★</span> <span style="color:var(--azure)">Azure</span> as a low-budget serverless platform</h2>
+  <p class="sub">Azure has a strong set of always-free tiers that make it competitive with GCP for low-budget serverless deployments. The key: avoid premium networking (Front Door Standard is expensive) and use Cloudflare or Azure CDN instead.</p>
+
+  <div class="azure-section">
+    <div style="color:var(--azure);font-weight:700;font-size:16px;margin-bottom:6px">Azure free tiers — permanent (not just first month)</div>
+    <div class="azure-tier-grid">
+      <div class="azure-tier">
+        <h5>Azure Container Apps</h5>
+        <p><b>Consumption plan — free every month:</b></p>
+        <p>✓ <b>180,000 vCPU-seconds/mo</b></p>
+        <p>✓ <b>360,000 GiB-seconds/mo</b></p>
+        <p>✓ <b>2,000,000 requests/mo</b></p>
+        <p>✓ Scale to zero by default</p>
+        <p>✓ Supports any container (Docker)</p>
+        <p style="color:var(--green);font-weight:600">Best for: FastAPI, Node.js, Spring (GraalVM) APIs</p>
+      </div>
+      <div class="azure-tier">
+        <h5>Azure Static Web Apps</h5>
+        <p><b>Free tier — always free:</b></p>
+        <p>✓ <b>100 GB bandwidth/mo</b></p>
+        <p>✓ <b>0.5 GB storage</b></p>
+        <p>✓ Custom domains + free TLS</p>
+        <p>✓ GitHub Actions CI/CD included</p>
+        <p>✓ Preview environments per PR</p>
+        <p style="color:var(--green);font-weight:600">Best for: static frontends, SPAs, Next.js (limited SSR)</p>
+      </div>
+      <div class="azure-tier">
+        <h5>Azure Functions</h5>
+        <p><b>Consumption plan — free every month:</b></p>
+        <p>✓ <b>1,000,000 requests/mo free</b></p>
+        <p>✓ <b>400,000 GB-seconds/mo free</b></p>
+        <p>✓ Scale to zero</p>
+        <p>✓ Pay-per-execution beyond free tier</p>
+        <p>✓ HTTP triggers, timers, queues</p>
+        <p style="color:var(--green);font-weight:600">Best for: event handlers, webhooks, scheduled jobs</p>
+      </div>
+      <div class="azure-tier">
+        <h5>Azure Monitor &amp; Logging</h5>
+        <p><b>Free tier:</b> 5 GB/day ingestion free</p>
+        <p>Beyond free: <b>$2.76/GB</b> (Log Analytics default)</p>
+        <p style="color:var(--amber);font-weight:600">Low-budget tip: use Basic Logs ($0.07/GB) for high-volume diagnostic logs — 8x cheaper than Analytics Logs</p>
+        <p>Application Insights: first 5 GB/mo free</p>
+        <p style="color:var(--green)">Keep structured errors in Sentry (free tier) to avoid Azure Monitor overages.</p>
+      </div>
+    </div>
+
+    <div class="note warn" style="margin-top:16px">
+      <b>Warning: Azure Front Door Standard costs $35/mo — avoid for low-budget builds.</b> Azure Front Door Standard has a $35/mo fixed base charge plus $0.01/GB data transfer. This is expensive for a low-budget stack. Instead use:
+      <ul style="margin-top:8px;padding-left:18px;color:var(--muted);font-size:13.5px;line-height:1.9">
+        <li><b>Cloudflare free tier</b> (recommended) — WAF + DDoS + CDN + routing for $0, routes to Azure Container Apps backends the same way it routes to Cloud Run</li>
+        <li><b>Azure CDN (classic, Microsoft CDN)</b> — $0.087/GB egress, no fixed monthly charge; add to Azure Static Web Apps or Container Apps for global caching without the Front Door tax</li>
+        <li><b>Azure Application Gateway v2 Basic</b> — ~$18/mo fixed, regional only (no global PoPs); still pricey for low budget</li>
+      </ul>
+    </div>
+
+    <div class="note azure-note" style="margin-top:12px">
+      <b>Azure Container Apps vs Google Cloud Run free tier — both excellent for low budget:</b> they have identical free allowances (180k vCPU-sec + 360k GiB-sec + 2M req/mo). Choose based on your cloud preference, existing Azure credits, or team familiarity. Both scale to zero, both support any container. Mixing is valid: run some APIs on Cloud Run and some on Azure Container Apps, all behind one Cloudflare Worker.
+    </div>
+  </div>
+
+  <table style="margin-top:18px">
+    <thead><tr><th>Azure Service</th><th>Free Tier (permanent)</th><th>Cost Beyond Free</th><th>Low-Budget Verdict</th></tr></thead>
+    <tbody>
+      <tr><td><b>Container Apps</b> (Consumption)</td><td><span class="pill free">180k vCPU-s + 360k GiB-s + 2M req/mo</span></td><td>$0.000024/vCPU-s · $0.0000025/GiB-s · $0.40/M req</td><td><span class="pill free">Excellent — use it</span></td></tr>
+      <tr><td><b>Static Web Apps</b></td><td><span class="pill free">100 GB bandwidth · 0.5 GB storage</span></td><td>Standard $9/mo (custom auth, functions)</td><td><span class="pill free">Great for frontends</span></td></tr>
+      <tr><td><b>Azure Functions</b> (Consumption)</td><td><span class="pill free">1M req/mo + 400k GB-s/mo</span></td><td>$0.20/M req · $0.000016/GB-s</td><td><span class="pill free">Good for event handlers</span></td></tr>
+      <tr><td><b>Azure Monitor / Log Analytics</b></td><td><span class="pill free">5 GB/day ingest free</span></td><td>$2.76/GB (Analytics) or $0.07/GB (Basic Logs)</td><td><span class="pill cheap">Use Basic Logs to cut cost 8x</span></td></tr>
+      <tr><td><b>Azure CDN (Microsoft)</b></td><td><span class="pill free">No fixed charge</span></td><td>$0.087/GB egress (first 10 TB/mo)</td><td><span class="pill free">Cheap CDN alternative</span></td></tr>
+      <tr><td><b>Azure Front Door Standard</b></td><td><span class="pill paid">No free tier</span></td><td>$35/mo base + $0.01/GB + $0.005/10k req</td><td><span class="pill paid">Avoid — use Cloudflare free</span></td></tr>
+      <tr><td><b>Azure Application Gateway v2</b></td><td><span class="pill paid">No free tier</span></td><td>~$18/mo fixed (regional, no global PoPs)</td><td><span class="pill cheap">Pricey — skip for low budget</span></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- FRONT DOOR COMPARISON -->
+<section>
+  <h2><span class="num">★</span> Front door: Cloudflare Worker vs GCP Global LB</h2>
+  <p class="sub">The single most important choice — what sits in front of all 300 projects on the one domain. Verdict first: <b style="color:var(--cf)">Cloudflare Worker wins for low budget.</b> GCP's Global LB only wins if you go all-GCP. Here's why.</p>
+
+  <table>
+    <thead><tr><th>Dimension</th><th style="color:var(--cf)">Cloudflare Worker</th><th style="color:var(--run)">GCP Global External LB</th></tr></thead>
+    <tbody>
+      <tr><td><b>Fixed monthly floor</b></td><td><span class="pill free">$0 (free tier) / $5 paid</span></td><td><span class="pill paid">~$18/mo base, always on</span></td></tr>
+      <tr><td>Scales to zero?</td><td><span class="pill free">Yes — pay per request</span></td><td><span class="pill paid">No — base fee 24/7</span></td></tr>
+      <tr><td>Request pricing</td><td>$0.30 / million (paid plan: 10M included)</td><td>~$0.008&ndash;0.025/GB processed + rules</td></tr>
+      <tr><td>Routing logic</td><td><span class="pill free">Full JS — any logic, KV-driven, A/B, rewrites</span></td><td><span class="pill cheap">URL maps — static host/path rules only</span></td></tr>
+      <tr><td>WAF</td><td><span class="pill free">Included (best-in-class)</span></td><td>Cloud Armor — <span class="pill cheap">extra ~$5/policy +$1/rule +$0.75/M</span></td></tr>
+      <tr><td>DDoS protection</td><td><span class="pill free">Included, industry-leading</span></td><td>Cloud Armor (paid tiers)</td></tr>
+      <tr><td>Edge PoPs</td><td><span class="pill free">330+ cities</span></td><td>Google edge (fewer metros)</td></tr>
+      <tr><td>TLS / certs</td><td><span class="pill free">Auto, free, wildcard</span></td><td>Google-managed certs (free, more setup)</td></tr>
+      <tr><td>CDN / caching</td><td><span class="pill free">Built into Worker (caches API)</span></td><td>Cloud CDN (toggle on LB)</td></tr>
+      <tr><td>Setup effort</td><td><span class="pill free">One Worker script</span></td><td><span class="pill cheap">URL map + backend services + NEGs + cert</span></td></tr>
+      <tr><td>Native to Cloud Run backends</td><td><span class="pill cheap">Cross-cloud hop + small egress</span></td><td><span class="pill free">Serverless NEG — zero egress, internal</span></td></tr>
+      <tr><td>Azure Container Apps backends</td><td><span class="pill free">Works — same cross-cloud pattern</span></td><td><span class="pill paid">Requires extra config; not native</span></td></tr>
+      <tr><td>Vendor lock-in</td><td>CF-specific Worker code</td><td>GCP-specific LB config</td></tr>
+    </tbody>
+  </table>
+
+  <div class="grid2" style="margin-top:16px">
+    <div class="card" style="border-color:rgba(246,130,31,.35)">
+      <h4><span class="dot" style="background:var(--cf)"></span>Use Cloudflare Worker when… <span style="color:var(--green);font-size:12px;margin-left:6px">★ your case</span></h4>
+      <p>✓ <b>Low budget</b> — $0 floor vs GCP's ~$18/mo always-on base</p>
+      <p>✓ You want WAF + DDoS <b>included free</b>, not billed separately</p>
+      <p>✓ Routing needs <b>logic</b> (KV map for 300 projects, rewrites, A/B, auth)</p>
+      <p>✓ Frontends are on Cloudflare anyway → router + frontends one cloud</p>
+      <p>✓ You want the strongest edge security + most PoPs</p>
+      <p>✓ Backends are on <b>GCP Cloud Run or Azure Container Apps</b> — all route the same way</p>
+    </div>
+    <div class="card" style="border-color:rgba(66,133,244,.35)">
+      <h4><span class="dot" style="background:var(--run)"></span>Use GCP Global LB when…</h4>
+      <p>✓ You go <b>all-GCP</b> (frontends + backends both on Cloud Run)</p>
+      <p>✓ You want <b>serverless NEG</b> integration — no cross-cloud egress hop</p>
+      <p>✓ Single vendor / one bill / one IAM is a hard requirement</p>
+      <p>✓ You need GCP-native features (Cloud Armor + IAP identity-aware proxy)</p>
+      <p>✗ Costs more at low traffic — the $18 base never sleeps</p>
+    </div>
+  </div>
+
+  <div class="note ok"><b>Verdict for this low-budget build:</b> <span style="color:var(--cf)">Cloudflare Worker.</span> It has a <b>$0 floor</b> (GCP LB bills ~$18/mo before any traffic), bundles WAF + DDoS for free, and gives real routing logic for the 300-project KV map. The only thing you give up is native Cloud Run integration — the cross-cloud hop adds a few ms and pennies of egress, which is negligible at low budget. The same Worker can route to <b>Azure Container Apps backends</b> with no extra setup. <b>Go GCP Global LB only if you decide to keep frontends on Cloud Run too</b> and want everything inside one cloud.</div>
+  <div class="note warn"><b>Hybrid option:</b> you can use <i>both</i> — Cloudflare Worker as the public front door (cheap edge + WAF + DDoS), proxying to a GCP <i>internal</i> LB that fans out to Cloud Run via serverless NEGs. Best security (origins never public) but one more component to run; skip it unless you need locked-down origins.</div>
+</section>
+
+<!-- NEXTJS HOSTING COMPARISON -->
+<section>
+  <h2><span class="num">★</span> 100 Next.js apps: CF Workers + OpenNext vs Vercel</h2>
+  <p class="sub">Where to host the 100 frontends. Verdict first: <b style="color:var(--cf)">CF Workers + OpenNext for low budget</b> (same cloud as router, cheapest, scale-to-zero). <b style="color:#fff">Vercel</b> if you want flawless Next.js fidelity + best DX and can spend more. <b style="color:var(--azure)">Azure Static Web Apps</b> for pure static/SPA frontends at $0.</p>
+
+  <table>
+    <thead><tr><th>Dimension</th><th style="color:var(--cf)">CF Workers + OpenNext</th><th style="color:#fff">Vercel</th><th style="color:var(--azure)">Azure Static Web Apps</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><b>Monthly floor</b></td>
+        <td><span class="pill free">$0 free / $5 paid</span></td>
+        <td><span class="pill cheap">$20/seat (Pro, incl. $20 usage credit); <b>Hobby free but commercial use banned since Dec 2024</b></span></td>
+        <td><span class="pill free">$0 free (100 GB BW · 0.5 GB storage)</span></td>
+      </tr>
+      <tr>
+        <td>Cost at 100 apps</td>
+        <td><span class="pill free">Flat — one Workers plan covers all</span></td>
+        <td><span class="pill cheap">Seats + metered fn/image/bandwidth; Pro: 10M edge req + 1TB bandwidth included</span></td>
+        <td><span class="pill free">Free for static; Standard $9/mo per app for SSR/functions</span></td>
+      </tr>
+      <tr>
+        <td>Same cloud as router</td>
+        <td><span class="pill free">Yes — no egress, no proxy hop</span></td>
+        <td><span class="pill cheap">Separate vendor (CF→Vercel hop)</span></td>
+        <td><span class="pill cheap">Separate vendor (CF→Azure hop)</span></td>
+      </tr>
+      <tr>
+        <td>Next.js fidelity</td>
+        <td><span class="pill cheap">Most features via adapter</span></td>
+        <td><span class="pill free">100% — it's the Next.js home team</span></td>
+        <td><span class="pill cheap">Hybrid rendering; full SSR limited</span></td>
+      </tr>
+      <tr>
+        <td>Newest Next features (PPR, etc.)</td>
+        <td><span class="pill cheap">Lags — adapter catches up later</span></td>
+        <td><span class="pill free">Day-one support</span></td>
+        <td><span class="pill cheap">Community adapter; lags</span></td>
+      </tr>
+      <tr>
+        <td>ISR / on-demand revalidate</td>
+        <td>Supported (R2/KV/DO cache, some config)</td>
+        <td><span class="pill free">Native, zero config</span></td>
+        <td>Limited on free tier</td>
+      </tr>
+      <tr>
+        <td>Image optimization</td>
+        <td><span class="pill cheap">Needs loader (CF Images / custom)</span></td>
+        <td><span class="pill free">Built-in (metered)</span></td>
+        <td>Not included</td>
+      </tr>
+      <tr>
+        <td>Cold start</td>
+        <td><span class="pill free">Near-zero (Workers isolates)</span></td>
+        <td>Function cold start (small)</td>
+        <td><span class="pill free">Near-zero (CDN edge)</span></td>
+      </tr>
+      <tr>
+        <td>Deploy DX</td>
+        <td><code style="background:#0a0e16;border:1px solid var(--line);padding:1px 5px;border-radius:5px;color:var(--neon);font-size:12px">wrangler deploy</code> / CI</td>
+        <td><span class="pill free">git push — best preview deploys</span></td>
+        <td><span class="pill free">GitHub Actions — PR preview envs</span></td>
+      </tr>
+      <tr>
+        <td>Scale to zero</td>
+        <td><span class="pill free">Yes</span></td>
+        <td><span class="pill free">Yes</span></td>
+        <td><span class="pill free">Yes (static CDN)</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="note warn" style="margin-top:14px">
+    <b>Vercel Hobby plan: commercial use banned since December 2024.</b> The Hobby plan (free) now explicitly prohibits use for commercial projects, client work, or revenue-generating apps — enforced in ToS. Any production or client-facing app <b>requires Vercel Pro at $20/seat/month</b> (includes $20 usage credit). Do not use Vercel Hobby for anything you charge a client for.
+  </div>
+
+  <div class="grid2" style="margin-top:16px">
+    <div class="card" style="border-color:rgba(246,130,31,.35)">
+      <h4><span class="dot" style="background:var(--cf)"></span>CF Workers + OpenNext <span style="color:var(--green);font-size:12px;margin-left:6px">★ low-budget pick</span></h4>
+      <p>✓ <b>Cheapest</b> — flat Workers plan covers 100 apps, no per-seat fee</p>
+      <p>✓ <b>Same cloud as the router</b> → zero cross-vendor egress, one bill</p>
+      <p>✓ Near-zero cold start, scale-to-zero</p>
+      <p>✓ Standard Next.js code stays portable</p>
+      <p>✗ Newest Next features lag; image opt + ISR need a little config</p>
+    </div>
+    <div class="card" style="border-color:rgba(255,255,255,.25)">
+      <h4><span class="dot" style="background:#fff"></span>Vercel</h4>
+      <p>✓ <b>Perfect Next.js fidelity</b> — every feature, day one</p>
+      <p>✓ <b>Best DX</b> — git push, preview deploys, zero config</p>
+      <p>✓ Native ISR + image optimization</p>
+      <p>✗ <b>Pricier</b> — $20/seat (incl. $20 usage credit) + $2/M edge req beyond 10M + $0.60/M invocations + $0.15/GB bandwidth beyond 1TB</p>
+      <p>✗ <b>Hobby plan bans commercial use since Dec 2024</b> — production/client work requires Pro at $20/seat/mo</p>
+      <p>✗ Separate vendor → cross-cloud hop from the CF Worker + extra bill</p>
+    </div>
+  </div>
+
+  <div class="note ok"><b>Verdict for this build:</b> <span style="color:var(--cf)">CF Workers + OpenNext.</span> At 100 apps the flat Workers price beats Vercel's per-seat + metered model, and keeping frontends on the same cloud as the router removes the cross-vendor egress hop entirely. For pure static apps, <b>Azure Static Web Apps free tier</b> (100 GB BW, 0.5 GB storage) is a solid zero-cost option too. <b>Use Vercel only for the handful of apps</b> (if any) that depend on bleeding-edge Next features the adapter doesn't cover yet — you can mix: most apps on CF, a few on Vercel, all behind the one Worker domain.</div>
+  <div class="note warn"><b>Before committing 100 apps to OpenNext:</b> deploy your 2&ndash;3 most feature-heavy apps first (ISR-heavy, middleware-heavy, image-heavy) and verify they work end-to-end. If they pass, the rest will. If a critical feature breaks, route just those apps to Vercel.</div>
+</section>
+
+<!-- WHY EACH -->
+<section>
+  <h2><span class="num">2</span> Why each pick (low-budget lens)</h2>
+  <div class="grid2">
+    <div class="card">
+      <h4><span class="dot" style="background:var(--cf)"></span>Cloudflare Worker — the front door</h4>
+      <p><b>Free tier:</b> 100k requests/day, 10ms CPU/invocation, 100k KV reads/day, 1k KV writes/day, 1 GB KV storage. Paid plan: <b>$5/mo</b> for 10M requests included + 30M CPU-ms + 10M KV reads + 1M KV writes included.</p>
+      <p>Routing, WAF, DDoS, TLS all included — replaces an AWS ALB ($16+) + NAT ($32+) entirely. <b>$0 of fixed infra tax.</b></p>
+      <p>Store the route map in <b>KV</b> so adding a project is a data write, not a redeploy. KV read cost on paid: $0.50/million (10M/mo included).</p>
+    </div>
+    <div class="card">
+      <h4><span class="dot" style="background:#fff"></span>CF Workers + OpenNext — 100 Next.js apps</h4>
+      <p><b>Same cloud as the router</b> → zero cross-vendor egress, one bill.</p>
+      <p><code style="background:#0a0e16;border:1px solid var(--line);padding:1px 5px;border-radius:5px;color:var(--neon);font-size:12px">@opennextjs/cloudflare</code> supports SSR, RSC, ISR, middleware, image optimization.</p>
+      <p>Scales to zero; cheapest way to host many Next.js apps. <span style="color:var(--amber)">Alt: Vercel if a few apps need bleeding-edge Next features (Pro plan required for commercial use — Hobby banned commercial use since Dec 2024).</span></p>
+    </div>
+    <div class="card">
+      <h4><span class="dot" style="background:var(--run)"></span>Google Cloud Run — 200 APIs</h4>
+      <p><b>Free tier:</b> 2M requests + 360k vCPU-sec + 180k GiB-sec / month — covers most low-traffic APIs at <b>$0</b>.</p>
+      <p>Native <b>scale-to-zero by default</b>, fast cold start, per-100ms billing. Best for FastAPI; Spring needs GraalVM native image.</p>
+      <p><span style="color:var(--amber)">Alt: Railway Hobby ($5/mo) if you prefer simpler git-deploy. Note: Railway containers are always-on, billed per second — $20/vCPU/month (~$0.028/vCPU-hr) + $10/GB-RAM/month (~$0.014/GB-hr). Egress is now <b>$0.05/GB</b> (reduced from $0.10 in 2025). There is no scale-to-zero on Railway (production); Hobby $5 credit covers ~1 small always-on container. Use Cloud Run for genuine scale-to-zero. Railway Pro is $20/mo with $20 usage credit.</span></p>
+    </div>
+    <div class="card">
+      <h4><span class="dot" style="background:var(--neon)"></span>Neon — serverless Postgres</h4>
+      <p><b>Free tier:</b> 0.5 GB storage + 100 CU-hours/project + autosuspend (5-min idle). <b>No fixed monthly minimum</b> on paid tiers — usage-based billing ($0.106/CU-hr on Launch, $0.222/CU-hr on Scale; storage $0.35/GB-month). PITR: 6 hrs free, 7 days on Launch ($0.20/GB-month), 30 days on Scale.</p>
+      <p><b>Idles to zero</b> — no 24/7 DB bill, and critically <b>no open connection holding your APIs awake</b> (uses HTTP/serverless driver, so Cloud Run can still sleep).</p>
+      <p>Avoids the classic "DB connection blocks scale-to-zero" trap.</p>
+    </div>
+    <div class="card" style="border-color:rgba(0,120,212,.3)">
+      <h4><span class="dot" style="background:var(--azure)"></span>Azure Container Apps — alt backend</h4>
+      <p><b>Free tier (every month, Consumption plan):</b> 180k vCPU-sec + 360k GiB-sec + 2M requests — identical to Cloud Run's free allowance.</p>
+      <p>Scale to zero, any Docker container, built-in ingress with TLS. Accessible via Cloudflare Worker the same way as Cloud Run — just point the route to the <code style="color:var(--azure)">*.azurecontainerapps.io</code> URL.</p>
+      <p><span style="color:var(--amber)">Avoid Azure Front Door Standard ($35/mo base) — use Cloudflare free tier or Azure CDN ($0.087/GB, no fixed charge) instead.</span></p>
+    </div>
+  </div>
+</section>
+
+<!-- COST TABLE -->
+<section>
+  <h2><span class="num">3</span> Cost breakdown</h2>
+  <p class="sub">Free tiers cover the idle case. You only start paying as real traffic arrives.</p>
+  <table>
+    <thead><tr><th>Layer</th><th>Free tier</th><th>Low traffic</th><th>Medium traffic</th></tr></thead>
+    <tbody>
+      <tr><td>Cloudflare Worker (router)</td><td><span class="pill free">100k req/day free</span></td><td>$0</td><td>$5</td></tr>
+      <tr><td>CF Workers/OpenNext (100 Next.js)</td><td><span class="pill free">generous</span></td><td>$0&ndash;5</td><td>$5&ndash;20</td></tr>
+      <tr><td>Cloud Run (200 APIs)</td><td><span class="pill free">2M req + 360k vCPU-s + 180k GiB-s</span></td><td>$0&ndash;10</td><td>$15&ndash;40</td></tr>
+      <tr><td>Azure Container Apps (alt backend)</td><td><span class="pill free">2M req + 180k vCPU-s + 360k GiB-s / mo</span></td><td>$0</td><td>$5&ndash;20</td></tr>
+      <tr><td>Azure Static Web Apps (alt frontend)</td><td><span class="pill free">100 GB BW · 0.5 GB storage</span></td><td>$0</td><td>$0 (static) / $9/app (SSR)</td></tr>
+      <tr><td>Neon Postgres</td><td><span class="pill free">0.5 GB autosuspend</span></td><td>$0&ndash;5</td><td>$5&ndash;20</td></tr>
+      <tr><td>Egress / bandwidth</td><td><span class="pill free">CF free</span></td><td>~$0</td><td>~$5</td></tr>
+      <tr style="background:rgba(34,197,94,.06)"><td><b>TOTAL (GCP stack)</b></td><td><span class="pill free">mostly $0</span></td><td><b style="color:var(--green)">$5&ndash;$20/mo</b></td><td><b style="color:var(--amber)">~$40&ndash;$90/mo</b></td></tr>
+      <tr style="background:rgba(0,120,212,.04)"><td><b>TOTAL (Azure alt stack)</b></td><td><span class="pill free">mostly $0</span></td><td><b style="color:var(--azure)">$0&ndash;$10/mo</b></td><td><b style="color:var(--amber)">~$30&ndash;$70/mo</b></td></tr>
+    </tbody>
+  </table>
+  <div class="note warn"><b>Cost-control rules:</b> (1) set a <b>Cloud Run / Azure Container Apps max-instances</b> cap per service so a traffic spike can't run up a bill; (2) set a <b>GCP / Azure billing budget alert</b>; (3) keep DB on Neon's serverless HTTP driver so APIs actually sleep; (4) don't add keep-warm pings unless a specific hot API needs it — they kill scale-to-zero savings; (5) use Azure Basic Logs ($0.07/GB) instead of Log Analytics ($2.76/GB) for high-volume diagnostic data.</div>
+</section>
+
+<!-- ROUTER CODE -->
+<section>
+  <h2><span class="num">4</span> The single-domain router Worker</h2>
+  <p class="sub">KV-driven so adding/moving any of the 300 projects is a data write — no redeploy. Subdomains for Next.js apps, <code style="background:#0a0e16;border:1px solid var(--line);padding:1px 5px;border-radius:5px;color:var(--neon);font-size:12px">/api/*</code> paths for backends (Cloud Run <i>or</i> Azure Container Apps).</p>
+  <div class="tabs"><div class="tab on">worker.js</div></div>
+  <pre class="code"><span class="c">// Route map lives in KV (binding: ROUTES). Example values:</span>
+<span class="c">//   host:app1   -> https://app1.pages.dev              (Next.js on CF)</span>
+<span class="c">//   path:/api/users -> https://api-users-xxx.run.app    (Cloud Run)</span>
+<span class="c">//   path:/api/orders -> https://orders.agreeablehill.azurecontainerapps.io  (Azure Container Apps)</span>
+
+<span class="k">export default</span> {
+  <span class="k">async</span> <span class="f">fetch</span>(request, env, ctx) {
+    <span class="k">const</span> url = <span class="k">new</span> <span class="n">URL</span>(request.url);
+    <span class="k">const</span> sub = url.hostname.split(<span class="s">"."</span>)[<span class="n">0</span>];
+
+    <span class="c">// 1) subdomain -> Next.js app</span>
+    <span class="k">let</span> target = <span class="k">await</span> env.ROUTES.<span class="f">get</span>(<span class="s">`host:</span>${sub}<span class="s">`</span>);
+
+    <span class="c">// 2) path -> backend API (Cloud Run or Azure Container Apps)</span>
+    <span class="k">if</span> (!target &amp;&amp; url.pathname.<span class="f">startsWith</span>(<span class="s">"/api/"</span>)) {
+      <span class="k">const</span> svc = url.pathname.split(<span class="s">"/"</span>)[<span class="n">2</span>];        <span class="c">// /api/users -> users</span>
+      target = <span class="k">await</span> env.ROUTES.<span class="f">get</span>(<span class="s">`path:</span>${svc}<span class="s">`</span>);
+    }
+    <span class="k">if</span> (!target) <span class="k">return</span> <span class="k">new</span> <span class="n">Response</span>(<span class="s">"No route"</span>, { status: <span class="n">404</span> });
+
+    <span class="c">// forward, preserving path + query</span>
+    <span class="k">const</span> originUrl = <span class="k">new</span> <span class="n">URL</span>(url.pathname + url.search, target);
+    <span class="k">const</span> req = <span class="k">new</span> <span class="n">Request</span>(originUrl, request);
+    req.headers.<span class="f">set</span>(<span class="s">"X-Forwarded-Host"</span>, url.hostname);
+    req.headers.<span class="f">set</span>(<span class="s">"X-Origin-Secret"</span>, env.ORIGIN_SECRET);  <span class="c">// lock origins</span>
+
+    <span class="c">// edge-cache GETs to cut backend wakeups + cost</span>
+    <span class="k">if</span> (request.method === <span class="s">"GET"</span>) {
+      <span class="k">const</span> cache = caches.default;
+      <span class="k">let</span> res = <span class="k">await</span> cache.<span class="f">match</span>(req);
+      <span class="k">if</span> (res) <span class="k">return</span> res;
+      res = <span class="k">await</span> <span class="f">fetch</span>(req);
+      <span class="k">if</span> (res.ok) ctx.<span class="f">waitUntil</span>(cache.<span class="f">put</span>(req, res.<span class="f">clone</span>()));
+      <span class="k">return</span> res;
+    }
+    <span class="k">return</span> <span class="f">fetch</span>(req);
+  },
+};</pre>
+  <div class="note"><b>Lock your origins:</b> the Worker sends <code style="color:var(--neon)">X-Origin-Secret</code>; set Cloud Run ingress to reject anything without it (or use internal ingress + the secret). For Azure Container Apps, use a custom ingress rule or Azure API Management (dev tier) to validate the header. That stops anyone bypassing your domain/WAF by hitting the <code style="color:var(--neon)">*.run.app</code> or <code style="color:var(--azure)">*.azurecontainerapps.io</code> URL directly.</div>
+</section>
+
+<!-- DEPLOY -->
+<section>
+  <h2><span class="num">5</span> Deploy quickstart</h2>
+  <div class="grid2">
+    <div class="card">
+      <h4><span class="dot" style="background:#fff"></span>A Next.js app → Cloudflare</h4>
+      <ol class="steps">
+        <li><b>Add adapter:</b> <code>npm i @opennextjs/cloudflare</code></li>
+        <li><b>Build:</b> <code>npx opennextjs-cloudflare build</code></li>
+        <li><b>Deploy:</b> <code>npx wrangler deploy</code></li>
+        <li><b>Map subdomain</b> <code>app1.yourdomain.com</code> in CF DNS → done</li>
+      </ol>
+    </div>
+    <div class="card">
+      <h4><span class="dot" style="background:var(--run)"></span>A FastAPI / Spring API → Cloud Run</h4>
+      <ol class="steps">
+        <li><b>Containerize</b> (FastAPI: simple Dockerfile; Spring: GraalVM native image)</li>
+        <li><b>Deploy:</b> <code>gcloud run deploy api-users --source . --min-instances=0</code></li>
+        <li><b>Cap cost:</b> add <code>--max-instances=5 --cpu=1 --memory=512Mi</code></li>
+        <li><b>Register</b> the <code>*.run.app</code> URL in the Worker's KV map</li>
+      </ol>
+    </div>
+    <div class="card" style="border-color:rgba(0,120,212,.3)">
+      <h4><span class="dot" style="background:var(--azure)"></span>A FastAPI / Node API → Azure Container Apps</h4>
+      <ol class="steps">
+        <li><b>Containerize:</b> standard Dockerfile, push to Azure Container Registry (free 10 GB)</li>
+        <li><b>Create environment:</b> <code>az containerapp env create --name myEnv --resource-group myRG --location eastus</code></li>
+        <li><b>Deploy:</b> <code>az containerapp create --name api-orders --resource-group myRG --environment myEnv --image myacr.azurecr.io/api-orders:latest --min-replicas 0 --max-replicas 5 --ingress external --target-port 8000</code></li>
+        <li><b>Register</b> the <code>*.azurecontainerapps.io</code> URL in the CF Worker's KV map</li>
+      </ol>
+    </div>
+    <div class="card" style="border-color:rgba(0,120,212,.2)">
+      <h4><span class="dot" style="background:var(--azure)"></span>A static frontend → Azure Static Web Apps</h4>
+      <ol class="steps">
+        <li><b>Connect GitHub repo</b> in Azure portal → Static Web Apps → create</li>
+        <li><b>GitHub Actions workflow</b> auto-generated — push to deploy</li>
+        <li><b>Custom domain:</b> map <code>app1.yourdomain.com</code> CNAME to the SWA URL</li>
+        <li><b>Register</b> the subdomain in CF Worker KV map (or point CF DNS directly)</li>
+      </ol>
+    </div>
+  </div>
+  <div class="note warn"><b>Spring Boot note:</b> plain JVM cold-starts 10&ndash;30s → 502s on wake. Compile a <b>GraalVM native image</b> (cold start ~0.3&ndash;0.7s) and set Hikari <code style="color:var(--neon)">minimum-idle=0</code> so an idle DB pool doesn't keep the container awake. FastAPI works out of the box (cold start ~1&ndash;3s). Azure Container Apps and Cloud Run behave identically for this pattern.</div>
+</section>
+
+<!-- TRADEOFFS -->
+<section>
+  <h2><span class="num">6</span> Honest trade-offs</h2>
+  <div class="grid3">
+    <div class="card">
+      <h4 style="color:var(--green)">✓ What you gain</h4>
+      <p>Cheapest possible serverless bill</p>
+      <p>True scale-to-zero everywhere</p>
+      <p>Near-zero ops, no LB/NAT/VPC</p>
+      <p>One domain, edge WAF + DDoS</p>
+      <p>Ship in minutes per project</p>
+      <p>Azure free tiers as competitive backup to GCP</p>
+    </div>
+    <div class="card">
+      <h4 style="color:var(--amber)">~ What to watch</h4>
+      <p>Cold starts on idle services (1&ndash;3s)</p>
+      <p>Spring needs GraalVM work</p>
+      <p>OpenNext lags newest Next features</p>
+      <p>Free tiers have caps — set alerts</p>
+      <p>Two+ clouds (CF + GCP/Azure) = multiple bills</p>
+      <p>Vercel: Hobby plan can't be used commercially</p>
+      <p>Azure Monitor: use Basic Logs to avoid $2.76/GB overages</p>
+    </div>
+    <div class="card">
+      <h4 style="color:var(--red)">✗ When NOT to use</h4>
+      <p>Heavy sustained 24/7 traffic</p>
+      <p>Strict deep-VPC isolation needs</p>
+      <p>FedRAMP / single-vendor mandate</p>
+      <p>Latency-critical (can't tolerate cold start)</p>
+      <p>Need Azure Front Door features ($35/mo)</p>
+      <p>→ then go AWS ECS or all-GCP/all-Azure</p>
+    </div>
+  </div>
+</section>
+
+<!-- PRODUCTION-READY ADD-ONS -->
+<section>
+  <h2><span class="num">7</span> Production-ready add-ons — minimum to face a client</h2>
+  <p class="sub">Security, observability, backup, and support. Most pieces are <b style="color:var(--green)">free</b> on this stack — a key selling point. The table below shows what to add and what each actually costs.</p>
+
+  <div class="note ok" style="margin-bottom:18px"><b>The security story is unusually strong for a budget stack.</b> Cloudflare's free tier bundles WAF managed rules, unmetered DDoS, universal TLS, Turnstile CAPTCHA, and Web Analytics. A comparable setup on AWS or GCP would cost $50–$200/mo. Here, most of it is $0. Azure adds free DDoS Basic protection (standard is $2,944/mo — skip it; Cloudflare free covers DDoS at the edge).</div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Category</th>
+        <th>Tool / service</th>
+        <th>What it covers</th>
+        <th>Free tier</th>
+        <th>Low-budget paid option</th>
+        <th>Est. monthly add</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- LOGGING -->
+      <tr>
+        <td rowspan="3"><b>Logging</b></td>
+        <td><b>Cloudflare Workers Logs</b><br><span style="color:var(--dim);font-size:12px">included with Workers</span></td>
+        <td>Real-time tail logs from Worker; request/response traces</td>
+        <td><span class="pill free">Free (live tail)</span></td>
+        <td>Logpush to R2/S3 on paid Workers plan ($5/mo)</td>
+        <td><b style="color:var(--green)">$0</b></td>
+      </tr>
+      <tr>
+        <td><b>Axiom</b><br><span style="color:var(--dim);font-size:12px">axiom.co</span></td>
+        <td>Structured log drain from CF Workers, Cloud Run, Azure Container Apps, Vercel. Search, dashboards, alerts. 500 GB/mo free</td>
+        <td><span class="pill free">500 GB ingest/mo · 30-day retention</span></td>
+        <td>Pro at $0.39/GB over free tier</td>
+        <td><b style="color:var(--green)">$0</b> (low traffic easily fits free)</td>
+      </tr>
+      <tr>
+        <td><b>Better Stack (Logtail)</b><br><span style="color:var(--dim);font-size:12px">betterstack.com</span></td>
+        <td>Log drain + uptime in one tool. Free: 3 GB logs/3-day retention + 10 monitors + 1 status page. Paid is per-responder. Note: Nano plan starts at ~$35/mo for extended retention.</td>
+        <td><span class="pill free">3 GB logs · 3-day retention · 10 monitors · 1 status page</span></td>
+        <td>Responder seat $29/mo (annual) or $34/mo (monthly): on-call scheduling + phone alerts. Nano plan ~$35/mo for 40 GB / 30-day retention.</td>
+        <td><b style="color:var(--green)">$0</b> free or <b style="color:var(--amber)">$29+/mo</b> for on-call alerts / extended log retention</td>
+      </tr>
+      <!-- MONITORING / UPTIME -->
+      <tr>
+        <td rowspan="3"><b>Monitoring &amp; Uptime</b></td>
+        <td><b>Cloudflare Web Analytics</b><br><span style="color:var(--dim);font-size:12px">included with CF free</span></td>
+        <td>Privacy-first, cookie-less page views, core web vitals — zero config for all 300 apps</td>
+        <td><span class="pill free">Free (unlimited)</span></td>
+        <td>—</td>
+        <td><b style="color:var(--green)">$0</b></td>
+      </tr>
+      <tr>
+        <td><b>UptimeRobot</b><br><span style="color:var(--dim);font-size:12px">uptimerobot.com</span></td>
+        <td>HTTP uptime checks every 5 min, email/Slack alerts, status page. 50 monitors free. <b>Warning: free plan is restricted to personal/non-commercial use only — commercial projects require a paid plan.</b></td>
+        <td><span class="pill free">50 monitors · 5-min checks · 1 status page</span> <span class="pill cheap">personal use only</span></td>
+        <td>Solo $9/mo: 60-sec checks + multi-location + API monitoring + commercial use allowed</td>
+        <td><b style="color:var(--amber)">$9/mo Solo</b> for any commercial/client project (free plan violates ToS for business use) or <b style="color:var(--green)">$0</b> free for personal side projects only</td>
+      </tr>
+      <tr>
+        <td><b>Sentry</b><br><span style="color:var(--dim);font-size:12px">sentry.io</span></td>
+        <td>Frontend + backend error tracking, stack traces, release health, performance spans</td>
+        <td><span class="pill free">5k errors/mo · 1 user · 30-day retention</span></td>
+        <td>Team $26/mo: 50k errors + 5M spans + unlimited users</td>
+        <td><b style="color:var(--green)">$0</b> (dev/staging) or <b style="color:var(--amber)">$26/mo</b> Team for production client SLA</td>
+      </tr>
+      <!-- SECURITY -->
+      <tr>
+        <td rowspan="5"><b>Security</b></td>
+        <td><b>CF WAF Managed Rules + DDoS</b><br><span style="color:var(--dim);font-size:12px">included with CF free</span></td>
+        <td>OWASP Top-10 managed ruleset, unmetered L3/L4/L7 DDoS, bot fight mode — also protects Azure Container Apps backends sitting behind the Worker</td>
+        <td><span class="pill free">Included free on all CF plans</span></td>
+        <td>Pro $20/mo adds full WAF managed ruleset + custom rules (40)</td>
+        <td><b style="color:var(--green)">$0</b> (basic) or <b style="color:var(--amber)">$20/mo</b> CF Pro for full ruleset</td>
+      </tr>
+      <tr>
+        <td><b>Cloudflare Turnstile</b><br><span style="color:var(--dim);font-size:12px">cf.com/turnstile</span></td>
+        <td>CAPTCHA replacement for login/signup/forms. Privacy-friendly, no JS friction. Up to 20 widgets/account free</td>
+        <td><span class="pill free">Free · unlimited challenges · no CF DNS required</span></td>
+        <td>—</td>
+        <td><b style="color:var(--green)">$0</b></td>
+      </tr>
+      <tr>
+        <td><b>CF Rate Limiting (Workers API)</b><br><span style="color:var(--dim);font-size:12px">Workers binding</span></td>
+        <td>Per-IP / per-key rate limiting enforced at the edge via the Worker's Rate Limiting binding. No extra product charge</td>
+        <td><span class="pill free">Included in $5/mo Workers paid plan</span></td>
+        <td>—</td>
+        <td><b style="color:var(--green)">$0 extra</b> (use Workers Rate Limit binding)</td>
+      </tr>
+      <tr>
+        <td><b>Origin-lock secret header</b><br><span style="color:var(--dim);font-size:12px">already in Worker code</span></td>
+        <td>Worker sends <code style="background:#0a0e16;border:1px solid var(--line);border-radius:4px;padding:1px 5px;color:var(--neon);font-size:11.5px">X-Origin-Secret</code> on every upstream call. Cloud Run / Azure Container Apps rejects requests without it → origins never directly reachable. Rotate secret via env var + redeploy.</td>
+        <td><span class="pill free">$0 — code pattern</span></td>
+        <td>—</td>
+        <td><b style="color:var(--green)">$0</b></td>
+      </tr>
+      <tr>
+        <td><b>Dependency &amp; image scanning</b><br><span style="color:var(--dim);font-size:12px">GitHub Dependabot + Trivy</span></td>
+        <td>GitHub Dependabot auto-PRs for known CVEs (free on public + private repos). Trivy in CI scans container images before push to Cloud Run or Azure Container Registry</td>
+        <td><span class="pill free">Dependabot free on GitHub · Trivy open source</span></td>
+        <td>—</td>
+        <td><b style="color:var(--green)">$0</b></td>
+      </tr>
+      <!-- BACKUP -->
+      <tr>
+        <td rowspan="2"><b>Backup</b></td>
+        <td><b>Neon PITR (Point-in-Time Restore)</b><br><span style="color:var(--dim);font-size:12px">built into Neon</span></td>
+        <td>Continuous WAL-based PITR. Free tier: 6-hr window. Launch: 7-day window at $0.20/GB-mo. Scale: 30-day window. No manual backup cron needed.</td>
+        <td><span class="pill free">6 hours PITR (free tier)</span></td>
+        <td>Launch plan: 7-day PITR at $0.20/GB-month instant restore storage</td>
+        <td><b style="color:var(--green)">$0&ndash;$2/mo</b> (Launch PITR storage, usage-based)</td>
+      </tr>
+      <tr>
+        <td><b>pg_dump to Cloud Storage / R2</b><br><span style="color:var(--dim);font-size:12px">cron job or Cloud Scheduler</span></td>
+        <td>Daily <code style="background:#0a0e16;border:1px solid var(--line);border-radius:4px;padding:1px 5px;color:var(--neon);font-size:11.5px">pg_dump</code> compressed and stored to Cloudflare R2 ($0.015/GB-mo, 10 GB free) or GCS. Provides off-platform recovery copy. GCP Cloud Scheduler trigger is free tier.</td>
+        <td><span class="pill free">GCS free-tier storage + CF R2 10 GB free</span></td>
+        <td>R2 $0.015/GB-mo after 10 GB</td>
+        <td><b style="color:var(--green)">~$0&ndash;$1/mo</b></td>
+      </tr>
+      <!-- SUPPORT -->
+      <tr>
+        <td rowspan="2"><b>Support</b></td>
+        <td><b>Community support (default)</b><br><span style="color:var(--dim);font-size:12px">CF Discord, GCP forums, Azure Tech Community</span></td>
+        <td>All vendors have active communities. Sufficient for most issues at this scale. Document a runbook so client incidents are handled by you, not vendor SLA.</td>
+        <td><span class="pill free">Free</span></td>
+        <td>—</td>
+        <td><b style="color:var(--green)">$0</b></td>
+      </tr>
+      <tr>
+        <td><b>Vendor paid support (optional)</b><br><span style="color:var(--dim);font-size:12px">CF Pro / GCP Basic / Railway Pro / Azure Dev</span></td>
+        <td>CF Pro ($20/mo) adds email support + full WAF ruleset. GCP Basic Support ($29/mo) adds business-hours chat. Railway Pro ($20/mo seat, $20 usage credit included). Azure Developer Support ($29/mo) adds business-hours chat. Only add if client SLA demands sub-24h response from a vendor.</td>
+        <td>—</td>
+        <td>CF Pro $20/mo · GCP Basic $29/mo · Railway Pro $20/seat/mo · Azure Dev $29/mo</td>
+        <td><b style="color:var(--amber)">$20&ndash;$49/mo</b> if client SLA requires it</td>
+      </tr>
+      <!-- TOTAL ROW -->
+      <tr style="background:rgba(34,197,94,.06)">
+        <td colspan="4"><b>Production add-on TOTAL (conservative, low traffic)</b></td>
+        <td><span class="pill free">mostly $0 on free tiers</span></td>
+        <td><b style="color:var(--green)">$0&ndash;$10/mo</b><br><span style="color:var(--dim);font-size:12px">With on-call alerts (Better Stack Responder $29/mo + UptimeRobot Solo $9/mo): ~$38/mo. With CF Pro for full WAF + Sentry Team: ~$75/mo.</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="note ok" style="margin-top:16px"><b>Security summary for client presentations:</b> this stack ships with WAF, unmetered DDoS, wildcard TLS, CAPTCHA (Turnstile), edge rate limiting, origin-lock secrets, and dependency scanning — all at <b>$0</b> on the base tier. Azure Container Apps backends sit behind the Cloudflare Worker and inherit the same protection. Comparable protection on AWS would require WAF ($5/mo policy + $1/rule + $0.60/M), Shield Standard (free), ACM (free), but loses rate limiting at the edge. The Cloudflare-first approach gives better-than-Pro-grade edge security for free. <b>Incremental cost to be client-ready: $0 core security, $0–$38/mo for observability/alerting.</b></div>
+  <div class="note warn" style="margin-top:12px"><b>Minimum checklist before handing to a client:</b>
+    <ul style="margin-top:8px;padding-left:18px;color:var(--muted);font-size:13.5px;line-height:1.9">
+      <li>CF WAF managed rules enabled (free plan) + CF Pro if client is high-value (adds full ruleset)</li>
+      <li>Turnstile on all user-facing forms (free, 2-min setup)</li>
+      <li>Rate limiting via Workers Rate Limit binding on auth + API endpoints</li>
+      <li>Origin secret header set in Cloud Run / Azure Container Apps env (blocks direct access)</li>
+      <li>UptimeRobot Solo ($9/mo) or Better Stack for commercial projects — free UptimeRobot is personal use only</li>
+      <li>Sentry (free tier) on all frontends and critical APIs</li>
+      <li>Neon PITR on Launch plan ($0.106/CU-hr) for 7-day point-in-time DB restore</li>
+      <li>Daily pg_dump to R2/GCS (Cloud Scheduler free trigger)</li>
+      <li>GCP/Azure billing budget alert at $50 + Container Apps/Cloud Run max-instances caps</li>
+      <li>GitHub Dependabot enabled + Trivy in CI pipeline</li>
+      <li>Do NOT use Azure Front Door Standard ($35/mo) — route via Cloudflare Worker instead</li>
+      <li>Use Azure Basic Logs ($0.07/GB) rather than Log Analytics ($2.76/GB) for Azure Monitor</li>
+    </ul>
+  </div>
+</section>
+
+<!-- SOURCES -->
+<section>
+  <h2><span class="num">8</span> Pricing sources (June 2026)</h2>
+  <div class="sources">
+    <a href="https://developers.cloudflare.com/workers/platform/pricing/" target="_blank" rel="noopener">Cloudflare Workers pricing<span>free 100k/day · $5/mo paid · 10M req included</span></a>
+    <a href="https://pages.cloudflare.com/" target="_blank" rel="noopener">Cloudflare Pages<span>Next.js hosting on CF</span></a>
+    <a href="https://opennext.js.org/cloudflare" target="_blank" rel="noopener">OpenNext — Cloudflare adapter<span>Next.js SSR/ISR on Workers</span></a>
+    <a href="https://cloud.google.com/run/pricing" target="_blank" rel="noopener">Google Cloud Run pricing<span>2M req free · scale-to-zero</span></a>
+    <a href="https://neon.com/pricing" target="_blank" rel="noopener">Neon Postgres pricing<span>free 0.5GB · serverless · usage-based paid</span></a>
+    <a href="https://www.cloudflare.com/plans/" target="_blank" rel="noopener">Cloudflare plans<span>WAF · DDoS included</span></a>
+    <a href="https://railway.com/pricing" target="_blank" rel="noopener">Railway pricing (alt backend)<span>Hobby $5 · Pro $20 · $20/vCPU-mo · $10/GB-mo · egress $0.05/GB · always-on, no scale-to-zero</span></a>
+    <a href="https://vercel.com/pricing" target="_blank" rel="noopener">Vercel pricing (alt frontend)<span>Pro $20/seat incl. $20 credit · 10M edge req/mo · 1TB bandwidth · Hobby: no commercial use since Dec 2024</span></a>
+    <a href="https://azure.microsoft.com/pricing/details/container-apps/" target="_blank" rel="noopener">Azure Container Apps pricing<span>180k vCPU-s + 360k GiB-s + 2M req/mo free every month · Consumption plan</span></a>
+    <a href="https://azure.microsoft.com/pricing/details/app-service/static/" target="_blank" rel="noopener">Azure Static Web Apps pricing<span>Free: 100 GB BW · 0.5 GB storage · Standard $9/mo</span></a>
+    <a href="https://azure.microsoft.com/pricing/details/functions/" target="_blank" rel="noopener">Azure Functions pricing<span>1M req/mo + 400k GB-s/mo free · Consumption plan</span></a>
+    <a href="https://azure.microsoft.com/pricing/details/frontdoor/" target="_blank" rel="noopener">Azure Front Door pricing<span>Standard $35/mo base — recommend Cloudflare free instead</span></a>
+    <a href="https://azure.microsoft.com/pricing/details/monitor/" target="_blank" rel="noopener">Azure Monitor / Log Analytics pricing<span>5 GB/day free · $2.76/GB Analytics · $0.07/GB Basic Logs</span></a>
+    <a href="https://azure.microsoft.com/pricing/details/cdn/" target="_blank" rel="noopener">Azure CDN (Microsoft) pricing<span>$0.087/GB egress · no fixed charge · budget Front Door alternative</span></a>
+  </div>
+</section>
+
+<footer>
+  Estimates are list-price approximations for planning — actual cost depends on real traffic, response sizes, and how aggressively services idle. Set billing alerts and per-service max-instances caps before going live. Updated June 2026.
+</footer>
+
+</div>
+</body>
+</html>

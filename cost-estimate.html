@@ -1,0 +1,2337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cloud Infrastructure Cost Estimation Report</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #21262d;
+    --surface3: #2d333b;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-dim: #6e7681;
+    --low: #3fb950;
+    --low-bg: #0f2a1a;
+    --low-border: #238636;
+    --medium: #d29922;
+    --medium-bg: #2a1f0a;
+    --medium-border: #9e6a03;
+    --high: #f85149;
+    --high-bg: #2a0f0f;
+    --high-border: #da3633;
+    --accent: #58a6ff;
+    --accent2: #bc8cff;
+    --cf-orange: #f6821f;
+    --vercel-black: #a8b3c1;
+    --railway-purple: #a855f7;
+    --azure-blue: #50b0f0;
+    --tag-bg: #1f2937;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Layout */
+  .page { max-width: 1100px; margin: 0 auto; padding: 32px 24px 64px; }
+
+  /* Header */
+  .header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 24px;
+    margin-bottom: 32px;
+  }
+  .header-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 4px 12px;
+    font-size: 12px; color: var(--text-muted); margin-bottom: 16px;
+  }
+  .header h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+  .header p { color: var(--text-muted); font-size: 15px; }
+  .meta-row { display: flex; gap: 24px; margin-top: 16px; flex-wrap: wrap; }
+  .meta-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-dim); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .dot-green { background: var(--low); }
+  .dot-amber { background: var(--medium); }
+  .dot-red { background: var(--high); }
+
+  /* Section */
+  .section { margin-bottom: 40px; }
+  .section-title {
+    font-size: 18px; font-weight: 600; margin-bottom: 4px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-icon {
+    width: 28px; height: 28px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0;
+  }
+  .section-desc { color: var(--text-muted); font-size: 13px; margin-bottom: 20px; margin-left: 38px; }
+
+  /* Architecture */
+  .arch-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px; font-family: monospace;
+    font-size: 13px; line-height: 2; color: var(--text-muted);
+  }
+  .arch-box .highlight { color: var(--accent); font-weight: 600; }
+  .arch-box .hl-orange { color: var(--cf-orange); }
+  .arch-box .hl-purple { color: var(--railway-purple); }
+  .arch-box .hl-green { color: var(--low); }
+
+  /* Assumptions */
+  .assumptions-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+  }
+  .assumption-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+  .assumption-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .assumption-value { font-size: 15px; font-weight: 600; color: var(--text); }
+  .assumption-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  /* Traffic badges */
+  .traffic-badges { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+  .badge {
+    padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
+    border: 1px solid;
+  }
+  .badge-low { background: var(--low-bg); color: var(--low); border-color: var(--low-border); }
+  .badge-medium { background: var(--medium-bg); color: var(--medium); border-color: var(--medium-border); }
+  .badge-high { background: var(--high-bg); color: var(--high); border-color: var(--high-border); }
+
+  /* Cost table */
+  .cost-table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
+  .cost-table { width: 100%; border-collapse: collapse; }
+  .cost-table th {
+    background: var(--surface2); padding: 12px 16px;
+    text-align: left; font-size: 12px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .cost-table td {
+    padding: 12px 16px; border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .cost-table tr:last-child td { border-bottom: none; }
+  .cost-table tr:hover td { background: var(--surface2); }
+  .cost-low { color: var(--low); font-weight: 600; }
+  .cost-medium { color: var(--medium); font-weight: 600; }
+  .cost-high { color: var(--high); font-weight: 600; }
+  .cost-free { color: var(--low); font-weight: 600; }
+  .detail-text { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
+  /* Component cards */
+  .component-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; margin-bottom: 20px; overflow: hidden;
+  }
+  .component-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .component-title { font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+  .component-link { font-size: 12px; color: var(--text-muted); }
+  .component-body { padding: 20px; }
+
+  /* 3-column cost display */
+  .cost-trio {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px;
+  }
+  .cost-card {
+    border-radius: 10px; padding: 16px; text-align: center;
+  }
+  .cost-card-low { background: var(--low-bg); border: 1px solid var(--low-border); }
+  .cost-card-medium { background: var(--medium-bg); border: 1px solid var(--medium-border); }
+  .cost-card-high { background: var(--high-bg); border: 1px solid var(--high-border); }
+  .cost-card-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .cost-card-amount { font-size: 24px; font-weight: 700; }
+  .cost-card-sub { font-size: 11px; margin-top: 4px; opacity: 0.8; }
+  .low-text { color: var(--low); }
+  .medium-text { color: var(--medium); }
+  .high-text { color: var(--high); }
+
+  /* Breakdown list */
+  .breakdown-list { list-style: none; }
+  .breakdown-item {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    padding: 8px 0; border-bottom: 1px solid var(--border); gap: 16px;
+  }
+  .breakdown-item:last-child { border-bottom: none; }
+  .breakdown-left { flex: 1; }
+  .breakdown-metric { font-size: 13px; color: var(--text); }
+  .breakdown-note { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+  .breakdown-values { display: flex; gap: 20px; flex-shrink: 0; }
+  .bv { font-size: 13px; font-weight: 600; min-width: 60px; text-align: right; }
+
+  /* Warning / Note boxes */
+  .note-box {
+    display: flex; gap: 10px; padding: 12px 16px;
+    border-radius: 8px; font-size: 12px; margin-top: 12px;
+  }
+  .note-warning { background: #2a1f0a; border: 1px solid var(--medium-border); color: #d29922; }
+  .note-info { background: #0f1f2a; border: 1px solid #1f6feb; color: #58a6ff; }
+  .note-success { background: var(--low-bg); border: 1px solid var(--low-border); color: var(--low); }
+  .note-icon { flex-shrink: 0; font-size: 14px; }
+
+  /* Summary section */
+  .summary-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;
+  }
+  .summary-card {
+    border-radius: 12px; padding: 24px; text-align: center;
+  }
+  .summary-low { background: var(--low-bg); border: 2px solid var(--low-border); }
+  .summary-medium { background: var(--medium-bg); border: 2px solid var(--medium-border); }
+  .summary-high { background: var(--high-bg); border: 2px solid var(--high-border); }
+  .summary-tier { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .summary-total { font-size: 36px; font-weight: 800; line-height: 1; margin-bottom: 4px; }
+  .summary-sub { font-size: 12px; opacity: 0.7; }
+  .summary-breakdown { margin-top: 16px; text-align: left; }
+  .sb-row { display: flex; justify-content: space-between; font-size: 12px; padding: 3px 0; border-top: 1px solid rgba(255,255,255,0.08); }
+  .sb-label { color: rgba(255,255,255,0.6); }
+  .sb-val { font-weight: 600; }
+
+  /* Big table */
+  .big-table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); }
+  .big-table { width: 100%; border-collapse: collapse; }
+  .big-table th {
+    background: var(--surface2); padding: 14px 16px;
+    font-size: 12px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.5px; color: var(--text-muted); border-bottom: 1px solid var(--border);
+  }
+  .big-table td { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .big-table tr:last-child td { border-bottom: none; background: var(--surface2); font-weight: 700; }
+  .big-table tr:hover:not(:last-child) td { background: rgba(255,255,255,0.02); }
+
+  /* Sources */
+  .sources-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px;
+  }
+  .source-link {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 14px; color: var(--text); font-size: 13px;
+    transition: border-color 0.15s;
+  }
+  .source-link:hover { border-color: var(--accent); text-decoration: none; }
+  .source-icon { font-size: 16px; flex-shrink: 0; }
+  .source-info { flex: 1; }
+  .source-name { font-weight: 500; }
+  .source-desc { font-size: 11px; color: var(--text-muted); }
+  .source-arrow { color: var(--text-dim); font-size: 12px; }
+
+  /* Divider */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+
+  /* Tag */
+  .tag {
+    display: inline-block; background: var(--tag-bg); border: 1px solid var(--border);
+    border-radius: 4px; padding: 1px 6px; font-size: 11px; font-family: monospace;
+    color: var(--text-muted);
+  }
+
+  @media (max-width: 640px) {
+    .cost-trio { grid-template-columns: 1fr; }
+    .summary-grid { grid-template-columns: 1fr; }
+    .breakdown-values { flex-direction: column; gap: 4px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-badge">📊 Infrastructure Cost Report</div>
+    <h1>Cloud Cost Estimation Report</h1>
+    <p>300 Projects (100 frontend + 200 backend APIs) on one domain — detailed Vercel+Railway+CF baseline, plus a 5-variant comparison (AWS · Vercel+Railway+CF · GCP · GCP Serverless+CF · Azure)</p>
+    <div class="meta-row">
+      <div class="meta-item"><span class="dot dot-green"></span> Low: 100 req/day/project</div>
+      <div class="meta-item"><span class="dot dot-amber"></span> Medium: 1,000 req/day/project</div>
+      <div class="meta-item"><span class="dot dot-red"></span> High: 10,000 req/day/project</div>
+      <div class="meta-item">📅 June 2026</div>
+    </div>
+  </div>
+
+  <!-- Architecture -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon" style="background:#1c2340;">🏗️</div>
+      Architecture Overview
+    </div>
+    <div class="section-desc">All 300 projects routed through a single Cloudflare Worker acting as reverse proxy / router</div>
+    <div class="arch-box">
+User Request<br>
+&nbsp;&nbsp;&nbsp;&nbsp;↓<br>
+<span class="hl-orange">Cloudflare Worker (Router)</span> — <span class="highlight">1 Worker, 1 domain</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="hl-green">Vercel</span> — <span class="highlight">100 projects</span> (Next.js / static / SSR)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp; └── Free-tier serverless functions, CDN edge<br>
+&nbsp;&nbsp;&nbsp;&nbsp;└── <span class="hl-purple">Railway</span> — <span class="highlight">200 projects</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ├── FastAPI (Python) — <span class="highlight">serverless sleep enabled</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; └── Spring Boot (Java) — <span class="highlight">GraalVM native image</span> for fast cold start
+    </div>
+  </div>
+
+  <!-- Assumptions -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon" style="background:#1c2340;">📋</div>
+      Baseline Assumptions
+    </div>
+    <div class="section-desc">Fixed assumptions used across all traffic scenarios</div>
+    <div class="assumptions-grid">
+      <div class="assumption-card">
+        <div class="assumption-label">Vercel Projects</div>
+        <div class="assumption-value">100</div>
+        <div class="assumption-sub">1 Pro team, 1 developer seat</div>
+      </div>
+      <div class="assumption-card">
+        <div class="assumption-label">Railway Projects</div>
+        <div class="assumption-value">200</div>
+        <div class="assumption-sub">Pro plan, $20/mo base</div>
+      </div>
+      <div class="assumption-card">
+        <div class="assumption-label">Railway RAM/Service</div>
+        <div class="assumption-value">128 MB</div>
+        <div class="assumption-sub">Minimum viable per service</div>
+      </div>
+      <div class="assumption-card">
+        <div class="assumption-label">Serverless Mode</div>
+        <div class="assumption-value">Enabled</div>
+        <div class="assumption-sub">Sleep after 10min inactivity</div>
+      </div>
+      <div class="assumption-card">
+        <div class="assumption-label">Avg Response Size</div>
+        <div class="assumption-value">10 KB</div>
+        <div class="assumption-sub">Typical JSON API response</div>
+      </div>
+      <div class="assumption-card">
+        <div class="assumption-label">Spring Boot</div>
+        <div class="assumption-value">GraalVM</div>
+        <div class="assumption-sub">Native image, ~700ms cold start</div>
+      </div>
+      <div class="assumption-card">
+        <div class="assumption-label">FastAPI Cold Start</div>
+        <div class="assumption-value">~2 sec</div>
+        <div class="assumption-sub">Standard Python uvicorn</div>
+      </div>
+      <div class="assumption-card">
+        <div class="assumption-label">Domain</div>
+        <div class="assumption-value">~$1/mo</div>
+        <div class="assumption-sub">.com on Cloudflare registrar</div>
+      </div>
+    </div>
+    <div class="note-box note-warning" style="margin-top: 16px;">
+      <span class="note-icon">⚠️</span>
+      <span>Railway active hours estimated: Low=1hr/day, Medium=4hr/day, High=10hr/day. Actual billing depends on real traffic patterns triggering wake/sleep cycles.</span>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Component 1: Cloudflare Workers -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon" style="background:#2a1c0a;">🔶</div>
+      Component 1 — Cloudflare Workers
+    </div>
+    <div class="section-desc">
+      Handles all routing. Every request to your domain hits the Worker once.
+      Pricing: <a href="https://developers.cloudflare.com/workers/platform/pricing/" target="_blank">Cloudflare Workers Pricing ↗</a>
+    </div>
+
+    <div class="component-card">
+      <div class="component-header">
+        <div class="component-title">
+          🔶 Cloudflare Workers — Router
+          <span class="tag">$5/mo paid plan</span>
+        </div>
+        <a href="https://workers.cloudflare.com/plans" target="_blank" class="component-link">workers.cloudflare.com/plans ↗</a>
+      </div>
+      <div class="component-body">
+        <div class="cost-trio">
+          <div class="cost-card cost-card-low">
+            <div class="cost-card-label low-text">LOW</div>
+            <div class="cost-card-amount low-text">$0</div>
+            <div class="cost-card-sub low-text">900K req/mo · Free tier</div>
+          </div>
+          <div class="cost-card cost-card-medium">
+            <div class="cost-card-label medium-text">MEDIUM</div>
+            <div class="cost-card-amount medium-text">$5</div>
+            <div class="cost-card-sub medium-text">9M req/mo · Paid plan</div>
+          </div>
+          <div class="cost-card cost-card-high">
+            <div class="cost-card-label high-text">HIGH</div>
+            <div class="cost-card-amount high-text">$29</div>
+            <div class="cost-card-sub high-text">90M req/mo · $24 overage</div>
+          </div>
+        </div>
+
+        <ul class="breakdown-list">
+          <li class="breakdown-item">
+            <div class="breakdown-left">
+              <div class="breakdown-metric">Monthly Requests (total across 300 projects)</div>
+              <div class="breakdown-note">300 projects × req/day × 30 days</div>
+            </div>
+            <div class="breakdown-values">
+              <div class="bv low-text">900K</div>
+              <div class="bv medium-text">9M</div>
+              <div class="bv high-text">90M</div>
+            </div>
+          </li>
+          <li class="breakdown-item">
+            <div class="breakdown-left">
+              <div class="breakdown-metric">Free Tier Included</div>
+              <div class="breakdown-note">100,000 req/day = 3M req/month</div>
+            </div>
+            <div class="breakdown-values">
+              <div class="bv low-text">✓ covers</div>
+              <div class="bv medium-text">✗ over</div>
+              <div class="bv high-text">✗ over</div>
+            </div>
+          </li>
+          <li class="breakdown-item">
+            <div class="breakdown-left">
+              <div class="breakdown-metric">Paid Plan Base ($5/mo)</div>
+              <div class="breakdown-note">Includes 10M requests, 30M CPU-ms</div>
+            </div>
+            <div class="breakdown-values">
+              <div class="bv low-text">—</div>
+              <div class="bv medium-text">$5.00</div>
+              <div class="bv high-text">$5.00</div>
+            </div>
+          </li>
+          <li class="breakdown-item">
+            <div class="breakdown-left">
+              <div class="breakdown-metric">Overage Requests</div>
+              <div class="breakdown-note">$0.30 per 1M requests beyond 10M</div>
+            </div>
+            <div class="breakdown-values">
+              <div class="bv low-text">—</div>
+              <div class="bv medium-text">—</div>
+              <div class="bv high-text">$24.00</div>
+            </div>
+          </li>
+          <li class="breakdown-item">
+            <div class="breakdown-left">
+              <div class="breakdown-metric">Custom Domain Routing</div>
+              <div class="breakdown-note">Cloudflare Workers custom domain — included</div>
+            </div>
+            <div class="breakdown-values">
+              <div class="bv low-text">$0</div>
+              <div class="bv medium-text">$0</div>
+              <div class="bv high-text">$0</div>
+            </div>
+          </li>
+          <li class="breakdown-item" style="background: rgba(255,255,255,0.02); border-radius: 6px;">
+            <div class="breakdown-left">
+              <div class="breakdown-metric" style="font-weight:700;">Cloudflare Workers Total</div>
+            </div>
+            <div class="breakdown-values">
+              <div class="bv low-text" style="font-size:16px;">$0</div>
+              <div class="bv medium-text" style="font-size:16px;">$5</div>
+              <div class="bv high-text" style="font-size:16px;">$29</div>
+            </div>
+          </li>
+        </ul>
+
+        <div class="note-box note-info">
+          <span class="note-icon">ℹ️</span>
+          <span>Subrequests from Workers to Vercel/Railway backends are <strong>free and not counted</strong> as additional Worker invocations. Only the initial user→Worker request is billed.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Component 2: Vercel -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon" style="background:#1a1a2e;">▲</div>
+      Component 2 — Vercel (100 Projects)
+    </div>
+    <div class="section-desc">
+      All 100 projects under one Pro team. No per-project fee — billed by seat + usage overages.
+      Pricing: <a href="https://vercel.com/pricing" target="_blank">vercel.com/pricing ↗</a>
+    </div>
+
+    <div class="component-card">
+      <div class="component-header">
+        <div class="component-title">
+          ▲ Vercel — 100 Projects
+          <span class="tag">$20/seat Pro</span>
+        </div>
+        <a href="https://vercel.com/docs/plans/pro-plan" target="_blank" class="component-link">vercel.com/docs/plans/pro-plan ↗</a>
+      </div>
+      <div class="component-body">
+        <div class="cost-trio">
+          <div class="cost-card cost-card-low">
+            <div class="cost-card-label low-text">LOW</div>
+            <div class="cost-card-amount low-text">$20</div>
+            <div class="cost-card-sub low-text">300K req/mo · within limits</div>
+          </div>
+          <div class="cost-card cost-card-medium">
+            <div class="cost-card-label medium-text">MEDIUM</div>
+            <div class="cost-card-amount medium-text">$20</div>
+            <div class="cost-card-sub medium-text">3M req/mo · within limits</div>
+          </div>
+          <div class="cost-card cost-card-high">
+            <div class="cost-card-label high-text">HIGH</div>
+            <div class="cost-card-amount high-text">$60</div>
+            <div class="cost-card-sub high-text">30M req/mo · edge overage</div>
+          </div>
+        </div>
+
+        <ul class="breakdown-list">
+          <li class="breakdown-item">
+            <div class="breakdown-left">
+              <div class="breakdown-metric">Monthly Requests (Vercel 100 projects)</div>
+              <div class="breakdown-note">100 projects × req/day × 30 days</div>
+            </div>
+            <div class="breakdown-values">
+              <div class="bv low-text">300K</div>
+              <div class="bv medium-text">3M</div>
+              <div class="bv high-text">30M</div>
+            </div>
+          </li>
+          <li class="breakdown-item">
+            <div class="breakdown-left">
+              <div class="breakdown-metric">Pro Plan Base (1 seat)</div>
+              <div class="breakdown-note">Includes $20 usage credit, 1TB bandwidth, 10M edge req</div>
+            </div>
+            <div class="breakdown-values">
+              <div class="bv low-text">$20.00</div>
+              <div class="bv medium-text">$20.00</div>
+              <div class="bv high-text">$20.00</div>
+            </div>
+          </li>
+          <li class="breakdown-item">
+            <div class="breakdown-left">
+              <div class="breakdown-metric">Edge Requests Used vs 10M Included</div>
+              <div class="breakdown-note">$2.00 per 1M over 10M limit</div>
+            </div>
+            <div class="breakdown-values">
+              <div class="bv low-text">0.3M ✓</div>
+              <div class="bv medium-text">3M ✓</div>
+              <div class="bv high-text">+20M ✗</div>
+            </div>
+          </li>
+          <li class="breakdown-item">
+            <div class="breakdown-left">
+              <div class="breakdown-metric">Edge Request Overage Cost</div>
+              <div class="breakdown-note">High: 20M overage × $2/M</div>
+            </div>
+            <div class="breakdown-values">
+              <div class="bv low-text">$0</div>
+              <div class="bv medium-text">$0</div>
+              <div class="bv high-text">$40.00</div>
+            </div>
+          </li>
+          <li class="breakdown-item">
+            <div class="breakdown-left">
+              <div class="breakdown-metric">Bandwidth (Fast Data Transfer)</div>
+              <div class="breakdown-note">10KB avg × requests · 1TB included · $0.15/GB over</div>
+            </div>
+            <div class="breakdown-values">
+              <div class="bv low-text">~3GB ✓</div>
+              <div class="bv medium-text">~29GB ✓</div>
+              <div class="bv high-text">~286GB ✓</div>
+            </div>
+          </li>
+          <li class="breakdown-item">
+            <div class="breakdown-left">
+              <div class="breakdown-metric">Bandwidth Overage Cost</div>
+              <div class="breakdown-note">All scenarios within 1TB included</div>
+            </div>
+            <div class="breakdown-values">
+              <div class="bv low-text">$0</div>
+              <div class="bv medium-text">$0</div>
+              <div class="bv high-text">$0</div>
+            </div>
+          </li>
+          <li class="breakdown-item" style="background: rgba(255,255,255,0.02);">
+            <div class="breakdown-left">
+              <div class="breakdown-metric" style="font-weight:700;">Vercel Total</div>
+            </div>
+            <div class="breakdown-values">
+              <div class="bv low-text" style="font-size:16px;">$20</div>
+              <div class="bv medium-text" style="font-size:16px;">$20</div>
+              <div class="bv high-text" style="font-size:16px;">$60</div>
+            </div>
+          </li>
+        </ul>
+
+        <div class="note-box note-success">
+          <span class="note-icon">✅</span>
+          <span>Vercel has <strong>no per-project fee</strong>. All 100 projects share the same $20/seat Pro plan. Cost only escalates at very high traffic (30M+ edge requests/month).</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Component 3: Railway -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon" style="background:#1f102a;">🚂</div>
+      Component 3 — Railway (200 Projects)
+    </div>
+    <div class="section-desc">
+      FastAPI (Python) + Spring Boot (GraalVM Native) — serverless sleep enabled.
+      Pricing: <a href="https://docs.railway.com/pricing" target="_blank">docs.railway.com/pricing ↗</a> ·
+      Serverless: <a href="https://docs.railway.com/deployments/serverless" target="_blank">docs.railway.com/deployments/serverless ↗</a>
+    </div>
+
+    <div class="component-card">
+      <div class="component-header">
+        <div class="component-title">
+          🚂 Railway — 200 Services (Serverless)
+          <span class="tag">$20/mo Pro</span>
+          <span class="tag">128MB RAM</span>
+        </div>
+        <a href="https://docs.railway.com/pricing/plans" target="_blank" class="component-link">docs.railway.com/pricing/plans ↗</a>
+      </div>
+      <div class="component-body">
+        <div class="cost-trio">
+          <div class="cost-card cost-card-low">
+            <div class="cost-card-label low-text">LOW</div>
+            <div class="cost-card-amount low-text">$20</div>
+            <div class="cost-card-sub low-text">1hr active/day · $10.75 RAM</div>
+          </div>
+          <div class="cost-card cost-card-medium">
+            <div class="cost-card-label medium-text">MEDIUM</div>
+            <div class="cost-card-amount medium-text">$46</div>
+            <div class="cost-card-sub medium-text">4hr active/day · $43 RAM + egress</div>
+          </div>
+          <div class="cost-card cost-card-high">
+            <div class="cost-card-label high-text">HIGH</div>
+            <div class="cost-card-amount high-text">$136</div>
+            <div class="cost-card-sub high-text">10hr active/day · $108 RAM + egress</div>
+          </div>
+        </div>
+
+        <ul class="breakdown-list">
+          <li class="breakdown-item">
+            <div class="breakdown-left">
+              <div class="breakdown-metric">Active Hours per Day (serverless awake time)</div>
+              <div class="breakdown-note">Estimated based on traffic pattern; sleep after 10min idle</div>
+            </div>
+            <div class="breakdown-values">
+              <div class="bv low-text">1 hr</div>
+              <div class="bv medium-text">4 hr</div>
+              <div class="bv high-text">10 hr</div>
+            </div>
+          </li>
+          <li class="breakdown-item">
+            <div class="breakdown-left">
+              <div class="breakdown-metric">Active Hours per Month</div>
+              <div class="breakdown-note">active hrs/day × 30 days</div>
+            </div>
+            <div class="breakdown-values">
+              <div class="bv low-text">30 hr</div>
+              <div class="bv medium-text">120 hr</div>
+              <div class="bv high-text">300 hr</div>
+            </div>
+          </li>
+          <li class="breakdown-item">
+            <div class="breakdown-left">
+              <div class="breakdown-metric">RAM Cost</div>
+              <div class="breakdown-note">200 services × 0.128 GB × active hrs × $0.014/GB-hr</div>
+            </div>
+            <div class="breakdown-values">
+              <div class="bv low-text">$10.75</div>
+              <div class="bv medium-text">$43.01</div>
+              <div class="bv high-text">$107.52</div>
+            </div>
+          </li>
+          <li class="breakdown-item">
+            <div class="breakdown-left">
+              <div class="breakdown-metric">Network Egress Cost</div>
+              <div class="breakdown-note">req × 10KB avg response × $0.05/GB</div>
+            </div>
+            <div class="breakdown-values">
+              <div class="bv low-text">$0.29</div>
+              <div class="bv medium-text">$2.86</div>
+              <div class="bv high-text">$28.61</div>
+            </div>
+          </li>
+          <li class="breakdown-item">
+            <div class="breakdown-left">
+              <div class="breakdown-metric">Pro Plan Base</div>
+              <div class="breakdown-note">$20/mo includes $20 usage credit toward resources</div>
+            </div>
+            <div class="breakdown-values">
+              <div class="bv low-text">$20.00</div>
+              <div class="bv medium-text">$20.00</div>
+              <div class="bv high-text">$20.00</div>
+            </div>
+          </li>
+          <li class="breakdown-item">
+            <div class="breakdown-left">
+              <div class="breakdown-metric">Resource Usage Overage</div>
+              <div class="breakdown-note">Total resource cost minus $20 included credit</div>
+            </div>
+            <div class="breakdown-values">
+              <div class="bv low-text">—</div>
+              <div class="bv medium-text">$25.87</div>
+              <div class="bv high-text">$116.13</div>
+            </div>
+          </li>
+          <li class="breakdown-item" style="background: rgba(255,255,255,0.02);">
+            <div class="breakdown-left">
+              <div class="breakdown-metric" style="font-weight:700;">Railway Total</div>
+            </div>
+            <div class="breakdown-values">
+              <div class="bv low-text" style="font-size:16px;">$20</div>
+              <div class="bv medium-text" style="font-size:16px;">$46</div>
+              <div class="bv high-text" style="font-size:16px;">$136</div>
+            </div>
+          </li>
+        </ul>
+
+        <div class="note-box note-warning">
+          <span class="note-icon">⚠️</span>
+          <span><strong>Spring Boot cold start:</strong> Without GraalVM native image, JVM takes 10–30 sec to wake — causing 502 errors on serverless wake. <strong>Must use GraalVM native compilation</strong> for Railway serverless to be viable. FastAPI cold starts ~2 sec and work natively.</span>
+        </div>
+
+        <div class="note-box note-warning" style="margin-top: 8px;">
+          <span class="note-icon">⚠️</span>
+          <span><strong>Sleep blockers:</strong> Services with open PostgreSQL connections, Next.js telemetry, or background polling will NOT sleep — always-on billing applies (costs 5–10× higher).</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RAM Size Comparison Table -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon" style="background:#1f102a;">💾</div>
+      Railway RAM Size Impact (Serverless, Medium Traffic)
+    </div>
+    <div class="section-desc">Cost difference by RAM allocation per service at medium traffic (4hr/day active)</div>
+    <div class="cost-table-wrap">
+      <table class="cost-table">
+        <thead>
+          <tr>
+            <th>RAM per Service</th>
+            <th>RAM Cost/mo</th>
+            <th>Egress</th>
+            <th>Total Resources</th>
+            <th>Plan Base</th>
+            <th>Railway Total</th>
+            <th>Use Case</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>128 MB</strong></td>
+            <td class="cost-low">$43.01</td>
+            <td>$2.86</td>
+            <td>$45.87</td>
+            <td>$20</td>
+            <td class="cost-low"><strong>$45.87</strong></td>
+            <td>Minimal FastAPI, tiny Spring Boot native</td>
+          </tr>
+          <tr>
+            <td><strong>256 MB</strong></td>
+            <td class="cost-medium">$86.02</td>
+            <td>$2.86</td>
+            <td>$88.88</td>
+            <td>$20</td>
+            <td class="cost-medium"><strong>$88.88</strong></td>
+            <td>Standard FastAPI, Spring Boot native</td>
+          </tr>
+          <tr>
+            <td><strong>512 MB</strong></td>
+            <td class="cost-high">$172.03</td>
+            <td>$2.86</td>
+            <td>$174.89</td>
+            <td>$20</td>
+            <td class="cost-high"><strong>$174.89</strong></td>
+            <td>Heavy workloads, ML inference</td>
+          </tr>
+          <tr>
+            <td><strong>1024 MB</strong></td>
+            <td style="color:#f85149; font-weight:600;">$344.06</td>
+            <td>$2.86</td>
+            <td>$346.92</td>
+            <td>$20</td>
+            <td style="color:#f85149; font-weight:600;"><strong>$346.92</strong></td>
+            <td>JVM Spring Boot (no native), heavy apps</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Summary -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon" style="background:#1c2340;">💰</div>
+      Total Monthly Cost Summary
+    </div>
+    <div class="section-desc">Combined cost across all components — baseline: 128MB RAM, 10KB avg response, 1 Vercel seat</div>
+
+    <div class="summary-grid">
+      <div class="summary-card summary-low">
+        <div class="summary-tier low-text">🟢 Low Traffic</div>
+        <div class="summary-total low-text">$40</div>
+        <div class="summary-sub low-text">per month</div>
+        <div class="summary-breakdown">
+          <div class="sb-row"><span class="sb-label">Cloudflare Workers</span><span class="sb-val low-text">$0</span></div>
+          <div class="sb-row"><span class="sb-label">Vercel (100 proj)</span><span class="sb-val low-text">$20</span></div>
+          <div class="sb-row"><span class="sb-label">Railway (200 proj)</span><span class="sb-val low-text">$20</span></div>
+          <div class="sb-row"><span class="sb-label">Domain</span><span class="sb-val low-text">~$1</span></div>
+        </div>
+      </div>
+      <div class="summary-card summary-medium">
+        <div class="summary-tier medium-text">🟡 Medium Traffic</div>
+        <div class="summary-total medium-text">$72</div>
+        <div class="summary-sub medium-text">per month</div>
+        <div class="summary-breakdown">
+          <div class="sb-row"><span class="sb-label">Cloudflare Workers</span><span class="sb-val medium-text">$5</span></div>
+          <div class="sb-row"><span class="sb-label">Vercel (100 proj)</span><span class="sb-val medium-text">$20</span></div>
+          <div class="sb-row"><span class="sb-label">Railway (200 proj)</span><span class="sb-val medium-text">$46</span></div>
+          <div class="sb-row"><span class="sb-label">Domain</span><span class="sb-val medium-text">~$1</span></div>
+        </div>
+      </div>
+      <div class="summary-card summary-high">
+        <div class="summary-tier high-text">🔴 High Traffic</div>
+        <div class="summary-total high-text">$226</div>
+        <div class="summary-sub high-text">per month</div>
+        <div class="summary-breakdown">
+          <div class="sb-row"><span class="sb-label">Cloudflare Workers</span><span class="sb-val high-text">$29</span></div>
+          <div class="sb-row"><span class="sb-label">Vercel (100 proj)</span><span class="sb-val high-text">$60</span></div>
+          <div class="sb-row"><span class="sb-label">Railway (200 proj)</span><span class="sb-val high-text">$136</span></div>
+          <div class="sb-row"><span class="sb-label">Domain</span><span class="sb-val high-text">~$1</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="big-table-wrap">
+      <table class="big-table">
+        <thead>
+          <tr>
+            <th>Component</th>
+            <th>🟢 Low Traffic</th>
+            <th>🟡 Medium Traffic</th>
+            <th>🔴 High Traffic</th>
+            <th>Pricing Page</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Cloudflare Workers (router)</td>
+            <td class="cost-low">$0</td>
+            <td class="cost-medium">$5</td>
+            <td class="cost-high">$29</td>
+            <td><a href="https://developers.cloudflare.com/workers/platform/pricing/" target="_blank">CF Workers Pricing ↗</a></td>
+          </tr>
+          <tr>
+            <td>Vercel — 100 projects (1 seat)</td>
+            <td class="cost-low">$20</td>
+            <td class="cost-medium">$20</td>
+            <td class="cost-high">$60</td>
+            <td><a href="https://vercel.com/pricing" target="_blank">Vercel Pricing ↗</a></td>
+          </tr>
+          <tr>
+            <td>Railway — 200 projects (serverless)</td>
+            <td class="cost-low">$20</td>
+            <td class="cost-medium">$46</td>
+            <td class="cost-high">$136</td>
+            <td><a href="https://docs.railway.com/pricing" target="_blank">Railway Pricing ↗</a></td>
+          </tr>
+          <tr>
+            <td>Domain (Cloudflare registrar)</td>
+            <td class="cost-low">~$1</td>
+            <td class="cost-medium">~$1</td>
+            <td class="cost-high">~$1</td>
+            <td><a href="https://www.cloudflare.com/products/registrar/" target="_blank">Cloudflare Registrar ↗</a></td>
+          </tr>
+          <tr>
+            <td><strong>TOTAL / MONTH</strong></td>
+            <td class="cost-low" style="font-size:18px;"><strong>~$41</strong></td>
+            <td class="cost-medium" style="font-size:18px;"><strong>~$72</strong></td>
+            <td class="cost-high" style="font-size:18px;"><strong>~$226</strong></td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Deployment Variant Comparison -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon" style="background:#1c2340;">⚖️</div>
+      Deployment Variant Comparison
+    </div>
+    <div class="section-desc">Same 300 projects (100 frontend + 200 backend APIs), one domain — five deployment strategies side by side. Monthly totals, June 2026 list pricing.</div>
+
+    <div class="traffic-badges">
+      <span class="badge badge-low">🟢 Low ~0.1× base</span>
+      <span class="badge badge-medium">🟡 Medium 1× base</span>
+      <span class="badge badge-high">🔴 High 10× base</span>
+    </div>
+
+    <!-- Variant cards -->
+    <div class="summary-grid" style="grid-template-columns:repeat(3,1fr); margin-bottom:20px;">
+      <div class="summary-card" style="background:#2a1c0a; border:2px solid #9e6a03; text-align:left;">
+        <div class="summary-tier" style="color:#f6821f;">① AWS — ECS Fargate + ALB + CloudFront</div>
+        <div style="font-size:12px; color:var(--text-muted); margin:6px 0 12px;">Max control · no native scale-to-zero · fixed infra tax (ALB+NAT+CF base)</div>
+        <div class="sb-row"><span class="sb-label">🟢 Low</span><span class="sb-val" style="color:#f6821f;">~$310</span></div>
+        <div class="sb-row"><span class="sb-label">🟡 Medium</span><span class="sb-val" style="color:#f6821f;">~$650</span></div>
+        <div class="sb-row"><span class="sb-label">🔴 High</span><span class="sb-val" style="color:#f6821f;">~$1,150</span></div>
+      </div>
+      <div class="summary-card summary-low" style="text-align:left;">
+        <div class="summary-tier low-text">② Vercel + Railway + Cloudflare <span style="font-size:10px;background:var(--low-border);color:#fff;padding:1px 7px;border-radius:10px;margin-left:6px;">★ CHEAPEST</span></div>
+        <div style="font-size:12px; color:var(--text-muted); margin:6px 0 12px;">Serverless PaaS · scale-to-zero · near-zero ops · 3 vendors</div>
+        <div class="sb-row"><span class="sb-label">🟢 Low</span><span class="sb-val low-text">~$41</span></div>
+        <div class="sb-row"><span class="sb-label">🟡 Medium</span><span class="sb-val low-text">~$72</span></div>
+        <div class="sb-row"><span class="sb-label">🔴 High</span><span class="sb-val low-text">~$226</span></div>
+      </div>
+      <div class="summary-card" style="background:#0f1f2a; border:2px solid #1f6feb; text-align:left;">
+        <div class="summary-tier" style="color:#58a6ff;">③ GCP — Cloud Run + Global LB + Cloud CDN</div>
+        <div style="font-size:12px; color:var(--text-muted); margin:6px 0 12px;">Serverless on one hyperscaler · scale-to-zero · LB base fee + pricier egress</div>
+        <div class="sb-row"><span class="sb-label">🟢 Low</span><span class="sb-val" style="color:#58a6ff;">~$95</span></div>
+        <div class="sb-row"><span class="sb-label">🟡 Medium</span><span class="sb-val" style="color:#58a6ff;">~$220</span></div>
+        <div class="sb-row"><span class="sb-label">🔴 High</span><span class="sb-val" style="color:#58a6ff;">~$650</span></div>
+      </div>
+      <div class="summary-card" style="background:#15231a; border:2px solid #238636; text-align:left;">
+        <div class="summary-tier" style="color:#3fb950;">④ GCP Serverless + Cloudflare <span style="font-size:10px;background:#1f6feb;color:#fff;padding:1px 7px;border-radius:10px;margin-left:6px;">★ BEST BALANCE</span></div>
+        <div style="font-size:12px; color:var(--text-muted); margin:6px 0 12px;">Cloud Run compute + CF Worker front door — drops GCP LB ($18/mo), free WAF/DDoS, edge cache cuts egress</div>
+        <div class="sb-row"><span class="sb-label">🟢 Low</span><span class="sb-val" style="color:#3fb950;">~$30</span></div>
+        <div class="sb-row"><span class="sb-label">🟡 Medium</span><span class="sb-val" style="color:#3fb950;">~$110</span></div>
+        <div class="sb-row"><span class="sb-label">🔴 High</span><span class="sb-val" style="color:#3fb950;">~$420</span></div>
+      </div>
+      <div class="summary-card" style="background:#0d1a2a; border:2px solid #0078d4; text-align:left;">
+        <div class="summary-tier" style="color:#50b0f0;">⑤ Azure — Container Apps + Front Door Standard</div>
+        <div style="font-size:12px; color:var(--text-muted); margin:6px 0 12px;">Consumption plan · scale-to-zero · generous free tier · Azure-native ops tooling</div>
+        <div class="sb-row"><span class="sb-label">🟢 Low</span><span class="sb-val" style="color:#50b0f0;">~$55</span></div>
+        <div class="sb-row"><span class="sb-label">🟡 Medium</span><span class="sb-val" style="color:#50b0f0;">~$175</span></div>
+        <div class="sb-row"><span class="sb-label">🔴 High</span><span class="sb-val" style="color:#50b0f0;">~$570</span></div>
+      </div>
+    </div>
+
+    <!-- Master comparison table -->
+    <div class="big-table-wrap">
+      <table class="big-table">
+        <thead>
+          <tr>
+            <th>Variant</th>
+            <th>Front door</th>
+            <th>Compute</th>
+            <th>Scale-to-zero</th>
+            <th>🟢 Low</th>
+            <th>🟡 Medium</th>
+            <th>🔴 High</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>① AWS</strong><div class="detail-text">ECS Fargate</div></td>
+            <td>CloudFront + ALB</td>
+            <td>Fargate tasks ×300</td>
+            <td style="color:#f85149;">✗ No (native)</td>
+            <td style="color:#f6821f;">~$310</td>
+            <td style="color:#f6821f;">~$650</td>
+            <td style="color:#f6821f;">~$1,150</td>
+          </tr>
+          <tr>
+            <td><strong>② Vercel+Railway+CF</strong><div class="detail-text">PaaS stack</div></td>
+            <td>Cloudflare Worker</td>
+            <td>Vercel + Railway</td>
+            <td class="cost-low">✓ Yes (sleep)</td>
+            <td class="cost-low">~$41</td>
+            <td class="cost-low">~$72</td>
+            <td class="cost-low">~$226</td>
+          </tr>
+          <tr>
+            <td><strong>③ GCP</strong><div class="detail-text">all-Google</div></td>
+            <td>Global LB + Cloud CDN</td>
+            <td>Cloud Run ×300</td>
+            <td class="cost-low">✓ Yes (default)</td>
+            <td style="color:#58a6ff;">~$95</td>
+            <td style="color:#58a6ff;">~$220</td>
+            <td style="color:#58a6ff;">~$650</td>
+          </tr>
+          <tr>
+            <td><strong>④ GCP Serverless + CF</strong><div class="detail-text">hybrid</div></td>
+            <td>Cloudflare Worker</td>
+            <td>Cloud Run ×300</td>
+            <td class="cost-low">✓ Yes (default)</td>
+            <td class="cost-low">~$30</td>
+            <td class="cost-low">~$110</td>
+            <td style="color:#3fb950;">~$420</td>
+          </tr>
+          <tr>
+            <td><strong>⑤ Azure</strong><div class="detail-text">Container Apps + Front Door</div></td>
+            <td>Azure Front Door Standard</td>
+            <td>Container Apps ×300</td>
+            <td class="cost-low">✓ Yes (consumption)</td>
+            <td style="color:#50b0f0;">~$55</td>
+            <td style="color:#50b0f0;">~$175</td>
+            <td style="color:#50b0f0;">~$570</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note-box note-info" style="margin-top:16px;">
+      <span class="note-icon">ℹ️</span>
+      <span><strong>Variant ④ (GCP Serverless + Cloudflare)</strong> takes GCP's serverless compute (Cloud Run, true scale-to-zero) but replaces the always-on GCP Global Load Balancer (~$18/mo base) with a Cloudflare Worker front door — which adds free WAF + DDoS and edge-caches responses, cutting both egress and backend wake-ups. Cheaper than pure GCP at low/medium traffic while keeping one hyperscaler for all compute.</span>
+    </div>
+    <div class="note-box note-success" style="margin-top:8px;">
+      <span class="note-icon">✅</span>
+      <span><strong>Pick guide:</strong> Lowest bill + fastest to ship → <strong>② Vercel+Railway+CF</strong>. One hyperscaler with serverless economics + strong edge security → <strong>④ GCP Serverless + CF</strong>. Single-vendor governance/compliance → <strong>③ GCP</strong>. Azure-native stack or existing Microsoft EA → <strong>⑤ Azure</strong>. Heavy sustained / deep VPC / regulated with a platform team → <strong>① AWS</strong> (use Graviton + Spot + Savings Plans to cut cost).</span>
+    </div>
+    <div class="note-box note-warning" style="margin-top:8px;">
+      <span class="note-icon">⚠️</span>
+      <span>AWS figures assume Fargate. <strong>ECS on EC2 (t3a.2xlarge) all-Spot</strong> with dense bin-packing drops AWS compute ~70% (≈$414/mo medium) but adds the most ops — see <em>platform-comparison.html</em> for the EC2 deep-dive.</span>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Pricing Sources -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon" style="background:#1c2340;">🔗</div>
+      Pricing Reference Sources
+    </div>
+    <div class="section-desc">All external pricing links — click to verify current rates</div>
+    <div class="sources-grid">
+      <a href="https://developers.cloudflare.com/workers/platform/pricing/" target="_blank" class="source-link">
+        <span class="source-icon">🔶</span>
+        <div class="source-info">
+          <div class="source-name">Cloudflare Workers — Official Pricing</div>
+          <div class="source-desc">Free tier, Paid plan, CPU limits, overage rates</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://www.cloudflare.com/plans/developer-platform/" target="_blank" class="source-link">
+        <span class="source-icon">🔶</span>
+        <div class="source-info">
+          <div class="source-name">Cloudflare Developer Platform Plans</div>
+          <div class="source-desc">Compare free vs paid developer platform tiers</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://workers.cloudflare.com/plans" target="_blank" class="source-link">
+        <span class="source-icon">🔶</span>
+        <div class="source-info">
+          <div class="source-name">Cloudflare Workers Plan Comparison</div>
+          <div class="source-desc">Side-by-side plan features and limits</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://vercel.com/pricing" target="_blank" class="source-link">
+        <span class="source-icon">▲</span>
+        <div class="source-info">
+          <div class="source-name">Vercel — Official Pricing Page</div>
+          <div class="source-desc">Hobby, Pro, Enterprise plans comparison</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://vercel.com/docs/plans/pro-plan" target="_blank" class="source-link">
+        <span class="source-icon">▲</span>
+        <div class="source-info">
+          <div class="source-name">Vercel Pro Plan Documentation</div>
+          <div class="source-desc">Included resources, overage rates, seat pricing</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://vercel.com/docs/pricing" target="_blank" class="source-link">
+        <span class="source-icon">▲</span>
+        <div class="source-info">
+          <div class="source-name">Vercel Pricing Documentation</div>
+          <div class="source-desc">Bandwidth, edge requests, build minutes pricing</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://docs.railway.com/pricing" target="_blank" class="source-link">
+        <span class="source-icon">🚂</span>
+        <div class="source-info">
+          <div class="source-name">Railway — Official Pricing Docs</div>
+          <div class="source-desc">RAM, CPU, egress rates, plan credits</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://docs.railway.com/pricing/plans" target="_blank" class="source-link">
+        <span class="source-icon">🚂</span>
+        <div class="source-info">
+          <div class="source-name">Railway Plan Details</div>
+          <div class="source-desc">Hobby vs Pro plan features and limits</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://docs.railway.com/deployments/serverless" target="_blank" class="source-link">
+        <span class="source-icon">🚂</span>
+        <div class="source-info">
+          <div class="source-name">Railway Serverless Documentation</div>
+          <div class="source-desc">Sleep behavior, cold starts, sleep blockers</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://docs.railway.com/pricing/cost-control" target="_blank" class="source-link">
+        <span class="source-icon">🚂</span>
+        <div class="source-info">
+          <div class="source-name">Railway Cost Control</div>
+          <div class="source-desc">Spend limits and budget management</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://railway.com/pricing" target="_blank" class="source-link">
+        <span class="source-icon">🚂</span>
+        <div class="source-info">
+          <div class="source-name">Railway Pricing Page</div>
+          <div class="source-desc">Official public pricing overview</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://www.cloudflare.com/products/registrar/" target="_blank" class="source-link">
+        <span class="source-icon">🌐</span>
+        <div class="source-info">
+          <div class="source-name">Cloudflare Domain Registrar</div>
+          <div class="source-desc">Domain registration at cost, no markup</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://cloud.google.com/run/pricing" target="_blank" class="source-link">
+        <span class="source-icon">🔵</span>
+        <div class="source-info">
+          <div class="source-name">Google Cloud Run — Pricing</div>
+          <div class="source-desc">vCPU-sec/GiB-sec rates · 2M req free · scale-to-zero (variants ③④)</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://cloud.google.com/load-balancing/pricing" target="_blank" class="source-link">
+        <span class="source-icon">🔵</span>
+        <div class="source-info">
+          <div class="source-name">GCP Cloud Load Balancing — Pricing</div>
+          <div class="source-desc">Global external LB base fee + forwarding rules (variant ③)</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://cloud.google.com/vpc/network-pricing" target="_blank" class="source-link">
+        <span class="source-icon">🔵</span>
+        <div class="source-info">
+          <div class="source-name">GCP Network Egress — Pricing</div>
+          <div class="source-desc">~$0.12/GB premium tier (variants ③④)</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://aws.amazon.com/fargate/pricing/" target="_blank" class="source-link">
+        <span class="source-icon">🟠</span>
+        <div class="source-info">
+          <div class="source-name">AWS Fargate — Pricing</div>
+          <div class="source-desc">$0.04048/vCPU-hr · $0.004445/GB-hr (variant ①)</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://aws.amazon.com/elasticloadbalancing/pricing/" target="_blank" class="source-link">
+        <span class="source-icon">🟠</span>
+        <div class="source-info">
+          <div class="source-name">AWS ALB — Pricing</div>
+          <div class="source-desc">$0.0225/hr base + $0.008/LCU-hr (variant ①)</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://aws.amazon.com/cloudfront/pricing/" target="_blank" class="source-link">
+        <span class="source-icon">🟠</span>
+        <div class="source-info">
+          <div class="source-name">AWS CloudFront — Pricing</div>
+          <div class="source-desc">$0.085/GB · 1TB+10M req free (variant ①)</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://azure.microsoft.com/pricing/details/container-apps/" target="_blank" class="source-link">
+        <span class="source-icon">☁️</span>
+        <div class="source-info">
+          <div class="source-name">Azure Container Apps — Pricing</div>
+          <div class="source-desc">$0.000024/vCPU-sec · $0.000003/GiB-sec · 180K vCPU-sec free (variant ⑤)</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://azure.microsoft.com/pricing/details/frontdoor/" target="_blank" class="source-link">
+        <span class="source-icon">☁️</span>
+        <div class="source-info">
+          <div class="source-name">Azure Front Door Standard — Pricing</div>
+          <div class="source-desc">$35/mo base + $0.008/GB transfer · WAF managed rules included (variant ⑤)</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://azure.microsoft.com/pricing/details/bandwidth/" target="_blank" class="source-link">
+        <span class="source-icon">☁️</span>
+        <div class="source-info">
+          <div class="source-name">Azure Egress — Bandwidth Pricing</div>
+          <div class="source-desc">$0.087/GB first 10 TB/mo outbound to internet (variant ⑤)</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Operational & Security Cost Add-ons -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon" style="background:#1a1a1a;">🛡️</div>
+      Operational &amp; Security Cost Add-ons
+    </div>
+    <div class="section-desc">
+      The compute figures above cover raw infrastructure only. A client security or compliance review will immediately ask for logging, observability, WAF/DDoS protection, secrets management, backup/DR, and a support plan. The tables below itemise the minimum realistic monthly spend for each platform. These are the costs that turn a "looks cheap on paper" quote into a production-ready bill.
+    </div>
+
+    <div class="note-box note-warning" style="margin-bottom: 20px;">
+      <span class="note-icon">⚠️</span>
+      <span><strong>Why this matters:</strong> These add-ons are not optional for any workload handling user data or subject to SOC 2 / ISO 27001 / GDPR review. Omitting them from a proposal creates a budget surprise at go-live and erodes client trust. All figures are list-price estimates as of June 2026; mark items tagged <strong>[est]</strong> as estimates.</span>
+    </div>
+
+    <!-- Platform 1: AWS -->
+    <div class="component-card" style="margin-bottom: 24px;">
+      <div class="component-header">
+        <div class="component-title" style="color:#f6821f;">
+          🟠 Variant ① — AWS (ECS Fargate + ALB + CloudFront)
+        </div>
+        <span class="tag">Security &amp; Ops layer</span>
+      </div>
+      <div class="component-body">
+        <div class="cost-table-wrap">
+          <table class="cost-table">
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Service / Item</th>
+                <th>Basis / Rate</th>
+                <th>🟢 Low</th>
+                <th>🟡 Medium</th>
+                <th>🔴 High</th>
+                <th>Source</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Logging</strong></td>
+                <td>CloudWatch Logs — ingest</td>
+                <td>$0.50/GB · 5 GB/mo free<br><div class="detail-text">~0.5 KB/req average log line</div></td>
+                <td class="cost-low">~$0</td>
+                <td class="cost-medium">~$2</td>
+                <td class="cost-high">~$20</td>
+                <td><a href="https://aws.amazon.com/cloudwatch/pricing/" target="_blank">CloudWatch ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>Logging</strong></td>
+                <td>CloudWatch Logs — storage (30 days)</td>
+                <td>$0.03/GB·mo stored<br><div class="detail-text">Accumulates over time</div></td>
+                <td class="cost-low">~$0</td>
+                <td class="cost-medium">~$1</td>
+                <td class="cost-high">~$6</td>
+                <td><a href="https://aws.amazon.com/cloudwatch/pricing/" target="_blank">CloudWatch ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>Monitoring</strong></td>
+                <td>CloudWatch Alarms (50) + dashboards (3)</td>
+                <td>$0.10/alarm/mo; 3 dashboards free<br><div class="detail-text">50 alarms for ECS tasks, ALB, DB</div></td>
+                <td class="cost-low">$5</td>
+                <td class="cost-medium">$5</td>
+                <td class="cost-high">$5</td>
+                <td><a href="https://aws.amazon.com/cloudwatch/pricing/" target="_blank">CloudWatch ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>WAF</strong></td>
+                <td>AWS WAF — 1 Web ACL, 10 rules, on CloudFront</td>
+                <td>$5/WebACL + $1/rule + $0.60/M req<br><div class="detail-text">Verified June 2026</div></td>
+                <td class="cost-low">$16</td>
+                <td class="cost-medium">$21</td>
+                <td class="cost-high">$69</td>
+                <td><a href="https://aws.amazon.com/waf/pricing/" target="_blank">AWS WAF ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>DDoS</strong></td>
+                <td>AWS Shield Standard</td>
+                <td>Included free with CloudFront</td>
+                <td class="cost-free">$0</td>
+                <td class="cost-free">$0</td>
+                <td class="cost-free">$0</td>
+                <td><a href="https://aws.amazon.com/shield/pricing/" target="_blank">Shield ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>DDoS</strong></td>
+                <td>AWS Shield Advanced <em>(enterprise option)</em></td>
+                <td>$3,000/mo flat — 1-yr commit<div class="detail-text">Optional; required for SLA-backed DDoS response</div></td>
+                <td colspan="3" style="color:var(--text-muted); font-size:12px; text-align:center;">$3,000/mo — mark as optional in client proposals</td>
+                <td><a href="https://aws.amazon.com/shield/pricing/" target="_blank">Shield ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>Secrets</strong></td>
+                <td>AWS Secrets Manager — ~50 secrets</td>
+                <td>$0.40/secret/mo + $0.05/10K API calls<br><div class="detail-text">DB creds, API keys, JWT signing keys</div></td>
+                <td class="cost-low">$20</td>
+                <td class="cost-medium">$20</td>
+                <td class="cost-high">$21</td>
+                <td><a href="https://aws.amazon.com/secrets-manager/pricing/" target="_blank">Secrets Mgr ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>Threat Detection</strong></td>
+                <td>Amazon GuardDuty — CloudTrail + VPC Flow</td>
+                <td>$4/M CloudTrail events; $1/GB VPC Flow<br><div class="detail-text">30-day free trial on first enable [est]</div></td>
+                <td class="cost-low">~$10</td>
+                <td class="cost-medium">~$25</td>
+                <td class="cost-high">~$60</td>
+                <td><a href="https://aws.amazon.com/guardduty/pricing/" target="_blank">GuardDuty ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>Container Scanning</strong></td>
+                <td>Amazon Inspector ECR image scanning</td>
+                <td>~$0.09/image/mo (enhanced scanning) [est]<br><div class="detail-text">300 images × $0.09</div></td>
+                <td class="cost-low">~$27</td>
+                <td class="cost-medium">~$27</td>
+                <td class="cost-high">~$27</td>
+                <td><a href="https://aws.amazon.com/inspector/pricing/" target="_blank">Inspector ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>Backup / DR</strong></td>
+                <td>AWS Backup — EBS snapshots, config backup</td>
+                <td>$0.05/GB·mo stored [est]<br><div class="detail-text">~50 GB config/data snapshots</div></td>
+                <td class="cost-low">~$3</td>
+                <td class="cost-medium">~$3</td>
+                <td class="cost-high">~$5</td>
+                <td><a href="https://aws.amazon.com/backup/pricing/" target="_blank">AWS Backup ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>Support</strong></td>
+                <td>AWS Business Support+ (replaced Business Support Dec 2025)</td>
+                <td>$29/mo min or 9% of spend (≤$10K)<br><div class="detail-text">Business Support no longer available for new subscriptions as of Dec 2025; Business Support+ is the successor</div></td>
+                <td class="cost-low">~$28</td>
+                <td class="cost-medium">~$59</td>
+                <td class="cost-high">~$104</td>
+                <td><a href="https://aws.amazon.com/premiumsupport/pricing/" target="_blank">AWS Support ↗</a></td>
+              </tr>
+              <tr style="background: rgba(246,130,31,0.06);">
+                <td colspan="3"><strong>Security &amp; Ops Sub-total (excl. Shield Advanced)</strong></td>
+                <td class="cost-low"><strong>~$109</strong></td>
+                <td class="cost-medium"><strong>~$163</strong></td>
+                <td class="cost-high"><strong>~$317</strong></td>
+                <td></td>
+              </tr>
+              <tr style="background: rgba(246,130,31,0.1);">
+                <td colspan="3"><strong>All-in Total (compute + security &amp; ops)</strong><div class="detail-text">Compute: Low ~$310 · Med ~$650 · High ~$1,150</div></td>
+                <td style="color:#f6821f; font-size:15px;"><strong>~$419</strong></td>
+                <td style="color:#f6821f; font-size:15px;"><strong>~$813</strong></td>
+                <td style="color:#f6821f; font-size:15px;"><strong>~$1,467</strong></td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note-box note-info" style="margin-top: 12px;">
+          <span class="note-icon">ℹ️</span>
+          <span>WAF calculation: 1 WebACL ($5) + 10 rules ($10) + request charges. Low: 0.9M req × $0.60/M = $0.54 → $16 total. Medium: 9M req × $0.60/M = $5.40 → $21 total. High: 90M req × $0.60/M = $54 → $69 total. Support+: greater of $29 or 9% of compute spend.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Platform 2: Vercel + Railway + CF -->
+    <div class="component-card" style="margin-bottom: 24px;">
+      <div class="component-header">
+        <div class="component-title" style="color: var(--low);">
+          ★ Variant ② — Vercel + Railway + Cloudflare
+        </div>
+        <span class="tag">Security &amp; Ops layer</span>
+      </div>
+      <div class="component-body">
+        <div class="cost-table-wrap">
+          <table class="cost-table">
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Service / Item</th>
+                <th>Basis / Rate</th>
+                <th>🟢 Low</th>
+                <th>🟡 Medium</th>
+                <th>🔴 High</th>
+                <th>Source</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Logging</strong></td>
+                <td>Cloudflare Logpush → R2 / external sink</td>
+                <td>Requires Workers Paid ($5/mo already counted)<br><div class="detail-text">Logpush jobs: $0.05/M logs after 5M free</div></td>
+                <td class="cost-free">$0</td>
+                <td class="cost-low">~$0</td>
+                <td class="cost-medium">~$3</td>
+                <td><a href="https://developers.cloudflare.com/logs/about/" target="_blank">CF Logpush ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>Logging</strong></td>
+                <td>Better Stack / Logtail — app-level logs</td>
+                <td>Free tier 3GB/3-day retention; Nano bundle $35/mo (40GB logs, 30-day retention)<br><div class="detail-text">Aggregates Vercel + Railway logs. Old $29 Starter plan discontinued 2025.</div></td>
+                <td class="cost-free">$0</td>
+                <td class="cost-low">$35</td>
+                <td class="cost-medium">$35</td>
+                <td><a href="https://betterstack.com/pricing" target="_blank">Better Stack ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>Monitoring</strong></td>
+                <td>Sentry — error tracking (Team plan)</td>
+                <td>$29/mo monthly · $26/mo annual · 100K errors/mo included<br><div class="detail-text">Recommended for 300 production projects</div></td>
+                <td class="cost-low">$29</td>
+                <td class="cost-medium">$29</td>
+                <td class="cost-high">$29</td>
+                <td><a href="https://sentry.io/pricing/" target="_blank">Sentry ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>Uptime</strong></td>
+                <td>Better Stack Uptime (or Checkly)</td>
+                <td>Free up to 10 monitors; +$25/mo per 50 monitors (monthly)<br><div class="detail-text">300 endpoints = ~6 batches × $25 = $150/mo; or use subset of critical endpoints</div></td>
+                <td class="cost-low">$25</td>
+                <td class="cost-medium">$25</td>
+                <td class="cost-high">$25</td>
+                <td><a href="https://betterstack.com/pricing" target="_blank">Better Stack ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>WAF / Security</strong></td>
+                <td>Cloudflare Pro WAF (on the domain zone)</td>
+                <td>$20/mo (annual) — 20 custom WAF rules<br><div class="detail-text">Includes DDoS, Bot Management basic, WAF managed rules</div></td>
+                <td class="cost-low">$20</td>
+                <td class="cost-medium">$20</td>
+                <td class="cost-high">$20</td>
+                <td><a href="https://www.cloudflare.com/plans/pro/" target="_blank">CF Pro ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>WAF / Security</strong></td>
+                <td>Cloudflare Business WAF <em>(upgrade option)</em></td>
+                <td>$200/mo (annual) — 100 custom rules + SLA<div class="detail-text">Required for compliance-grade WAF policy depth</div></td>
+                <td colspan="3" style="color:var(--text-muted); font-size:12px; text-align:center;">$200/mo — optional enterprise upgrade (replaces Pro at $20)</td>
+                <td><a href="https://www.cloudflare.com/plans/business/" target="_blank">CF Business ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>Secrets</strong></td>
+                <td>Railway Env Vars (built-in) + Infisical / Doppler</td>
+                <td>Railway env vars free; Infisical Team $6/user/mo<br><div class="detail-text">Centralised secrets rotation for 300 projects</div></td>
+                <td class="cost-free">$0</td>
+                <td class="cost-low">$6</td>
+                <td class="cost-medium">$6</td>
+                <td><a href="https://infisical.com/pricing" target="_blank">Infisical ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>Backup / DR</strong></td>
+                <td>Railway volume snapshots + Vercel deployments (built-in rollback)</td>
+                <td>Vercel rollback free; Railway volume $0.15/GB·mo<div class="detail-text">~20 GB config data</div></td>
+                <td class="cost-low">~$3</td>
+                <td class="cost-medium">~$3</td>
+                <td class="cost-high">~$3</td>
+                <td><a href="https://docs.railway.com/pricing" target="_blank">Railway ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>Support</strong></td>
+                <td>Vendor support (Vercel Pro email + Railway community)</td>
+                <td>Included in Pro plans; no paid SLA tier for PaaS<br><div class="detail-text">Add Cloudflare Business for 24/7 support</div></td>
+                <td class="cost-free">$0</td>
+                <td class="cost-free">$0</td>
+                <td class="cost-free">$0</td>
+                <td></td>
+              </tr>
+              <tr style="background: rgba(63,185,80,0.06);">
+                <td colspan="3"><strong>Security &amp; Ops Sub-total (CF Pro WAF tier)</strong></td>
+                <td class="cost-low"><strong>~$77</strong></td>
+                <td class="cost-medium"><strong>~$118</strong></td>
+                <td class="cost-high"><strong>~$121</strong></td>
+                <td></td>
+              </tr>
+              <tr style="background: rgba(63,185,80,0.1);">
+                <td colspan="3"><strong>All-in Total (compute + security &amp; ops)</strong><div class="detail-text">Compute: Low ~$41 · Med ~$72 · High ~$226</div></td>
+                <td style="color: var(--low); font-size:15px;"><strong>~$118</strong></td>
+                <td style="color: var(--low); font-size:15px;"><strong>~$190</strong></td>
+                <td style="color: var(--low); font-size:15px;"><strong>~$347</strong></td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note-box note-success" style="margin-top: 12px;">
+          <span class="note-icon">✅</span>
+          <span>This variant benefits from Cloudflare's built-in DDoS mitigation and global CDN at the Pro tier. The biggest incremental add-ons are third-party observability (Sentry $29/mo monthly · Better Stack Nano $35/mo · uptime $25/mo = ~$89/mo) — unavoidable for a 300-project portfolio without a shared APM platform. Upgrading to CF Business adds $180/mo but provides 100 WAF rules and an uptime SLA. Note: Better Stack discontinued their old $29/mo Starter plan in 2025; entry log tier is now the Nano bundle at $35/mo (40GB, 30-day retention). Sentry Team is $29/mo monthly or $26/mo billed annually.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Platform 3: GCP -->
+    <div class="component-card" style="margin-bottom: 24px;">
+      <div class="component-header">
+        <div class="component-title" style="color: var(--accent);">
+          🔵 Variant ③ — GCP (Cloud Run + Global LB + Cloud CDN)
+        </div>
+        <span class="tag">Security &amp; Ops layer</span>
+      </div>
+      <div class="component-body">
+        <div class="cost-table-wrap">
+          <table class="cost-table">
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Service / Item</th>
+                <th>Basis / Rate</th>
+                <th>🟢 Low</th>
+                <th>🟡 Medium</th>
+                <th>🔴 High</th>
+                <th>Source</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Logging</strong></td>
+                <td>Cloud Logging — ingest</td>
+                <td>$0.50/GiB after 50 GiB/project free<br><div class="detail-text">Cloud Run auto-exports logs</div></td>
+                <td class="cost-free">$0</td>
+                <td class="cost-low">~$0</td>
+                <td class="cost-medium">~$10</td>
+                <td><a href="https://cloud.google.com/stackdriver/pricing" target="_blank">GCP Logging ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>Logging</strong></td>
+                <td>Cloud Logging — retention beyond 30 days</td>
+                <td>$0.01/GiB/mo for extended retention<br><div class="detail-text">90-day retention recommended</div></td>
+                <td class="cost-free">$0</td>
+                <td class="cost-low">~$1</td>
+                <td class="cost-medium">~$3</td>
+                <td><a href="https://cloud.google.com/stackdriver/pricing" target="_blank">GCP Logging ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>Monitoring</strong></td>
+                <td>Cloud Monitoring — metrics, alerting policies, dashboards</td>
+                <td>First 150M metrics/mo free; $0.01/M after<br><div class="detail-text">Cloud Run metrics included; custom metrics extra</div></td>
+                <td class="cost-low">~$5</td>
+                <td class="cost-medium">~$10</td>
+                <td class="cost-high">~$20</td>
+                <td><a href="https://cloud.google.com/stackdriver/pricing" target="_blank">GCP Monitoring ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>WAF / Security</strong></td>
+                <td>Cloud Armor — Standard tier (on Global LB)</td>
+                <td>$5/policy/mo + $1/rule/mo + $0.75/M req globally<br><div class="detail-text">Verified June 2026</div></td>
+                <td class="cost-low">~$17</td>
+                <td class="cost-medium">~$23</td>
+                <td class="cost-high">~$90</td>
+                <td><a href="https://cloud.google.com/armor/pricing" target="_blank">Cloud Armor ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>DDoS</strong></td>
+                <td>Cloud Armor DDoS — included in Standard</td>
+                <td>Layer 3/4 DDoS always-on; Layer 7 via WAF rules</td>
+                <td class="cost-free">$0</td>
+                <td class="cost-free">$0</td>
+                <td class="cost-free">$0</td>
+                <td><a href="https://cloud.google.com/armor/pricing" target="_blank">Cloud Armor ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>Secrets</strong></td>
+                <td>Secret Manager — ~50 active versions</td>
+                <td>$0.06/version/mo + $0.03/10K accesses; 6 free<br><div class="detail-text">50 secrets × $0.06 = $3/mo base</div></td>
+                <td class="cost-low">~$3</td>
+                <td class="cost-medium">~$3</td>
+                <td class="cost-high">~$4</td>
+                <td><a href="https://cloud.google.com/secret-manager/pricing" target="_blank">Secret Mgr ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>Vulnerability Scanning</strong></td>
+                <td>Artifact Analysis — container image scanning</td>
+                <td>First 500 scans/mo free; $0.26/scan after<br><div class="detail-text">300 images = within free tier [est]</div></td>
+                <td class="cost-free">$0</td>
+                <td class="cost-free">$0</td>
+                <td class="cost-low">~$26</td>
+                <td><a href="https://cloud.google.com/artifact-analysis/pricing" target="_blank">Artifact Analysis ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>Backup / DR</strong></td>
+                <td>Cloud SQL automated backups (if DB used)</td>
+                <td>~$0.08/GB·mo for backup storage [est]<br><div class="detail-text">~50 GB backup = $4/mo</div></td>
+                <td class="cost-low">~$4</td>
+                <td class="cost-medium">~$4</td>
+                <td class="cost-high">~$8</td>
+                <td><a href="https://cloud.google.com/sql/pricing" target="_blank">Cloud SQL ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>Support</strong></td>
+                <td>Google Cloud Standard Support</td>
+                <td>$29/mo min or 3% of monthly bill<br><div class="detail-text">Required for production P2/P1 response SLA</div></td>
+                <td class="cost-low">~$32</td>
+                <td class="cost-medium">~$36</td>
+                <td class="cost-high">~$49</td>
+                <td><a href="https://cloud.google.com/support/standard" target="_blank">GCP Support ↗</a></td>
+              </tr>
+              <tr style="background: rgba(88,166,255,0.06);">
+                <td colspan="3"><strong>Security &amp; Ops Sub-total</strong></td>
+                <td style="color:var(--accent);"><strong>~$61</strong></td>
+                <td style="color:var(--accent);"><strong>~$77</strong></td>
+                <td style="color:var(--accent);"><strong>~$210</strong></td>
+                <td></td>
+              </tr>
+              <tr style="background: rgba(88,166,255,0.1);">
+                <td colspan="3"><strong>All-in Total (compute + security &amp; ops)</strong><div class="detail-text">Compute: Low ~$95 · Med ~$220 · High ~$650</div></td>
+                <td style="color:var(--accent); font-size:15px;"><strong>~$156</strong></td>
+                <td style="color:var(--accent); font-size:15px;"><strong>~$297</strong></td>
+                <td style="color:var(--accent); font-size:15px;"><strong>~$860</strong></td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note-box note-info" style="margin-top: 12px;">
+          <span class="note-icon">ℹ️</span>
+          <span>Cloud Armor calculation: 1 policy ($5) + 10 rules ($10) + request charges. Low: 0.9M × $0.75/M = $0.68 → ~$17. Medium: 9M × $0.75/M = $6.75 → ~$23. High: 90M × $0.75/M = $67.50 → ~$90. GCP Support: 3% of compute spend, floor $29/mo.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Platform 4: GCP + CF -->
+    <div class="component-card" style="margin-bottom: 24px;">
+      <div class="component-header">
+        <div class="component-title" style="color: var(--low);">
+          ④ Variant ④ — GCP Serverless + Cloudflare
+          <span style="font-size:10px;background:#1f6feb;color:#fff;padding:1px 7px;border-radius:10px;margin-left:6px;">★ BEST BALANCE</span>
+        </div>
+        <span class="tag">Security &amp; Ops layer</span>
+      </div>
+      <div class="component-body">
+        <div class="cost-table-wrap">
+          <table class="cost-table">
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Service / Item</th>
+                <th>Basis / Rate</th>
+                <th>🟢 Low</th>
+                <th>🟡 Medium</th>
+                <th>🔴 High</th>
+                <th>Source</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Logging</strong></td>
+                <td>Cloud Logging — ingest (same as Variant ③)</td>
+                <td>$0.50/GiB after 50 GiB free</td>
+                <td class="cost-free">$0</td>
+                <td class="cost-low">~$0</td>
+                <td class="cost-medium">~$10</td>
+                <td><a href="https://cloud.google.com/stackdriver/pricing" target="_blank">GCP Logging ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>Monitoring</strong></td>
+                <td>Cloud Monitoring + Cloudflare Analytics</td>
+                <td>GCP monitoring + CF analytics (included in Workers Paid)<br><div class="detail-text">CF analytics replace need for external uptime tool</div></td>
+                <td class="cost-low">~$5</td>
+                <td class="cost-medium">~$10</td>
+                <td class="cost-high">~$20</td>
+                <td><a href="https://cloud.google.com/stackdriver/pricing" target="_blank">GCP Monitoring ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>WAF / Security</strong></td>
+                <td>Cloudflare WAF (CF Worker + Pro zone plan)</td>
+                <td>CF Pro $20/mo — replaces Cloud Armor entirely<br><div class="detail-text">DDoS + WAF at the edge, before GCP is hit</div></td>
+                <td class="cost-low">$20</td>
+                <td class="cost-medium">$20</td>
+                <td class="cost-high">$20</td>
+                <td><a href="https://www.cloudflare.com/plans/pro/" target="_blank">CF Pro ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>Secrets</strong></td>
+                <td>GCP Secret Manager — ~50 active versions</td>
+                <td>$0.06/version/mo; 6 free versions included</td>
+                <td class="cost-low">~$3</td>
+                <td class="cost-medium">~$3</td>
+                <td class="cost-high">~$4</td>
+                <td><a href="https://cloud.google.com/secret-manager/pricing" target="_blank">Secret Mgr ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>Backup / DR</strong></td>
+                <td>Cloud SQL backups / GCS snapshots</td>
+                <td>~$0.08/GB·mo [est]</td>
+                <td class="cost-low">~$4</td>
+                <td class="cost-medium">~$4</td>
+                <td class="cost-high">~$8</td>
+                <td><a href="https://cloud.google.com/sql/pricing" target="_blank">Cloud SQL ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>Error Tracking</strong></td>
+                <td>Sentry Team (or GCP Error Reporting — free)</td>
+                <td>GCP Error Reporting free; Sentry Team $26/mo optional<br><div class="detail-text">GCP Error Reporting covers Cloud Run natively</div></td>
+                <td class="cost-free">$0</td>
+                <td class="cost-free">$0</td>
+                <td class="cost-low">$26</td>
+                <td><a href="https://cloud.google.com/error-reporting/pricing" target="_blank">GCP Error Reporting ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>Support</strong></td>
+                <td>Google Cloud Standard Support</td>
+                <td>$29/mo min or 3% of GCP bill</td>
+                <td class="cost-low">~$30</td>
+                <td class="cost-medium">~$32</td>
+                <td class="cost-high">~$42</td>
+                <td><a href="https://cloud.google.com/support/standard" target="_blank">GCP Support ↗</a></td>
+              </tr>
+              <tr style="background: rgba(63,185,80,0.06);">
+                <td colspan="3"><strong>Security &amp; Ops Sub-total</strong></td>
+                <td class="cost-low"><strong>~$62</strong></td>
+                <td style="color:var(--low);"><strong>~$69</strong></td>
+                <td style="color:var(--low);"><strong>~$130</strong></td>
+                <td></td>
+              </tr>
+              <tr style="background: rgba(63,185,80,0.1);">
+                <td colspan="3"><strong>All-in Total (compute + security &amp; ops)</strong><div class="detail-text">Compute: Low ~$30 · Med ~$110 · High ~$420</div></td>
+                <td style="color: var(--low); font-size:15px;"><strong>~$92</strong></td>
+                <td style="color: var(--low); font-size:15px;"><strong>~$179</strong></td>
+                <td style="color: var(--low); font-size:15px;"><strong>~$550</strong></td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note-box note-success" style="margin-top: 12px;">
+          <span class="note-icon">✅</span>
+          <span>Variant ④ leverages the best of both worlds for security cost too: Cloudflare WAF/DDoS at the edge (cheaper than Cloud Armor for WAF rules) and GCP's built-in Error Reporting, Logging, and Secret Manager replacing several third-party tools. This is the lowest all-in cost at low/medium traffic even after adding the full ops layer.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Platform 5: Azure -->
+    <div class="component-card" style="margin-bottom: 24px;">
+      <div class="component-header">
+        <div class="component-title" style="color:#50b0f0;">
+          ☁️ Variant ⑤ — Azure (Container Apps + Front Door Standard)
+        </div>
+        <span class="tag">Security &amp; Ops layer</span>
+      </div>
+      <div class="component-body">
+
+        <!-- Azure compute summary trio -->
+        <div class="cost-trio" style="margin-bottom:20px;">
+          <div class="cost-card cost-card-low">
+            <div class="cost-card-label" style="color:#50b0f0;">LOW — COMPUTE</div>
+            <div class="cost-card-amount" style="color:#50b0f0;">~$55</div>
+            <div class="cost-card-sub" style="color:#50b0f0;">900K req/mo · mostly free tier</div>
+          </div>
+          <div class="cost-card cost-card-medium">
+            <div class="cost-card-label" style="color:#50b0f0;">MEDIUM — COMPUTE</div>
+            <div class="cost-card-amount" style="color:#50b0f0;">~$175</div>
+            <div class="cost-card-sub" style="color:#50b0f0;">9M req/mo · compute + Front Door</div>
+          </div>
+          <div class="cost-card cost-card-high">
+            <div class="cost-card-label" style="color:#50b0f0;">HIGH — COMPUTE</div>
+            <div class="cost-card-amount" style="color:#50b0f0;">~$570</div>
+            <div class="cost-card-sub" style="color:#50b0f0;">90M req/mo · egress dominates</div>
+          </div>
+        </div>
+
+        <!-- Azure compute breakdown -->
+        <ul class="breakdown-list" style="margin-bottom:20px;">
+          <li class="breakdown-item">
+            <div class="breakdown-left">
+              <div class="breakdown-metric">Azure Container Apps — Consumption Plan</div>
+              <div class="breakdown-note">$0.000024/vCPU-sec · $0.000003/GiB-sec. Free: 180K vCPU-sec + 360K GiB-sec + 2M req/mo</div>
+            </div>
+            <div class="breakdown-values">
+              <div class="bv" style="color:#50b0f0;">~$0</div>
+              <div class="bv" style="color:#50b0f0;">~$90</div>
+              <div class="bv" style="color:#50b0f0;">~$440</div>
+            </div>
+          </li>
+          <li class="breakdown-item">
+            <div class="breakdown-left">
+              <div class="breakdown-metric">Azure Front Door Standard</div>
+              <div class="breakdown-note">$35/mo base + $0.008/GB data transfer outbound</div>
+            </div>
+            <div class="breakdown-values">
+              <div class="bv" style="color:#50b0f0;">$35</div>
+              <div class="bv" style="color:#50b0f0;">$35</div>
+              <div class="bv" style="color:#50b0f0;">$35</div>
+            </div>
+          </li>
+          <li class="breakdown-item">
+            <div class="breakdown-left">
+              <div class="breakdown-metric">Azure Static Web Apps Standard (100 frontends)</div>
+              <div class="breakdown-note">$9/mo — free tier covers hobby; Standard required for custom auth/functions</div>
+            </div>
+            <div class="breakdown-values">
+              <div class="bv" style="color:#50b0f0;">$9</div>
+              <div class="bv" style="color:#50b0f0;">$9</div>
+              <div class="bv" style="color:#50b0f0;">$9</div>
+            </div>
+          </li>
+          <li class="breakdown-item">
+            <div class="breakdown-left">
+              <div class="breakdown-metric">Egress — Azure to Internet</div>
+              <div class="breakdown-note">$0.087/GB first 10 TB/mo · 10KB avg response size</div>
+            </div>
+            <div class="breakdown-values">
+              <div class="bv" style="color:#50b0f0;">~$0.78</div>
+              <div class="bv" style="color:#50b0f0;">~$7.83</div>
+              <div class="bv" style="color:#50b0f0;">~$78</div>
+            </div>
+          </li>
+          <li class="breakdown-item">
+            <div class="breakdown-left">
+              <div class="breakdown-metric">Azure DNS</div>
+              <div class="breakdown-note">$0.50/zone/mo + $0.40/million queries · 1 zone assumed</div>
+            </div>
+            <div class="breakdown-values">
+              <div class="bv" style="color:#50b0f0;">~$1</div>
+              <div class="bv" style="color:#50b0f0;">~$1</div>
+              <div class="bv" style="color:#50b0f0;">~$1</div>
+            </div>
+          </li>
+          <li class="breakdown-item" style="background: rgba(255,255,255,0.02); border-radius: 6px;">
+            <div class="breakdown-left">
+              <div class="breakdown-metric" style="font-weight:700;">Azure Compute Total</div>
+            </div>
+            <div class="breakdown-values">
+              <div class="bv" style="color:#50b0f0; font-size:16px;">~$55</div>
+              <div class="bv" style="color:#50b0f0; font-size:16px;">~$175</div>
+              <div class="bv" style="color:#50b0f0; font-size:16px;">~$570</div>
+            </div>
+          </li>
+        </ul>
+
+        <!-- Azure security & ops table -->
+        <div class="cost-table-wrap">
+          <table class="cost-table">
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Service / Item</th>
+                <th>Basis / Rate</th>
+                <th>🟢 Low</th>
+                <th>🟡 Medium</th>
+                <th>🔴 High</th>
+                <th>Source</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Logging</strong></td>
+                <td>Azure Monitor Logs (Log Analytics Workspace)</td>
+                <td>$2.76/GB ingest after 5 GB/day free<br><div class="detail-text">~0.5 KB/req average log line; 300 services</div></td>
+                <td class="cost-free">~$0</td>
+                <td class="cost-low">~$3</td>
+                <td class="cost-high">~$30</td>
+                <td><a href="https://azure.microsoft.com/pricing/details/monitor/" target="_blank">Azure Monitor ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>Container Registry</strong></td>
+                <td>Azure Container Registry — Basic</td>
+                <td>~$5/mo · 10 GB storage included<br><div class="detail-text">Required to store container images for Container Apps</div></td>
+                <td class="cost-low">$5</td>
+                <td class="cost-low">$5</td>
+                <td class="cost-low">$5</td>
+                <td><a href="https://azure.microsoft.com/pricing/details/container-registry/" target="_blank">ACR ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>WAF / Security</strong></td>
+                <td>Azure Front Door WAF Policy (Standard)</td>
+                <td>Included with Front Door Standard plan for DDoS + WAF managed rules<br><div class="detail-text">Custom rules: $1/rule/mo (first 5 included in Standard)</div></td>
+                <td class="cost-free">$0</td>
+                <td class="cost-free">$0</td>
+                <td class="cost-low">~$5</td>
+                <td><a href="https://azure.microsoft.com/pricing/details/web-application-firewall/" target="_blank">Azure WAF ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>Threat Detection</strong></td>
+                <td>Microsoft Defender for Cloud — Containers</td>
+                <td>$7/node/mo (AKS) — Container Apps: CSPM free; Defender for Containers optional<br><div class="detail-text">Basic CSPM posture free; Defender for Containers adds runtime protection</div></td>
+                <td class="cost-free">$0</td>
+                <td class="cost-low">~$15</td>
+                <td class="cost-medium">~$15</td>
+                <td><a href="https://azure.microsoft.com/pricing/details/defender-for-cloud/" target="_blank">Defender ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>Secrets</strong></td>
+                <td>Azure Key Vault — ~50 secrets</td>
+                <td>$0.03/10K operations · first 10K ops/mo free<br><div class="detail-text">50 secrets × app reads; vault itself free (0 vault fee in Standard tier per-op model)</div></td>
+                <td class="cost-free">~$0</td>
+                <td class="cost-low">~$1</td>
+                <td class="cost-low">~$2</td>
+                <td><a href="https://azure.microsoft.com/pricing/details/key-vault/" target="_blank">Key Vault ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>Monitoring / APM</strong></td>
+                <td>Application Insights (Azure Monitor)</td>
+                <td>$2.76/GB beyond 5 GB/day free · included in Monitor workspace<br><div class="detail-text">Native integration with Container Apps; replaces Sentry for many use cases</div></td>
+                <td class="cost-free">$0</td>
+                <td class="cost-low">~$5</td>
+                <td class="cost-high">~$20</td>
+                <td><a href="https://azure.microsoft.com/pricing/details/monitor/" target="_blank">App Insights ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>Backup / DR</strong></td>
+                <td>Azure Backup (blob snapshots / config)</td>
+                <td>$0.018/GB/mo protected storage [est]<br><div class="detail-text">~50 GB config snapshots</div></td>
+                <td class="cost-low">~$1</td>
+                <td class="cost-low">~$1</td>
+                <td class="cost-low">~$2</td>
+                <td><a href="https://azure.microsoft.com/pricing/details/backup/" target="_blank">Azure Backup ↗</a></td>
+              </tr>
+              <tr>
+                <td><strong>Support</strong></td>
+                <td>Azure Developer Support</td>
+                <td>$29/mo (Developer) · $100/mo (Standard) · no per-% billing<br><div class="detail-text">Developer plan: business-hours support, 8hr P1 SLA. Standard: 24/7, 2hr P1.</div></td>
+                <td class="cost-low">$29</td>
+                <td class="cost-medium">$29</td>
+                <td class="cost-high">$100</td>
+                <td><a href="https://azure.microsoft.com/support/plans/" target="_blank">Azure Support ↗</a></td>
+              </tr>
+              <tr style="background: rgba(80,176,240,0.06);">
+                <td colspan="3"><strong>Security &amp; Ops Sub-total</strong></td>
+                <td style="color:#50b0f0;"><strong>~$35</strong></td>
+                <td style="color:#50b0f0;"><strong>~$59</strong></td>
+                <td style="color:#50b0f0;"><strong>~$179</strong></td>
+                <td></td>
+              </tr>
+              <tr style="background: rgba(80,176,240,0.10);">
+                <td colspan="3"><strong>All-in Total (compute + security &amp; ops)</strong><div class="detail-text">Compute: Low ~$55 · Med ~$175 · High ~$570</div></td>
+                <td style="color:#50b0f0; font-size:15px;"><strong>~$90</strong></td>
+                <td style="color:#50b0f0; font-size:15px;"><strong>~$234</strong></td>
+                <td style="color:#50b0f0; font-size:15px;"><strong>~$749</strong></td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note-box note-info" style="margin-top: 12px;">
+          <span class="note-icon">ℹ️</span>
+          <span><strong>Azure Container Apps Consumption plan</strong> provides genuine scale-to-zero with a generous free tier (180K vCPU-sec + 360K GiB-sec + 2M req/mo). For 300 low-traffic services this covers most of the compute at Low traffic. The $35/mo Front Door Standard base is the dominant fixed cost — it bundles CDN, WAF managed rules, DDoS, and TLS offload. At High traffic, egress and Container Apps compute scale linearly and become the dominant spend. Microsoft Defender CSPM posture scanning is free; runtime container protection (Defender for Containers) is optional at ~$15/mo.</span>
+        </div>
+        <div class="note-box note-warning" style="margin-top: 8px;">
+          <span class="note-icon">⚠️</span>
+          <span><strong>Cold start note:</strong> Azure Container Apps Consumption plan has cold starts similar to Cloud Run (~1–5 sec depending on image size). Spring Boot JVM images will cause 10–30 sec cold starts — use GraalVM native or Azure Spring Apps for pre-warmed instances. FastAPI / lightweight images work well.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- All-in Comparison Table -->
+    <div class="section-title" style="margin-top: 32px; margin-bottom: 16px;">
+      <div class="section-icon" style="background:#1c2340;">📊</div>
+      All-in Production Cost Comparison (Compute + Security &amp; Ops)
+    </div>
+    <div class="big-table-wrap">
+      <table class="big-table">
+        <thead>
+          <tr>
+            <th>Variant</th>
+            <th>Compute Only</th>
+            <th>Sec &amp; Ops Add-on</th>
+            <th>🟢 All-in Low</th>
+            <th>🟡 All-in Medium</th>
+            <th>🔴 All-in High</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>① AWS Fargate</strong><div class="detail-text">+WAF +GuardDuty +Inspector +Support+</div></td>
+            <td style="color:#f6821f;">$310 / $650 / $1,150</td>
+            <td style="color:#f6821f;">$109 / $163 / $317</td>
+            <td style="color:#f6821f; font-size:15px;"><strong>~$419</strong></td>
+            <td style="color:#f6821f; font-size:15px;"><strong>~$813</strong></td>
+            <td style="color:#f6821f; font-size:15px;"><strong>~$1,467</strong></td>
+          </tr>
+          <tr>
+            <td><strong>② Vercel+Railway+CF</strong><div class="detail-text">+CF Pro WAF +Sentry +Better Stack</div></td>
+            <td class="cost-low">$41 / $72 / $226</td>
+            <td class="cost-low">$77 / $118 / $121</td>
+            <td class="cost-low" style="font-size:15px;"><strong>~$118</strong></td>
+            <td class="cost-low" style="font-size:15px;"><strong>~$190</strong></td>
+            <td class="cost-low" style="font-size:15px;"><strong>~$347</strong></td>
+          </tr>
+          <tr>
+            <td><strong>③ GCP all-Google</strong><div class="detail-text">+Cloud Armor +Cloud Monitoring +Support</div></td>
+            <td style="color:var(--accent);">$95 / $220 / $650</td>
+            <td style="color:var(--accent);">$61 / $77 / $210</td>
+            <td style="color:var(--accent); font-size:15px;"><strong>~$156</strong></td>
+            <td style="color:var(--accent); font-size:15px;"><strong>~$297</strong></td>
+            <td style="color:var(--accent); font-size:15px;"><strong>~$860</strong></td>
+          </tr>
+          <tr>
+            <td><strong>④ GCP Serverless + CF</strong><div class="detail-text">+CF Pro WAF +GCP Logging/Monitoring +Support</div></td>
+            <td class="cost-low">$30 / $110 / $420</td>
+            <td class="cost-low">$62 / $69 / $130</td>
+            <td class="cost-low" style="font-size:15px;"><strong>~$92</strong></td>
+            <td class="cost-low" style="font-size:15px;"><strong>~$179</strong></td>
+            <td class="cost-low" style="font-size:15px;"><strong>~$550</strong></td>
+          </tr>
+          <tr>
+            <td><strong>⑤ Azure Container Apps + Front Door</strong><div class="detail-text">+Azure Monitor +Defender for Cloud +Key Vault</div></td>
+            <td style="color:#50b0f0;">$55 / $175 / $570</td>
+            <td style="color:#50b0f0;">$35 / $59 / $179</td>
+            <td style="color:#50b0f0; font-size:15px;"><strong>~$90</strong></td>
+            <td style="color:#50b0f0; font-size:15px;"><strong>~$234</strong></td>
+            <td style="color:#50b0f0; font-size:15px;"><strong>~$749</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note-box note-warning" style="margin-top: 16px;">
+      <span class="note-icon">⚠️</span>
+      <span><strong>Client presentation note:</strong> Always present the all-in figures as the "realistic production estimate" and the compute-only figures as the "baseline infrastructure floor." Security and observability add-ons are non-negotiable for any workload that handles user authentication, PII, or API keys. Omitting them does not lower costs — it shifts them to incident response, breach remediation, or a rushed retrofit.</span>
+    </div>
+    <div class="note-box note-info" style="margin-top: 8px;">
+      <span class="note-icon">ℹ️</span>
+      <span><strong>What is not included above (add if applicable):</strong> Database costs (RDS/Cloud SQL/Azure SQL/PlanetScale — add $50–$400/mo depending on size); CDN image optimisation (Cloudflare Images ~$5/mo + $1/100K transforms); CI/CD pipeline minutes beyond free tiers; penetration testing / compliance audits (one-time); SSL certificate management (free via CF/Let's Encrypt/Azure Front Door). Prices verified against official pricing pages June 2026.</span>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Pricing Sources -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-icon" style="background:#1c2340;">🔗</div>
+      Pricing Reference Sources (verified June 2026)
+    </div>
+    <div class="section-desc">All external pricing links — click to verify current rates. Rates confirmed against official pages June 2026.</div>
+    <div class="sources-grid">
+      <a href="https://developers.cloudflare.com/workers/platform/pricing/" target="_blank" class="source-link">
+        <span class="source-icon">🔶</span>
+        <div class="source-info">
+          <div class="source-name">Cloudflare Workers — Official Pricing</div>
+          <div class="source-desc">Free tier, Paid plan, CPU limits, overage rates</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://www.cloudflare.com/plans/developer-platform/" target="_blank" class="source-link">
+        <span class="source-icon">🔶</span>
+        <div class="source-info">
+          <div class="source-name">Cloudflare Developer Platform Plans</div>
+          <div class="source-desc">Compare free vs paid developer platform tiers</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://workers.cloudflare.com/plans" target="_blank" class="source-link">
+        <span class="source-icon">🔶</span>
+        <div class="source-info">
+          <div class="source-name">Cloudflare Workers Plan Comparison</div>
+          <div class="source-desc">Side-by-side plan features and limits</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://www.cloudflare.com/plans/pro/" target="_blank" class="source-link">
+        <span class="source-icon">🔶</span>
+        <div class="source-info">
+          <div class="source-name">Cloudflare Pro Plan — WAF &amp; Security</div>
+          <div class="source-desc">$20/mo annual · 20 WAF rules · DDoS · Bot Mgmt basic</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://vercel.com/pricing" target="_blank" class="source-link">
+        <span class="source-icon">▲</span>
+        <div class="source-info">
+          <div class="source-name">Vercel — Official Pricing Page</div>
+          <div class="source-desc">Hobby, Pro, Enterprise plans comparison</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://vercel.com/docs/plans/pro-plan" target="_blank" class="source-link">
+        <span class="source-icon">▲</span>
+        <div class="source-info">
+          <div class="source-name">Vercel Pro Plan Documentation</div>
+          <div class="source-desc">Included resources, overage rates, seat pricing</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://vercel.com/docs/pricing" target="_blank" class="source-link">
+        <span class="source-icon">▲</span>
+        <div class="source-info">
+          <div class="source-name">Vercel Pricing Documentation</div>
+          <div class="source-desc">Bandwidth, edge requests, build minutes pricing</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://docs.railway.com/pricing" target="_blank" class="source-link">
+        <span class="source-icon">🚂</span>
+        <div class="source-info">
+          <div class="source-name">Railway — Official Pricing Docs</div>
+          <div class="source-desc">RAM $10/GB/mo · CPU $20/vCPU/mo · Egress $0.05/GB</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://docs.railway.com/pricing/plans" target="_blank" class="source-link">
+        <span class="source-icon">🚂</span>
+        <div class="source-info">
+          <div class="source-name">Railway Plan Details</div>
+          <div class="source-desc">Hobby vs Pro plan features and limits</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://docs.railway.com/deployments/serverless" target="_blank" class="source-link">
+        <span class="source-icon">🚂</span>
+        <div class="source-info">
+          <div class="source-name">Railway Serverless Documentation</div>
+          <div class="source-desc">Sleep behavior, cold starts, sleep blockers</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://docs.railway.com/pricing/cost-control" target="_blank" class="source-link">
+        <span class="source-icon">🚂</span>
+        <div class="source-info">
+          <div class="source-name">Railway Cost Control</div>
+          <div class="source-desc">Spend limits and budget management</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://railway.com/pricing" target="_blank" class="source-link">
+        <span class="source-icon">🚂</span>
+        <div class="source-info">
+          <div class="source-name">Railway Pricing Page</div>
+          <div class="source-desc">Official public pricing overview</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://www.cloudflare.com/products/registrar/" target="_blank" class="source-link">
+        <span class="source-icon">🌐</span>
+        <div class="source-info">
+          <div class="source-name">Cloudflare Domain Registrar</div>
+          <div class="source-desc">Domain registration at cost, no markup</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://cloud.google.com/run/pricing" target="_blank" class="source-link">
+        <span class="source-icon">🔵</span>
+        <div class="source-info">
+          <div class="source-name">Google Cloud Run — Pricing</div>
+          <div class="source-desc">$0.000024/vCPU-sec · $0.0000025/GiB-sec · 2M req free</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://cloud.google.com/load-balancing/pricing" target="_blank" class="source-link">
+        <span class="source-icon">🔵</span>
+        <div class="source-info">
+          <div class="source-name">GCP Cloud Load Balancing — Pricing</div>
+          <div class="source-desc">Global external LB base fee + forwarding rules (variant ③)</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://cloud.google.com/vpc/network-pricing" target="_blank" class="source-link">
+        <span class="source-icon">🔵</span>
+        <div class="source-info">
+          <div class="source-name">GCP Network Egress — Pricing</div>
+          <div class="source-desc">~$0.12/GB premium tier (variants ③④)</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://cloud.google.com/armor/pricing" target="_blank" class="source-link">
+        <span class="source-icon">🔵</span>
+        <div class="source-info">
+          <div class="source-name">Google Cloud Armor — Pricing</div>
+          <div class="source-desc">$5/policy + $1/rule + $0.75/M req (Standard tier)</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://cloud.google.com/stackdriver/pricing" target="_blank" class="source-link">
+        <span class="source-icon">🔵</span>
+        <div class="source-info">
+          <div class="source-name">GCP Cloud Logging &amp; Monitoring — Pricing</div>
+          <div class="source-desc">Logging $0.50/GiB after 50 GiB free; Monitoring free tier</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://cloud.google.com/secret-manager/pricing" target="_blank" class="source-link">
+        <span class="source-icon">🔵</span>
+        <div class="source-info">
+          <div class="source-name">GCP Secret Manager — Pricing</div>
+          <div class="source-desc">$0.06/version/mo after 6 free; $0.03/10K accesses</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://cloud.google.com/support/standard" target="_blank" class="source-link">
+        <span class="source-icon">🔵</span>
+        <div class="source-info">
+          <div class="source-name">Google Cloud Standard Support</div>
+          <div class="source-desc">$29/mo min or 3% of monthly GCP spend</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://aws.amazon.com/fargate/pricing/" target="_blank" class="source-link">
+        <span class="source-icon">🟠</span>
+        <div class="source-info">
+          <div class="source-name">AWS Fargate — Pricing</div>
+          <div class="source-desc">$0.04048/vCPU-hr · $0.004445/GB-hr (Linux x86, us-east-1)</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://aws.amazon.com/elasticloadbalancing/pricing/" target="_blank" class="source-link">
+        <span class="source-icon">🟠</span>
+        <div class="source-info">
+          <div class="source-name">AWS ALB — Pricing</div>
+          <div class="source-desc">$0.0225/hr base + $0.008/LCU-hr (variant ①)</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://aws.amazon.com/cloudfront/pricing/" target="_blank" class="source-link">
+        <span class="source-icon">🟠</span>
+        <div class="source-info">
+          <div class="source-name">AWS CloudFront — Pricing</div>
+          <div class="source-desc">$0.085/GB · 1TB+10M req free (variant ①)</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://aws.amazon.com/waf/pricing/" target="_blank" class="source-link">
+        <span class="source-icon">🟠</span>
+        <div class="source-info">
+          <div class="source-name">AWS WAF — Pricing</div>
+          <div class="source-desc">$5/WebACL + $1/rule + $0.60/M requests</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://aws.amazon.com/cloudwatch/pricing/" target="_blank" class="source-link">
+        <span class="source-icon">🟠</span>
+        <div class="source-info">
+          <div class="source-name">AWS CloudWatch — Pricing</div>
+          <div class="source-desc">Logs $0.50/GB ingest · 5 GB free · $0.10/alarm/mo</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://aws.amazon.com/secrets-manager/pricing/" target="_blank" class="source-link">
+        <span class="source-icon">🟠</span>
+        <div class="source-info">
+          <div class="source-name">AWS Secrets Manager — Pricing</div>
+          <div class="source-desc">$0.40/secret/mo + $0.05/10K API calls</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://aws.amazon.com/guardduty/pricing/" target="_blank" class="source-link">
+        <span class="source-icon">🟠</span>
+        <div class="source-info">
+          <div class="source-name">Amazon GuardDuty — Pricing</div>
+          <div class="source-desc">$4/M CloudTrail events · $1/GB VPC Flow · 30-day free trial</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://aws.amazon.com/shield/pricing/" target="_blank" class="source-link">
+        <span class="source-icon">🟠</span>
+        <div class="source-info">
+          <div class="source-name">AWS Shield — Pricing</div>
+          <div class="source-desc">Standard: free · Advanced: $3,000/mo (optional enterprise)</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://aws.amazon.com/premiumsupport/pricing/" target="_blank" class="source-link">
+        <span class="source-icon">🟠</span>
+        <div class="source-info">
+          <div class="source-name">AWS Support Plans — Pricing</div>
+          <div class="source-desc">Business Support+ $29/mo min or 9% of spend; replaces old Business Support (no longer available for new accounts Dec 2025)</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://azure.microsoft.com/pricing/details/container-apps/" target="_blank" class="source-link">
+        <span class="source-icon">☁️</span>
+        <div class="source-info">
+          <div class="source-name">Azure Container Apps — Pricing</div>
+          <div class="source-desc">$0.000024/vCPU-sec · $0.000003/GiB-sec · 180K vCPU-sec + 360K GiB-sec + 2M req free/mo</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://azure.microsoft.com/pricing/details/frontdoor/" target="_blank" class="source-link">
+        <span class="source-icon">☁️</span>
+        <div class="source-info">
+          <div class="source-name">Azure Front Door — Pricing</div>
+          <div class="source-desc">Standard: $35/mo base + $0.008/GB transfer · WAF managed rules included</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://azure.microsoft.com/pricing/details/app-service/static/" target="_blank" class="source-link">
+        <span class="source-icon">☁️</span>
+        <div class="source-info">
+          <div class="source-name">Azure Static Web Apps — Pricing</div>
+          <div class="source-desc">Free tier (hobby); Standard $9/mo per app for custom auth &amp; functions</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://azure.microsoft.com/pricing/details/monitor/" target="_blank" class="source-link">
+        <span class="source-icon">☁️</span>
+        <div class="source-info">
+          <div class="source-name">Azure Monitor Logs — Pricing</div>
+          <div class="source-desc">$2.76/GB ingest after 5 GB/day free · Application Insights included</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://azure.microsoft.com/pricing/details/key-vault/" target="_blank" class="source-link">
+        <span class="source-icon">☁️</span>
+        <div class="source-info">
+          <div class="source-name">Azure Key Vault — Pricing</div>
+          <div class="source-desc">$0.03/10K operations · first 10K ops/mo free</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://azure.microsoft.com/pricing/details/container-registry/" target="_blank" class="source-link">
+        <span class="source-icon">☁️</span>
+        <div class="source-info">
+          <div class="source-name">Azure Container Registry — Pricing</div>
+          <div class="source-desc">Basic ~$5/mo · 10 GB storage included</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://azure.microsoft.com/pricing/details/bandwidth/" target="_blank" class="source-link">
+        <span class="source-icon">☁️</span>
+        <div class="source-info">
+          <div class="source-name">Azure Egress — Bandwidth Pricing</div>
+          <div class="source-desc">$0.087/GB first 10 TB/mo outbound to internet</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://azure.microsoft.com/pricing/details/dns/" target="_blank" class="source-link">
+        <span class="source-icon">☁️</span>
+        <div class="source-info">
+          <div class="source-name">Azure DNS — Pricing</div>
+          <div class="source-desc">$0.50/zone/mo + $0.40/million queries</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://azure.microsoft.com/pricing/details/defender-for-cloud/" target="_blank" class="source-link">
+        <span class="source-icon">☁️</span>
+        <div class="source-info">
+          <div class="source-name">Microsoft Defender for Cloud — Pricing</div>
+          <div class="source-desc">CSPM free · Defender for Containers optional runtime protection</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+      <a href="https://azure.microsoft.com/support/plans/" target="_blank" class="source-link">
+        <span class="source-icon">☁️</span>
+        <div class="source-info">
+          <div class="source-name">Azure Support Plans — Pricing</div>
+          <div class="source-desc">Developer $29/mo · Standard $100/mo · no per-% billing</div>
+        </div>
+        <span class="source-arrow">↗</span>
+      </a>
+    </div>
+  </div>
+
+  <div style="text-align:center; color: var(--text-dim); font-size: 12px; margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border);">
+    Compute estimates based on publicly available pricing as of June 2026 (re-verified June 2026). Security &amp; ops add-ons verified June 2026 against official provider pricing pages. Note: Better Stack discontinued $29/mo Starter plan in 2025; entry log tier updated to Nano bundle $35/mo (40GB, 30-day retention). Sentry Team: $29/mo monthly, $26/mo annual. AWS Business Support+ (replaced old Business Support Dec 2025). Azure variant added June 2026. Actual costs may vary by region and usage pattern. •
+    <a href="cost-simulator.html" style="color: var(--accent);">Open Interactive Simulator →</a> ·
+    <a href="platform-comparison.html" style="color: var(--accent);">Full Platform Deep-Dive →</a>
+  </div>
+
+</div>
+</body>
+</html>

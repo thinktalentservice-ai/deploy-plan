@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Serverless Deployment Platforms 2026</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #232635;
+      --border: #2e3148;
+      --text: #e2e8f0;
+      --muted: #8892a4;
+      --accent: #6366f1;
+      --accent2: #22d3ee;
+      --green: #10b981;
+      --yellow: #f59e0b;
+      --red: #ef4444;
+      --orange: #f97316;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* HERO */
+    .hero {
+      background: linear-gradient(135deg, #0f1117 0%, #1a1d27 40%, #0e1628 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 60px 24px 48px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(99,102,241,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(99,102,241,0.15);
+      border: 1px solid rgba(99,102,241,0.35);
+      border-radius: 100px;
+      padding: 4px 14px;
+      font-size: 12px;
+      color: #818cf8;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .hero h1 {
+      font-size: clamp(28px, 5vw, 52px);
+      font-weight: 800;
+      line-height: 1.15;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, #e2e8f0 0%, #818cf8 50%, #22d3ee 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      color: var(--muted);
+      font-size: 17px;
+      max-width: 600px;
+      margin: 0 auto 32px;
+    }
+    .stack-pills {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .pill {
+      padding: 6px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid;
+    }
+    .pill-next { background: rgba(0,0,0,0.5); border-color: #fff3; color: #fff; }
+    .pill-fastapi { background: rgba(5,150,105,0.15); border-color: rgba(16,185,129,0.4); color: #34d399; }
+    .pill-spring { background: rgba(34,197,94,0.12); border-color: rgba(34,197,94,0.35); color: #4ade80; }
+
+    /* NAV TABS */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      padding: 16px 24px 0;
+      max-width: 1300px;
+      margin: 0 auto;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab {
+      padding: 8px 18px;
+      border-radius: 8px 8px 0 0;
+      border: 1px solid transparent;
+      border-bottom: none;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+      color: var(--muted);
+      background: transparent;
+    }
+    .tab:hover { color: var(--text); background: var(--surface2); }
+    .tab.active {
+      color: var(--text);
+      background: var(--surface);
+      border-color: var(--border);
+    }
+
+    /* MAIN */
+    main {
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 0 24px 60px;
+    }
+
+    /* SECTION */
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0 12px 12px 12px;
+      padding: 32px;
+      margin-bottom: 32px;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 28px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-icon {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .section-header h2 { font-size: 20px; font-weight: 700; }
+    .section-header p { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+    /* CARDS GRID */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      transition: border-color 0.2s, transform 0.15s;
+    }
+    .card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+    .card-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      gap: 8px;
+    }
+    .card-name {
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .card-sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    .badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 5px;
+      border: 1px solid;
+    }
+    .badge-next { background: rgba(255,255,255,0.05); border-color: #ffffff30; color: #cbd5e1; }
+    .badge-fastapi { background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.3); color: #34d399; }
+    .badge-spring { background: rgba(74,222,128,0.1); border-color: rgba(74,222,128,0.3); color: #4ade80; }
+    .badge-free { background: rgba(16,185,129,0.12); border-color: rgba(16,185,129,0.35); color: #10b981; }
+    .badge-paid { background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.3); color: #f59e0b; }
+    .badge-enterprise { background: rgba(99,102,241,0.12); border-color: rgba(99,102,241,0.35); color: #818cf8; }
+    .badge-azure { background: rgba(0,120,212,0.12); border-color: rgba(0,120,212,0.35); color: #60a5fa; }
+
+    .card-desc {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 14px;
+      line-height: 1.5;
+    }
+    .card-details { border-top: 1px solid var(--border); padding-top: 12px; }
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      padding: 3px 0;
+    }
+    .detail-label { color: var(--muted); }
+    .detail-val { font-weight: 600; }
+    .val-green { color: var(--green); }
+    .val-yellow { color: var(--yellow); }
+    .val-red { color: var(--red); }
+    .val-blue { color: var(--accent2); }
+    .val-purple { color: #818cf8; }
+    .val-azure { color: #60a5fa; }
+
+    /* SUPPORT TABLE */
+    .support-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    .support-table th {
+      text-align: left;
+      padding: 10px 14px;
+      background: var(--surface2);
+      border-bottom: 2px solid var(--border);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+    }
+    .support-table th:first-child { border-radius: 8px 0 0 0; }
+    .support-table th:last-child { border-radius: 0 8px 0 0; }
+    .support-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .support-table tr:last-child td { border-bottom: none; }
+    .support-table tr:hover td { background: rgba(255,255,255,0.02); }
+    .platform-name { font-weight: 700; font-size: 14px; }
+    .platform-type { font-size: 11px; color: var(--muted); }
+    .chk { font-size: 16px; }
+    .chk-yes { color: var(--green); }
+    .chk-partial { color: var(--yellow); }
+    .chk-no { color: var(--red); }
+    .tier-free { color: var(--green); font-weight: 700; font-size: 12px; }
+    .tier-trial { color: var(--yellow); font-weight: 700; font-size: 12px; }
+    .tier-paid { color: var(--muted); font-size: 12px; }
+
+    /* PROS / CONS */
+    .pc-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      font-size: 13px;
+    }
+    .pc-block { border-radius: 8px; padding: 14px; }
+    .pc-pro { background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.2); }
+    .pc-con { background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.2); }
+    .pc-title { font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .pc-pro .pc-title { color: var(--green); }
+    .pc-con .pc-title { color: var(--red); }
+    .pc-list { list-style: none; }
+    .pc-list li { padding: 3px 0; color: var(--muted); }
+    .pc-list li::before { margin-right: 6px; }
+    .pc-pro .pc-list li::before { content: '✓'; color: var(--green); }
+    .pc-con .pc-list li::before { content: '✗'; color: var(--red); }
+
+    /* LEGEND */
+    .legend {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+
+    /* AZURE HIGHLIGHT ROW */
+    .azure-row td { background: rgba(0,120,212,0.04); }
+    .azure-row:hover td { background: rgba(0,120,212,0.08) !important; }
+
+    /* AZURE NAME ACCENTS */
+    .platform-name-azure { color: #60a5fa; }
+    .card-name-azure { color: #60a5fa; }
+    .col-azure { color: #60a5fa; }
+
+    /* AZURE CARD BORDER VARIANTS */
+    .card-azure { border-color: rgba(0,120,212,0.35); }
+    .card-azure-soft { border-color: rgba(0,120,212,0.25); }
+    .card-azure-strong { border-color: rgba(0,120,212,0.45); }
+
+    /* AZURE SECTION BORDER */
+    .section-azure { border-color: rgba(0,120,212,0.3); }
+
+    /* AZURE SECTION ICON */
+    .section-icon-azure { background: rgba(0,120,212,0.15); }
+
+    /* AZURE CLOUD GIANTS SECTION ICON */
+    .section-icon-cloud { background: rgba(245,158,11,0.15); font-size: 22px; }
+
+    /* AZURE COMPARISON PC-GRID SPACING */
+    .pc-grid-spaced { margin-bottom: 24px; }
+
+    /* FOOTER */
+    footer {
+      text-align: center;
+      padding: 32px 24px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 13px;
+    }
+    footer a { color: #818cf8; text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    @media (max-width: 640px) {
+      .section { padding: 20px 16px; }
+      .pc-grid { grid-template-columns: 1fr; }
+      .cards { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">&#9889; Updated June 2026</div>
+  <h1>Serverless Deployment Platforms</h1>
+  <p>Every platform that supports serverless deployment for modern full-stack apps — ranked, compared, and priced.</p>
+  <div class="stack-pills">
+    <span class="pill pill-next">&#9650; Next.js</span>
+    <span class="pill pill-fastapi">&#9889; FastAPI</span>
+    <span class="pill pill-spring">&#127807; Spring Boot</span>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active">All Platforms</div>
+  <div class="tab">Cloud Giants</div>
+  <div class="tab">PaaS / Indie</div>
+  <div class="tab">Edge / CDN</div>
+  <div class="tab">Support Matrix</div>
+</div>
+
+<main>
+
+  <!-- QUICK MATRIX -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background:rgba(99,102,241,0.15);">&#128202;</div>
+      <div>
+        <h2>Full Support Matrix</h2>
+        <p>All platforms &times; all three stacks &mdash; at a glance</p>
+      </div>
+    </div>
+    <div class="legend">
+      <span class="legend-item"><span class="chk chk-yes">&#10003;</span> Native/first-class</span>
+      <span class="legend-item"><span class="chk chk-partial">~</span> Partial/workaround</span>
+      <span class="legend-item"><span class="chk chk-no">&#10007;</span> Not supported</span>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="support-table">
+        <thead>
+          <tr>
+            <th>Platform</th>
+            <th>Category</th>
+            <th>&#9650; Next.js</th>
+            <th>&#9889; FastAPI</th>
+            <th>&#127807; Spring Boot</th>
+            <th>Free Tier</th>
+            <th>Starting Price</th>
+            <th>Cold Start</th>
+            <th>Scale-to-Zero</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- CLOUD GIANTS -->
+          <tr>
+            <td><div class="platform-name">AWS Lambda + Amplify</div><div class="platform-type">cloud.amazon.com</div></td>
+            <td>Cloud Giant</td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="chk chk-partial">~</span></td>
+            <td><span class="tier-free">1M req/mo free</span></td>
+            <td class="detail-val val-green">Free tier</td>
+            <td class="detail-val val-yellow">~100&ndash;500ms</td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+          </tr>
+          <tr>
+            <td><div class="platform-name">Google Cloud Run</div><div class="platform-type">cloud.google.com</div></td>
+            <td>Cloud Giant</td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="tier-free">2M req/mo free</span></td>
+            <td class="detail-val val-green">~$0/mo</td>
+            <td class="detail-val val-green">~50&ndash;200ms</td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+          </tr>
+          <!-- AZURE ROW -->
+          <tr class="azure-row">
+            <td><div class="platform-name platform-name-azure">Azure Container Apps</div><div class="platform-type">azure.microsoft.com</div></td>
+            <td>Cloud Giant</td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="tier-free">180k vCPU-s + 2M req free</span></td>
+            <td class="detail-val val-green">Free tier</td>
+            <td class="detail-val val-yellow">~500ms&ndash;1s</td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+          </tr>
+          <tr class="azure-row">
+            <td><div class="platform-name platform-name-azure">Azure Functions</div><div class="platform-type">azure.microsoft.com</div></td>
+            <td>Cloud Giant</td>
+            <td><span class="chk chk-partial">~</span></td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="chk chk-partial">~</span></td>
+            <td><span class="tier-free">1M req/mo free</span></td>
+            <td class="detail-val val-green">Free tier</td>
+            <td class="detail-val val-yellow">~200&ndash;800ms</td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+          </tr>
+          <tr class="azure-row">
+            <td><div class="platform-name platform-name-azure">Azure Static Web Apps</div><div class="platform-type">azure.microsoft.com</div></td>
+            <td>Cloud Giant</td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="chk chk-no">&#10007;</span></td>
+            <td><span class="chk chk-no">&#10007;</span></td>
+            <td><span class="tier-free">100GB BW + custom domains</span></td>
+            <td class="detail-val val-green">Free</td>
+            <td class="detail-val val-green">~0ms (static)</td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+          </tr>
+          <tr>
+            <td><div class="platform-name">AWS App Runner</div><div class="platform-type">cloud.amazon.com</div></td>
+            <td>Cloud Giant</td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="tier-trial">No free tier</span></td>
+            <td class="detail-val val-yellow">~$5/mo</td>
+            <td class="detail-val val-green">Near zero</td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+          </tr>
+          <tr>
+            <td><div class="platform-name">GCP Cloud Functions v2</div><div class="platform-type">cloud.google.com</div></td>
+            <td>Cloud Giant</td>
+            <td><span class="chk chk-partial">~</span></td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="chk chk-partial">~</span></td>
+            <td><span class="tier-free">2M calls/mo free</span></td>
+            <td class="detail-val val-green">~$0/mo</td>
+            <td class="detail-val val-yellow">~200ms</td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+          </tr>
+          <!-- PAAS -->
+          <tr>
+            <td><div class="platform-name">Vercel</div><div class="platform-type">vercel.com</div></td>
+            <td>PaaS / Edge</td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="chk chk-partial">~</span></td>
+            <td><span class="chk chk-no">&#10007;</span></td>
+            <td><span class="tier-free">Hobby free (personal only)</span></td>
+            <td class="detail-val val-green">Free</td>
+            <td class="detail-val val-green">~50ms</td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+          </tr>
+          <tr>
+            <td><div class="platform-name">Railway</div><div class="platform-type">railway.app</div></td>
+            <td>PaaS</td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="tier-trial">$5 trial credit</span></td>
+            <td class="detail-val val-yellow">$5/mo</td>
+            <td class="detail-val val-green">~100ms</td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+          </tr>
+          <tr>
+            <td><div class="platform-name">Render</div><div class="platform-type">render.com</div></td>
+            <td>PaaS</td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="tier-free">Free (sleeps)</span></td>
+            <td class="detail-val val-green">Free</td>
+            <td class="detail-val val-yellow">~500ms wake</td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+          </tr>
+          <tr>
+            <td><div class="platform-name">Fly.io</div><div class="platform-type">fly.io</div></td>
+            <td>PaaS</td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="tier-trial">2hr trial only</span></td>
+            <td class="detail-val val-yellow">~$3/mo</td>
+            <td class="detail-val val-green">~100ms</td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+          </tr>
+          <tr>
+            <td><div class="platform-name">Koyeb</div><div class="platform-type">koyeb.com</div></td>
+            <td>PaaS</td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="tier-free">1 free service</span></td>
+            <td class="detail-val val-green">Free</td>
+            <td class="detail-val val-green">~100ms</td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+          </tr>
+          <tr>
+            <td><div class="platform-name">Netlify</div><div class="platform-type">netlify.com</div></td>
+            <td>PaaS / Edge</td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="chk chk-partial">~</span></td>
+            <td><span class="chk chk-no">&#10007;</span></td>
+            <td><span class="tier-free">Free tier</span></td>
+            <td class="detail-val val-green">Free</td>
+            <td class="detail-val val-green">~100ms</td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+          </tr>
+          <!-- EDGE -->
+          <tr>
+            <td><div class="platform-name">Cloudflare Workers</div><div class="platform-type">cloudflare.com</div></td>
+            <td>Edge</td>
+            <td><span class="chk chk-partial">~</span></td>
+            <td><span class="chk chk-partial">~</span></td>
+            <td><span class="chk chk-no">&#10007;</span></td>
+            <td><span class="tier-free">100k req/day free</span></td>
+            <td class="detail-val val-yellow">$5/mo (10M req)</td>
+            <td class="detail-val val-green">~0ms</td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+          </tr>
+          <tr>
+            <td><div class="platform-name">Cloudflare Pages</div><div class="platform-type">cloudflare.com</div></td>
+            <td>Edge</td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="chk chk-no">&#10007;</span></td>
+            <td><span class="chk chk-no">&#10007;</span></td>
+            <td><span class="tier-free">Unlimited deploys</span></td>
+            <td class="detail-val val-green">Free</td>
+            <td class="detail-val val-green">~0ms</td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+          </tr>
+          <!-- OTHERS -->
+          <tr>
+            <td><div class="platform-name">DigitalOcean App Platform</div><div class="platform-type">digitalocean.com</div></td>
+            <td>PaaS</td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="tier-trial">$200 credit</span></td>
+            <td class="detail-val val-yellow">$5/mo</td>
+            <td class="detail-val val-yellow">~200ms</td>
+            <td><span class="chk chk-partial">~</span></td>
+          </tr>
+          <tr>
+            <td><div class="platform-name">Heroku</div><div class="platform-type">heroku.com</div></td>
+            <td>PaaS</td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="tier-paid">No free tier</span></td>
+            <td class="detail-val val-yellow">$7/mo</td>
+            <td class="detail-val val-yellow">~300ms</td>
+            <td><span class="chk chk-partial">~</span></td>
+          </tr>
+          <tr>
+            <td><div class="platform-name">Serverless Framework</div><div class="platform-type">serverless.com</div></td>
+            <td>Orchestration</td>
+            <td><span class="chk chk-partial">~</span></td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+            <td><span class="tier-free">Free CLI</span></td>
+            <td class="detail-val val-green">Free (OSS)</td>
+            <td class="detail-val val-yellow">Depends on cloud</td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+          </tr>
+          <tr>
+            <td><div class="platform-name">Supabase Edge Functions</div><div class="platform-type">supabase.com</div></td>
+            <td>BaaS</td>
+            <td><span class="chk chk-no">&#10007;</span></td>
+            <td><span class="chk chk-partial">~</span></td>
+            <td><span class="chk chk-no">&#10007;</span></td>
+            <td><span class="tier-free">500k free/mo</span></td>
+            <td class="detail-val val-green">Free</td>
+            <td class="detail-val val-green">~50ms</td>
+            <td><span class="chk chk-yes">&#10003;</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CLOUD GIANTS -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon section-icon-cloud">&#9729;&#65039;</div>
+      <div>
+        <h2>Cloud Giants</h2>
+        <p>AWS, Google Cloud, Azure &mdash; enterprise-grade, highest flexibility</p>
+      </div>
+    </div>
+    <div class="cards">
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-name">AWS Lambda + Amplify</div>
+            <div class="card-sub">Amazon Web Services</div>
+          </div>
+        </div>
+        <div class="badges">
+          <span class="badge badge-next">Next.js &#10003;</span>
+          <span class="badge badge-fastapi">FastAPI &#10003;</span>
+          <span class="badge badge-spring">Spring ~</span>
+          <span class="badge badge-free">Free Tier</span>
+        </div>
+        <div class="card-desc">Lambda runs code without servers. Amplify handles Next.js SSR. FastAPI deploys via Mangum adapter. Spring Boot works but suffers JVM cold starts (~2&ndash;4s) &mdash; use GraalVM native image or SnapStart (Java 21+, Python, Node GA 2025) to fix. Max timeout: 15 minutes.</div>
+        <div class="card-details">
+          <div class="detail-row"><span class="detail-label">Free tier</span><span class="detail-val val-green">1M req/mo + 400k GB-s compute</span></div>
+          <div class="detail-row"><span class="detail-label">Paid</span><span class="detail-val">$0.20 / 1M req</span></div>
+          <div class="detail-row"><span class="detail-label">Max execution</span><span class="detail-val">15 min</span></div>
+          <div class="detail-row"><span class="detail-label">SnapStart (2025 GA)</span><span class="detail-val val-green">Java 21+, Python, Node</span></div>
+          <div class="detail-row"><span class="detail-label">Cold start (Java)</span><span class="detail-val val-red">~2&ndash;4s (JVM), ~100ms SnapStart</span></div>
+          <div class="detail-row"><span class="detail-label">Best for</span><span class="detail-val val-blue">Event-driven, existing AWS</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-name">Google Cloud Run</div>
+            <div class="card-sub">Google Cloud Platform</div>
+          </div>
+        </div>
+        <div class="badges">
+          <span class="badge badge-next">Next.js &#10003;</span>
+          <span class="badge badge-fastapi">FastAPI &#10003;</span>
+          <span class="badge badge-spring">Spring &#10003;</span>
+          <span class="badge badge-free">Free Tier</span>
+        </div>
+        <div class="card-desc">Container-native serverless &mdash; runs any Docker image. Best platform for Spring Boot serverless due to container model. FastAPI runs natively. Next.js works with any node container. GPU support GA 2025; 2nd gen execution environment available.</div>
+        <div class="card-details">
+          <div class="detail-row"><span class="detail-label">Free tier</span><span class="detail-val val-green">2M req/mo + 360k GB-s</span></div>
+          <div class="detail-row"><span class="detail-label">Paid</span><span class="detail-val">$0.40/M req + vCPU/RAM</span></div>
+          <div class="detail-row"><span class="detail-label">Cold start</span><span class="detail-val val-green">~50&ndash;200ms (container)</span></div>
+          <div class="detail-row"><span class="detail-label">GPU support</span><span class="detail-val val-green">GA 2025 (T4/L4/A100)</span></div>
+          <div class="detail-row"><span class="detail-label">Min instances</span><span class="detail-val">0 (scale-to-zero)</span></div>
+          <div class="detail-row"><span class="detail-label">Best for</span><span class="detail-val val-blue">Spring Boot + Docker apps</span></div>
+        </div>
+      </div>
+
+      <!-- AZURE CONTAINER APPS CARD -->
+      <div class="card card-azure">
+        <div class="card-head">
+          <div>
+            <div class="card-name card-name-azure">Azure Container Apps</div>
+            <div class="card-sub">Microsoft Azure &mdash; Consumption Plan</div>
+          </div>
+        </div>
+        <div class="badges">
+          <span class="badge badge-next">Next.js &#10003;</span>
+          <span class="badge badge-fastapi">FastAPI &#10003;</span>
+          <span class="badge badge-spring">Spring &#10003;</span>
+          <span class="badge badge-free">Free Tier</span>
+          <span class="badge badge-azure">KEDA</span>
+        </div>
+        <div class="card-desc">Kubernetes-backed container platform with KEDA event-driven autoscaling. Scale-to-zero on Consumption Plan. Supports up to 300 replicas per app. 30+ regions including East US, West EU, Southeast Asia. Built-in HTTP/HTTPS ingress, custom domains, and auto-managed TLS certificates.</div>
+        <div class="card-details">
+          <div class="detail-row"><span class="detail-label">Free (monthly)</span><span class="detail-val val-green">180k vCPU-s + 360k GiB-s + 2M req</span></div>
+          <div class="detail-row"><span class="detail-label">vCPU pricing</span><span class="detail-val">$0.000024/sec</span></div>
+          <div class="detail-row"><span class="detail-label">Memory pricing</span><span class="detail-val">$0.000003/GiB-sec</span></div>
+          <div class="detail-row"><span class="detail-label">Cold start</span><span class="detail-val val-yellow">~500ms&ndash;1s</span></div>
+          <div class="detail-row"><span class="detail-label">Max replicas</span><span class="detail-val">300 per app</span></div>
+          <div class="detail-row"><span class="detail-label">Scale-to-zero</span><span class="detail-val val-green">Yes (KEDA-based)</span></div>
+          <div class="detail-row"><span class="detail-label">Regions</span><span class="detail-val val-green">30+ worldwide</span></div>
+          <div class="detail-row"><span class="detail-label">Best for</span><span class="detail-val val-azure">Enterprise, .NET + Java shops</span></div>
+        </div>
+      </div>
+
+      <!-- AZURE FUNCTIONS CARD -->
+      <div class="card card-azure">
+        <div class="card-head">
+          <div>
+            <div class="card-name card-name-azure">Azure Functions</div>
+            <div class="card-sub">Microsoft Azure &mdash; Consumption Plan</div>
+          </div>
+        </div>
+        <div class="badges">
+          <span class="badge badge-fastapi">FastAPI &#10003;</span>
+          <span class="badge badge-spring">Spring ~</span>
+          <span class="badge badge-free">1M req/mo free</span>
+          <span class="badge badge-azure">Durable</span>
+        </div>
+        <div class="card-desc">Event-driven FaaS with Durable Functions for orchestration workflows. Python (FastAPI), Node.js, .NET, Java supported. Consumption Plan: pay per execution. Premium Plan: pre-warmed instances, unlimited timeout, VNet integration.</div>
+        <div class="card-details">
+          <div class="detail-row"><span class="detail-label">Free tier</span><span class="detail-val val-green">1M executions/mo + 400k GB-s/mo</span></div>
+          <div class="detail-row"><span class="detail-label">Paid executions</span><span class="detail-val">$0.20 / 1M executions</span></div>
+          <div class="detail-row"><span class="detail-label">Paid compute</span><span class="detail-val">$0.000016/GB-sec</span></div>
+          <div class="detail-row"><span class="detail-label">Max timeout (Consumption)</span><span class="detail-val">10 minutes</span></div>
+          <div class="detail-row"><span class="detail-label">Max timeout (Premium)</span><span class="detail-val val-green">Unlimited</span></div>
+          <div class="detail-row"><span class="detail-label">Durable Functions</span><span class="detail-val val-green">Yes (orchestration)</span></div>
+          <div class="detail-row"><span class="detail-label">Best for</span><span class="detail-val val-azure">Python/Node event-driven, workflows</span></div>
+        </div>
+      </div>
+
+      <!-- AZURE STATIC WEB APPS CARD -->
+      <div class="card card-azure">
+        <div class="card-head">
+          <div>
+            <div class="card-name card-name-azure">Azure Static Web Apps</div>
+            <div class="card-sub">Microsoft Azure</div>
+          </div>
+        </div>
+        <div class="badges">
+          <span class="badge badge-next">Next.js &#10003;</span>
+          <span class="badge badge-free">Free Tier</span>
+          <span class="badge badge-azure">CI/CD</span>
+        </div>
+        <div class="card-desc">Global static hosting with integrated Azure Functions backend. Built-in GitHub Actions and Azure DevOps CI/CD pipelines. Free tier includes custom domains and auto-TLS. Standard plan adds SLA, private endpoints, and managed function apps.</div>
+        <div class="card-details">
+          <div class="detail-row"><span class="detail-label">Free tier</span><span class="detail-val val-green">100GB BW + 0.5GB storage + TLS</span></div>
+          <div class="detail-row"><span class="detail-label">Standard plan</span><span class="detail-val">$9/mo</span></div>
+          <div class="detail-row"><span class="detail-label">Standard includes</span><span class="detail-val">SLA + private endpoints</span></div>
+          <div class="detail-row"><span class="detail-label">CI/CD</span><span class="detail-val val-green">GitHub / Azure DevOps built-in</span></div>
+          <div class="detail-row"><span class="detail-label">Custom domains</span><span class="detail-val val-green">Yes (free tier)</span></div>
+          <div class="detail-row"><span class="detail-label">Best for</span><span class="detail-val val-azure">Next.js + Jamstack on Azure</span></div>
+        </div>
+      </div>
+
+      <!-- AZURE FRONT DOOR CARD -->
+      <div class="card card-azure">
+        <div class="card-head">
+          <div>
+            <div class="card-name card-name-azure">Azure Front Door Standard</div>
+            <div class="card-sub">Microsoft Azure &mdash; CDN / Global Proxy</div>
+          </div>
+        </div>
+        <div class="badges">
+          <span class="badge badge-azure">118+ PoPs</span>
+          <span class="badge badge-azure">WAF</span>
+          <span class="badge badge-azure">DDoS L3/L4</span>
+        </div>
+        <div class="card-desc">Global CDN and reverse proxy with 118+ Points of Presence. Includes WAF, DDoS L3/L4 protection, SSL offloading, URL rewrite, and caching. Comparable to Cloudflare's global network but at a higher base price. Best used as front-end to Azure Container Apps or Functions.</div>
+        <div class="card-details">
+          <div class="detail-row"><span class="detail-label">Base price</span><span class="detail-val val-yellow">$35/mo</span></div>
+          <div class="detail-row"><span class="detail-label">Transfer</span><span class="detail-val">$0.008/GB outbound</span></div>
+          <div class="detail-row"><span class="detail-label">Global PoPs</span><span class="detail-val val-green">118+</span></div>
+          <div class="detail-row"><span class="detail-label">WAF</span><span class="detail-val">$5/policy + $1/rule/mo</span></div>
+          <div class="detail-row"><span class="detail-label">DDoS</span><span class="detail-val val-green">L3/L4 included</span></div>
+          <div class="detail-row"><span class="detail-label">vs CF Workers</span><span class="detail-val val-red">3x pricier base ($5 vs $35)</span></div>
+          <div class="detail-row"><span class="detail-label">Best for</span><span class="detail-val val-azure">Azure-native global delivery</span></div>
+        </div>
+      </div>
+
+      <!-- AZURE API MANAGEMENT CARD -->
+      <div class="card card-azure-soft">
+        <div class="card-head">
+          <div>
+            <div class="card-name card-name-azure">Azure API Management</div>
+            <div class="card-sub">Microsoft Azure &mdash; Consumption Tier</div>
+          </div>
+        </div>
+        <div class="badges">
+          <span class="badge badge-azure">API Gateway</span>
+          <span class="badge badge-free">1M calls free</span>
+        </div>
+        <div class="card-desc">Managed API gateway for routing, throttling, auth, and analytics across Azure Functions or Container Apps backends. Consumption tier scales to zero. Good for exposing microservices through a unified API surface.</div>
+        <div class="card-details">
+          <div class="detail-row"><span class="detail-label">Free tier</span><span class="detail-val val-green">1M calls/mo</span></div>
+          <div class="detail-row"><span class="detail-label">Paid</span><span class="detail-val">$0.0035 / 1k calls</span></div>
+          <div class="detail-row"><span class="detail-label">Scale-to-zero</span><span class="detail-val val-green">Yes (Consumption)</span></div>
+          <div class="detail-row"><span class="detail-label">Best for</span><span class="detail-val val-azure">API gateway pattern, throttling</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-name">GCP Cloud Functions v2</div>
+            <div class="card-sub">Google Cloud Platform</div>
+          </div>
+        </div>
+        <div class="badges">
+          <span class="badge badge-fastapi">FastAPI &#10003;</span>
+          <span class="badge badge-free">Free Tier</span>
+        </div>
+        <div class="card-desc">Event-driven FaaS. FastAPI wraps with functions-framework. Next.js/Spring Boot better served by Cloud Run. Good for Python microservices and event-triggered workloads.</div>
+        <div class="card-details">
+          <div class="detail-row"><span class="detail-label">Free tier</span><span class="detail-val val-green">2M invocations/mo</span></div>
+          <div class="detail-row"><span class="detail-label">Paid</span><span class="detail-val">$0.40/M invocations</span></div>
+          <div class="detail-row"><span class="detail-label">Max timeout</span><span class="detail-val">60 min</span></div>
+          <div class="detail-row"><span class="detail-label">Best for</span><span class="detail-val val-blue">Python event-driven APIs</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- AZURE PROS/CONS SECTION -->
+  <div class="section section-azure">
+    <div class="section-header">
+      <div class="section-icon section-icon-azure">&#9729;</div>
+      <div>
+        <h2>Azure vs Competitors &mdash; Single-Domain Deployment</h2>
+        <p>How Azure stacks up for serverless single-domain deployments (June 2026)</p>
+      </div>
+    </div>
+
+    <div class="pc-grid pc-grid-spaced">
+      <div class="pc-block pc-pro">
+        <div class="pc-title">&#10003; Azure Advantages</div>
+        <ul class="pc-list">
+          <li>Enterprise compliance out-of-box: HIPAA, FedRAMP, SOC2, ISO27001</li>
+          <li>Managed Identity &mdash; no credential management or secret rotation</li>
+          <li>Strong .NET/C# and Java ecosystem first-class support</li>
+          <li>Hybrid cloud via Azure Arc (on-prem + cloud unified)</li>
+          <li>Durable Functions for complex orchestration workflows</li>
+          <li>Free tier: 180k vCPU-s + 360k GiB-s + 2M req/mo (Container Apps)</li>
+          <li>Egress $0.087/GB (cheaper than GCP $0.12, cheaper than AWS $0.09)</li>
+          <li>KEDA-based autoscaling &mdash; scale on any event source (queues, HTTP, etc.)</li>
+        </ul>
+      </div>
+      <div class="pc-block pc-con">
+        <div class="pc-title">&#10007; Azure Disadvantages</div>
+        <ul class="pc-list">
+          <li>Front Door $35/mo base is expensive vs Cloudflare Workers at $5/mo</li>
+          <li>More complex setup than GCP Cloud Run or Cloudflare for pure serverless</li>
+          <li>Cold starts ~500ms&ndash;1s on Container Apps (vs GCP ~50&ndash;200ms)</li>
+          <li>Portal UX more complex than Railway, Render, or Vercel</li>
+          <li>Azure API Management adds cost for API gateway pattern</li>
+          <li>Spring Boot JVM cold start still applies without GraalVM native</li>
+        </ul>
+      </div>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table class="support-table">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th class="col-azure">Azure</th>
+            <th>AWS</th>
+            <th>GCP</th>
+            <th>Cloudflare</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Free compute/mo</strong></td>
+            <td class="val-azure">180k vCPU-s + 2M req</td>
+            <td>1M req + 400k GB-s</td>
+            <td>2M req + 360k GB-s</td>
+            <td>100k req/day</td>
+          </tr>
+          <tr>
+            <td><strong>Cold start</strong></td>
+            <td class="val-yellow">~500ms&ndash;1s</td>
+            <td class="val-yellow">~100&ndash;500ms</td>
+            <td class="val-green">~50&ndash;200ms</td>
+            <td class="val-green">~0ms</td>
+          </tr>
+          <tr>
+            <td><strong>CDN/Proxy base</strong></td>
+            <td class="val-red">$35/mo (Front Door)</td>
+            <td class="val-yellow">$0 + usage (CF)</td>
+            <td class="val-green">$0 + usage</td>
+            <td class="val-green">$5/mo (10M req)</td>
+          </tr>
+          <tr>
+            <td><strong>Egress pricing</strong></td>
+            <td class="val-green">$0.087/GB</td>
+            <td class="val-yellow">$0.09/GB</td>
+            <td class="val-red">$0.12/GB</td>
+            <td class="val-green">$0/GB (free)</td>
+          </tr>
+          <tr>
+            <td><strong>Enterprise compliance</strong></td>
+            <td class="val-green">HIPAA, FedRAMP, SOC2, ISO</td>
+            <td class="val-green">HIPAA, FedRAMP, SOC2</td>
+            <td class="val-green">HIPAA, SOC2, ISO</td>
+            <td class="val-yellow">SOC2, ISO</td>
+          </tr>
+          <tr>
+            <td><strong>Credential-free auth</strong></td>
+            <td class="val-green">Managed Identity</td>
+            <td class="val-green">IAM Roles</td>
+            <td class="val-green">Workload Identity</td>
+            <td class="val-red">API tokens only</td>
+          </tr>
+          <tr>
+            <td><strong>Spring Boot support</strong></td>
+            <td class="val-green">First-class (Container Apps)</td>
+            <td class="val-yellow">Lambda (SnapStart)</td>
+            <td class="val-green">First-class (Cloud Run)</td>
+            <td class="val-red">Not supported</td>
+          </tr>
+          <tr>
+            <td><strong>Hybrid cloud</strong></td>
+            <td class="val-green">Azure Arc</td>
+            <td class="val-yellow">Outposts</td>
+            <td class="val-yellow">Anthos</td>
+            <td class="val-red">No</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PAAS -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background:rgba(99,102,241,0.15);">&#128640;</div>
+      <div>
+        <h2>PaaS Platforms</h2>
+        <p>Developer-friendly, git-push deploy, minimal config</p>
+      </div>
+    </div>
+    <div class="cards">
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-name">Vercel</div>
+            <div class="card-sub">vercel.com</div>
+          </div>
+        </div>
+        <div class="badges">
+          <span class="badge badge-next">Next.js &#10003;&#10003;</span>
+          <span class="badge badge-fastapi">FastAPI ~</span>
+          <span class="badge badge-free">Free Hobby</span>
+        </div>
+        <div class="card-desc">Built by the Next.js team &mdash; native SSR/ISR/edge support. FastAPI can run as serverless functions via Python runtime. Spring Boot NOT supported (JVM too heavy). Best-in-class DX for Next.js. Note: Hobby plan banned for commercial use Dec 2024 &mdash; use Pro for any commercial project.</div>
+        <div class="card-details">
+          <div class="detail-row"><span class="detail-label">Free tier</span><span class="detail-val val-green">100GB BW + 100k fn invocations/mo</span></div>
+          <div class="detail-row"><span class="detail-label">Pro</span><span class="detail-val">$20/seat/mo</span></div>
+          <div class="detail-row"><span class="detail-label">Hobby</span><span class="detail-val val-red">Personal only (commercial ban Dec 2024)</span></div>
+          <div class="detail-row"><span class="detail-label">Cold start</span><span class="detail-val val-green">~50&ndash;150ms (edge: ~0ms)</span></div>
+          <div class="detail-row"><span class="detail-label">Edge runtime</span><span class="detail-val val-green">Yes (V8 isolates)</span></div>
+          <div class="detail-row"><span class="detail-label">Best for</span><span class="detail-val val-blue">Next.js &mdash; nothing beats it</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-name">Railway</div>
+            <div class="card-sub">railway.app</div>
+          </div>
+        </div>
+        <div class="badges">
+          <span class="badge badge-next">Next.js &#10003;</span>
+          <span class="badge badge-fastapi">FastAPI &#10003;</span>
+          <span class="badge badge-spring">Spring &#10003;</span>
+          <span class="badge badge-paid">$5/mo</span>
+        </div>
+        <div class="card-desc">Multi-service deployments from one repo. Runs all three stacks natively via Docker/Nixpacks. No free tier (only $5 credit trial). Simple YAML config, built-in databases, great for full-stack. Volume plans available for predictable costs.</div>
+        <div class="card-details">
+          <div class="detail-row"><span class="detail-label">Trial</span><span class="detail-val val-yellow">$5 one-time credit</span></div>
+          <div class="detail-row"><span class="detail-label">Hobby</span><span class="detail-val">$5/mo + usage</span></div>
+          <div class="detail-row"><span class="detail-label">Egress</span><span class="detail-val val-green">$0.05/GB (reduced 2025)</span></div>
+          <div class="detail-row"><span class="detail-label">Volume plans</span><span class="detail-val val-green">Available</span></div>
+          <div class="detail-row"><span class="detail-label">Scale-to-zero</span><span class="detail-val val-green">Yes</span></div>
+          <div class="detail-row"><span class="detail-label">Best for</span><span class="detail-val val-blue">Full-stack multi-service apps</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-name">Render</div>
+            <div class="card-sub">render.com</div>
+          </div>
+        </div>
+        <div class="badges">
+          <span class="badge badge-next">Next.js &#10003;</span>
+          <span class="badge badge-fastapi">FastAPI &#10003;</span>
+          <span class="badge badge-spring">Spring &#10003;</span>
+          <span class="badge badge-free">Free (sleeps)</span>
+        </div>
+        <div class="card-desc">No credit card required. Free tier sleeps after 15min inactivity (~500ms cold wake). Always-on starts at $7/mo. Native Docker support for all three stacks. Great Postgres integration.</div>
+        <div class="card-details">
+          <div class="detail-row"><span class="detail-label">Free tier</span><span class="detail-val val-green">Yes &mdash; no card required</span></div>
+          <div class="detail-row"><span class="detail-label">Always-on</span><span class="detail-val">$7/mo/service</span></div>
+          <div class="detail-row"><span class="detail-label">Cold wake</span><span class="detail-val val-yellow">~500ms (free tier)</span></div>
+          <div class="detail-row"><span class="detail-label">Best for</span><span class="detail-val val-blue">Solo devs, side projects</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-name">Fly.io</div>
+            <div class="card-sub">fly.io</div>
+          </div>
+        </div>
+        <div class="badges">
+          <span class="badge badge-next">Next.js &#10003;</span>
+          <span class="badge badge-fastapi">FastAPI &#10003;</span>
+          <span class="badge badge-spring">Spring &#10003;</span>
+          <span class="badge badge-paid">~$3/mo</span>
+        </div>
+        <div class="card-desc">Global Anycast network, runs Docker containers close to users. Free tier eliminated in 2025 (2hr trial only). Best latency for multi-region. Machines API enables fine-grained control.</div>
+        <div class="card-details">
+          <div class="detail-row"><span class="detail-label">Trial</span><span class="detail-val val-yellow">2-hour trial only</span></div>
+          <div class="detail-row"><span class="detail-label">Paid</span><span class="detail-val">~$3&ndash;5/mo (shared CPU)</span></div>
+          <div class="detail-row"><span class="detail-label">Regions</span><span class="detail-val val-green">30+ worldwide</span></div>
+          <div class="detail-row"><span class="detail-label">Best for</span><span class="detail-val val-blue">Low-latency global deploy</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-name">Koyeb</div>
+            <div class="card-sub">koyeb.com</div>
+          </div>
+        </div>
+        <div class="badges">
+          <span class="badge badge-next">Next.js &#10003;</span>
+          <span class="badge badge-fastapi">FastAPI &#10003;</span>
+          <span class="badge badge-spring">Spring &#10003;</span>
+          <span class="badge badge-free">1 Free Service</span>
+        </div>
+        <div class="card-desc">Underrated platform with a genuine always-on free tier (1 web service + 1 Postgres). Scale-to-zero, global edge, Docker support. Good pick for FastAPI + Spring Boot with free tier.</div>
+        <div class="card-details">
+          <div class="detail-row"><span class="detail-label">Free tier</span><span class="detail-val val-green">1 svc (512MB) + 1 Postgres</span></div>
+          <div class="detail-row"><span class="detail-label">Paid</span><span class="detail-val">~$3.59/mo (nano)</span></div>
+          <div class="detail-row"><span class="detail-label">Cold start</span><span class="detail-val val-green">~100ms</span></div>
+          <div class="detail-row"><span class="detail-label">Best for</span><span class="detail-val val-blue">Free tier + full-stack</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-name">DigitalOcean App Platform</div>
+            <div class="card-sub">digitalocean.com</div>
+          </div>
+        </div>
+        <div class="badges">
+          <span class="badge badge-next">Next.js &#10003;</span>
+          <span class="badge badge-fastapi">FastAPI &#10003;</span>
+          <span class="badge badge-spring">Spring &#10003;</span>
+          <span class="badge badge-paid">$5/mo</span>
+        </div>
+        <div class="card-desc">Predictable pricing, simple UI. $200 trial credit for new accounts. Supports Docker containers for all stacks. Static sites free forever. Good for teams moving off Heroku.</div>
+        <div class="card-details">
+          <div class="detail-row"><span class="detail-label">Trial</span><span class="detail-val val-green">$200 credit (60 days)</span></div>
+          <div class="detail-row"><span class="detail-label">Basic</span><span class="detail-val">$5/mo</span></div>
+          <div class="detail-row"><span class="detail-label">Scale-to-zero</span><span class="detail-val val-yellow">Limited</span></div>
+          <div class="detail-row"><span class="detail-label">Best for</span><span class="detail-val val-blue">Predictable budget teams</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-name">Heroku</div>
+            <div class="card-sub">heroku.com (Salesforce)</div>
+          </div>
+        </div>
+        <div class="badges">
+          <span class="badge badge-next">Next.js &#10003;</span>
+          <span class="badge badge-fastapi">FastAPI &#10003;</span>
+          <span class="badge badge-spring">Spring &#10003;</span>
+          <span class="badge badge-paid">$7/mo</span>
+        </div>
+        <div class="card-desc">The OG PaaS. Free tier gone (2022). Buildpacks for Node/Python/Java. Spring Boot dyno support is mature. Costly at scale. Still solid for teams with existing Heroku workflows.</div>
+        <div class="card-details">
+          <div class="detail-row"><span class="detail-label">Free tier</span><span class="detail-val val-red">None</span></div>
+          <div class="detail-row"><span class="detail-label">Basic</span><span class="detail-val">$7/mo/dyno</span></div>
+          <div class="detail-row"><span class="detail-label">Best for</span><span class="detail-val val-blue">Legacy apps, Salesforce orgs</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- EDGE / CDN -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background:rgba(34,211,238,0.12);">&#9889;</div>
+      <div>
+        <h2>Edge / CDN Platforms</h2>
+        <p>Sub-millisecond global execution &mdash; V8 isolates, not containers</p>
+      </div>
+    </div>
+    <div class="cards">
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-name">Cloudflare Workers</div>
+            <div class="card-sub">cloudflare.com</div>
+          </div>
+        </div>
+        <div class="badges">
+          <span class="badge badge-next">Next.js ~</span>
+          <span class="badge badge-fastapi">FastAPI ~</span>
+          <span class="badge badge-free">100k req/day free</span>
+        </div>
+        <div class="card-desc">V8 isolates &mdash; 0ms cold starts, 300+ edge locations. JS/WASM only natively. Python (FastAPI) via Pyodide beta. Spring Boot incompatible (JVM). OpenNext adapter needed for Next.js. Workers AI GA 2025 for on-edge inference.</div>
+        <div class="card-details">
+          <div class="detail-row"><span class="detail-label">Free</span><span class="detail-val val-green">100k req/day</span></div>
+          <div class="detail-row"><span class="detail-label">Paid</span><span class="detail-val val-yellow">$5/mo (10M req included)</span></div>
+          <div class="detail-row"><span class="detail-label">Overage</span><span class="detail-val">$0.30 / 1M req</span></div>
+          <div class="detail-row"><span class="detail-label">Cold start</span><span class="detail-val val-green">~0ms</span></div>
+          <div class="detail-row"><span class="detail-label">Workers AI</span><span class="detail-val val-green">GA 2025</span></div>
+          <div class="detail-row"><span class="detail-label">CPU limit</span><span class="detail-val val-yellow">10ms&ndash;30s (varies)</span></div>
+          <div class="detail-row"><span class="detail-label">Best for</span><span class="detail-val val-blue">Ultra-low latency, global JS</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-name">Cloudflare Pages</div>
+            <div class="card-sub">cloudflare.com</div>
+          </div>
+        </div>
+        <div class="badges">
+          <span class="badge badge-next">Next.js &#10003;</span>
+          <span class="badge badge-free">Unlimited deploys free</span>
+        </div>
+        <div class="card-desc">Static hosting + edge functions on Cloudflare's global network. Next.js via OpenNext. 100GB/month bandwidth free. Unlimited deployments. Backend runs as Workers (JS only).</div>
+        <div class="card-details">
+          <div class="detail-row"><span class="detail-label">Free</span><span class="detail-val val-green">Unlimited deploys, 100GB BW</span></div>
+          <div class="detail-row"><span class="detail-label">Pro</span><span class="detail-val">$20/mo</span></div>
+          <div class="detail-row"><span class="detail-label">Best for</span><span class="detail-val val-blue">Next.js static + edge fn</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-name">Netlify</div>
+            <div class="card-sub">netlify.com</div>
+          </div>
+        </div>
+        <div class="badges">
+          <span class="badge badge-next">Next.js &#10003;</span>
+          <span class="badge badge-fastapi">FastAPI ~</span>
+          <span class="badge badge-free">Free Tier</span>
+        </div>
+        <div class="card-desc">Great static + Next.js hosting. Edge functions (Deno) for low-latency. Background functions for async work. FastAPI via Python serverless functions (beta). Spring Boot not supported.</div>
+        <div class="card-details">
+          <div class="detail-row"><span class="detail-label">Free</span><span class="detail-val val-green">100GB BW + 125k fn/mo</span></div>
+          <div class="detail-row"><span class="detail-label">Pro</span><span class="detail-val">$19/mo</span></div>
+          <div class="detail-row"><span class="detail-label">Best for</span><span class="detail-val val-blue">Next.js + Jamstack</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- RECOMMENDED COMBOS -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background:rgba(16,185,129,0.12);">&#127919;</div>
+      <div>
+        <h2>Recommended Deployment Combos</h2>
+        <p>Proven stack combos for deploying all three services</p>
+      </div>
+    </div>
+
+    <div class="cards" style="grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));">
+
+      <div class="card" style="border-color: rgba(99,102,241,0.4);">
+        <div class="card-name" style="margin-bottom:8px; color:#818cf8;">&#127942; Best Free Tier Stack</div>
+        <div class="badges">
+          <span class="badge badge-free">$0/mo</span>
+        </div>
+        <div class="card-desc" style="margin-bottom:16px;">
+          Maximum free coverage across all three stacks.
+        </div>
+        <div class="detail-row" style="margin-bottom:6px;"><span class="detail-label">&#9650; Next.js</span><span class="detail-val val-green">Vercel Hobby (free, personal only)</span></div>
+        <div class="detail-row" style="margin-bottom:6px;"><span class="detail-label">&#9889; FastAPI</span><span class="detail-val val-green">Koyeb free tier</span></div>
+        <div class="detail-row" style="margin-bottom:6px;"><span class="detail-label">&#127807; Spring Boot</span><span class="detail-val val-green">Google Cloud Run free tier</span></div>
+        <div class="pc-grid" style="margin-top:14px;">
+          <div class="pc-block pc-pro"><div class="pc-title">&#10003; Pros</div><ul class="pc-list"><li>Zero cost</li><li>No card required (Render/Koyeb)</li><li>Scale-to-zero everywhere</li></ul></div>
+          <div class="pc-block pc-con"><div class="pc-title">&#10007; Cons</div><ul class="pc-list"><li>Multiple dashboards</li><li>Cold starts on free tiers</li><li>Usage limits per platform</li></ul></div>
+        </div>
+      </div>
+
+      <div class="card" style="border-color: rgba(34,211,238,0.4);">
+        <div class="card-name" style="margin-bottom:8px; color:#22d3ee;">&#9889; Best Performance Stack</div>
+        <div class="badges">
+          <span class="badge badge-paid">~$15&ndash;30/mo</span>
+        </div>
+        <div class="card-desc" style="margin-bottom:16px;">
+          Best cold start + latency across the board.
+        </div>
+        <div class="detail-row" style="margin-bottom:6px;"><span class="detail-label">&#9650; Next.js</span><span class="detail-val val-blue">Vercel Pro ($20/seat)</span></div>
+        <div class="detail-row" style="margin-bottom:6px;"><span class="detail-label">&#9889; FastAPI</span><span class="detail-val val-blue">Google Cloud Run</span></div>
+        <div class="detail-row" style="margin-bottom:6px;"><span class="detail-label">&#127807; Spring Boot</span><span class="detail-val val-blue">Google Cloud Run (container)</span></div>
+        <div class="pc-grid" style="margin-top:14px;">
+          <div class="pc-block pc-pro"><div class="pc-title">&#10003; Pros</div><ul class="pc-list"><li>Fast cold starts</li><li>Per-second billing</li><li>Global CDN + edge</li></ul></div>
+          <div class="pc-block pc-con"><div class="pc-title">&#10007; Cons</div><ul class="pc-list"><li>Two vendors to manage</li><li>Spring JVM still slow start</li></ul></div>
+        </div>
+      </div>
+
+      <div class="card" style="border-color: rgba(0,120,212,0.45);">
+        <div class="card-name" style="margin-bottom:8px; color:#60a5fa;">&#9729; Best Azure-Native Stack</div>
+        <div class="badges">
+          <span class="badge badge-azure">Azure</span>
+          <span class="badge badge-enterprise">Enterprise</span>
+        </div>
+        <div class="card-desc" style="margin-bottom:16px;">
+          Full Azure ecosystem with HIPAA/FedRAMP compliance, Managed Identity, and hybrid cloud support.
+        </div>
+        <div class="detail-row" style="margin-bottom:6px;"><span class="detail-label">&#9650; Next.js</span><span class="detail-val val-azure">Azure Static Web Apps ($9/mo Standard)</span></div>
+        <div class="detail-row" style="margin-bottom:6px;"><span class="detail-label">&#9889; FastAPI</span><span class="detail-val val-azure">Azure Functions (Consumption)</span></div>
+        <div class="detail-row" style="margin-bottom:6px;"><span class="detail-label">&#127807; Spring Boot</span><span class="detail-val val-azure">Azure Container Apps (KEDA)</span></div>
+        <div class="detail-row" style="margin-bottom:6px;"><span class="detail-label">CDN/Proxy</span><span class="detail-val val-yellow">Azure Front Door Standard ($35/mo)</span></div>
+        <div class="pc-grid" style="margin-top:14px;">
+          <div class="pc-block pc-pro"><div class="pc-title">&#10003; Pros</div><ul class="pc-list"><li>HIPAA, FedRAMP, SOC2 out-of-box</li><li>Managed Identity (no secrets)</li><li>Azure Arc for hybrid deployments</li><li>Durable Functions for workflows</li></ul></div>
+          <div class="pc-block pc-con"><div class="pc-title">&#10007; Cons</div><ul class="pc-list"><li>Front Door adds $35/mo base</li><li>Cold starts slower than GCP</li><li>More complex than Railway/Render</li></ul></div>
+        </div>
+      </div>
+
+      <div class="card" style="border-color: rgba(245,158,11,0.4);">
+        <div class="card-name" style="margin-bottom:8px; color:#f59e0b;">&#127970; Best Enterprise Stack</div>
+        <div class="badges">
+          <span class="badge badge-enterprise">AWS / Azure</span>
+        </div>
+        <div class="card-desc" style="margin-bottom:16px;">
+          Full AWS or Azure ecosystem &mdash; IAM, VPC, compliance.
+        </div>
+        <div class="detail-row" style="margin-bottom:6px;"><span class="detail-label">&#9650; Next.js</span><span class="detail-val val-yellow">AWS Amplify / CloudFront</span></div>
+        <div class="detail-row" style="margin-bottom:6px;"><span class="detail-label">&#9889; FastAPI</span><span class="detail-val val-yellow">AWS Lambda (Mangum + SnapStart)</span></div>
+        <div class="detail-row" style="margin-bottom:6px;"><span class="detail-label">&#127807; Spring Boot</span><span class="detail-val val-yellow">Azure Container Apps</span></div>
+        <div class="pc-grid" style="margin-top:14px;">
+          <div class="pc-block pc-pro"><div class="pc-title">&#10003; Pros</div><ul class="pc-list"><li>SOC2/HIPAA/GDPR</li><li>VPC, private networking</li><li>SLA guarantees</li></ul></div>
+          <div class="pc-block pc-con"><div class="pc-title">&#10007; Cons</div><ul class="pc-list"><li>Complex setup/IAM</li><li>Higher cost at low traffic</li></ul></div>
+        </div>
+      </div>
+
+      <div class="card" style="border-color: rgba(16,185,129,0.4);">
+        <div class="card-name" style="margin-bottom:8px; color:#10b981;">&#129489;&#8205;&#128187; Best Solo Dev / Indie Hacker</div>
+        <div class="badges">
+          <span class="badge badge-paid">~$5&ndash;10/mo</span>
+        </div>
+        <div class="card-desc" style="margin-bottom:16px;">
+          One dashboard, simple UX, all three stacks from one repo.
+        </div>
+        <div class="detail-row" style="margin-bottom:6px;"><span class="detail-label">&#9650; Next.js</span><span class="detail-val val-green">Railway (Nixpacks)</span></div>
+        <div class="detail-row" style="margin-bottom:6px;"><span class="detail-label">&#9889; FastAPI</span><span class="detail-val val-green">Railway (Python)</span></div>
+        <div class="detail-row" style="margin-bottom:6px;"><span class="detail-label">&#127807; Spring Boot</span><span class="detail-val val-green">Railway (Docker)</span></div>
+        <div class="pc-grid" style="margin-top:14px;">
+          <div class="pc-block pc-pro"><div class="pc-title">&#10003; Pros</div><ul class="pc-list"><li>Single dashboard</li><li>Git-push deploy</li><li>Built-in Postgres/Redis</li></ul></div>
+          <div class="pc-block pc-con"><div class="pc-title">&#10007; Cons</div><ul class="pc-list"><li>No real free tier</li><li>Usage-based can surprise</li></ul></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SPRING BOOT NOTE -->
+  <div class="section" style="border-color: rgba(74,222,128,0.25);">
+    <div class="section-header">
+      <div class="section-icon" style="background:rgba(74,222,128,0.1);">&#127807;</div>
+      <div>
+        <h2>Spring Boot Serverless &mdash; The Cold Start Problem</h2>
+        <p>JVM startup times make serverless tricky &mdash; here's how to fix it</p>
+      </div>
+    </div>
+    <div class="cards" style="grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));">
+      <div class="card">
+        <div class="card-name" style="margin-bottom:8px;">Problem: JVM Cold Start</div>
+        <div class="card-desc">Standard Spring Boot JARs take 2&ndash;8 seconds to start on AWS Lambda. This makes them poor candidates for scale-to-zero serverless without fixes.</div>
+        <div class="detail-row"><span class="detail-label">Typical cold start</span><span class="detail-val val-red">2&ndash;8 seconds</span></div>
+      </div>
+      <div class="card">
+        <div class="card-name" style="margin-bottom:8px;">Fix 1: GraalVM Native Image</div>
+        <div class="card-desc">Compile Spring Boot to native binary with GraalVM. Cold start drops from seconds to ~100ms. Spring Native (AOT) is officially supported since Spring 3.0.</div>
+        <div class="detail-row"><span class="detail-label">Cold start after</span><span class="detail-val val-green">~100&ndash;200ms</span></div>
+        <div class="detail-row"><span class="detail-label">Build time</span><span class="detail-val val-yellow">~5&ndash;15 min</span></div>
+      </div>
+      <div class="card">
+        <div class="card-name" style="margin-bottom:8px;">Fix 2: Container (Cloud Run / ACA)</div>
+        <div class="card-desc">Deploy as a container on Google Cloud Run or Azure Container Apps. Set min-instances=1 for always-warm, or accept ~200ms container cold start (much better than JVM).</div>
+        <div class="detail-row"><span class="detail-label">Cold start</span><span class="detail-val val-yellow">~200&ndash;500ms</span></div>
+        <div class="detail-row"><span class="detail-label">Min instances</span><span class="detail-val val-green">0 ok with Cloud Run / ACA</span></div>
+      </div>
+      <div class="card">
+        <div class="card-name" style="margin-bottom:8px;">Fix 3: Provisioned Concurrency / SnapStart</div>
+        <div class="card-desc">AWS Lambda SnapStart (GA 2025 for Java 21+, Python, Node) snaps a restored checkpoint. Provisioned Concurrency keeps instances warm. Azure Functions Premium pre-warms. Eliminates cold starts entirely.</div>
+        <div class="detail-row"><span class="detail-label">Cold start (SnapStart)</span><span class="detail-val val-green">~100ms (vs 2&ndash;4s JVM)</span></div>
+        <div class="detail-row"><span class="detail-label">Cold start (Provisioned)</span><span class="detail-val val-green">~0ms</span></div>
+        <div class="detail-row"><span class="detail-label">Extra cost (Provisioned)</span><span class="detail-val val-yellow">+$15&ndash;50/mo</span></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <p>Data sourced from official platform docs and community comparisons &mdash; <strong>June 2026</strong></p>
+  <p style="margin-top:8px;">
+    Sources:
+    <a href="https://snapdeploy.dev/blog/free-cloud-deployment-platforms-2026-comparison" target="_blank">SnapDeploy 2026</a> &middot;
+    <a href="https://render.com/articles/platforms-with-a-real-free-tier-for-developers-in-2026" target="_blank">Render Free Tier</a> &middot;
+    <a href="https://medium.com/@zafarobad/ultimate-guide-to-deploying-next-js-d57ab72f6ba6" target="_blank">Next.js Deploy Guide</a> &middot;
+    <a href="https://javaworldmag.com/serverless-java-platforms-aws-azure-cloud-run/" target="_blank">Serverless Java</a> &middot;
+    <a href="https://medium.com/codex/2-ways-to-make-spring-boot-fully-serverless-in-2026-017acfbc262f" target="_blank">Spring Boot Serverless</a> &middot;
+    <a href="https://danubedata.ro/blog/serverless-container-pricing-comparison-2026" target="_blank">Container Pricing 2026</a> &middot;
+    <a href="https://learn.microsoft.com/azure/container-apps/billing" target="_blank">Azure Container Apps Billing</a> &middot;
+    <a href="https://azure.microsoft.com/pricing/details/functions/" target="_blank">Azure Functions Pricing</a>
+  </p>
+</footer>
+
+</body>
+</html>

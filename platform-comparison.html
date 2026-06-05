@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>300-Project Deployment — Platform Comparison: AWS vs Vercel+Railway+Cloudflare vs GCP vs Azure</title>
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#141925; --panel2:#1b2230; --line:#263041;
+    --txt:#e6edf3; --muted:#8b98a9; --dim:#5d6b7d;
+    --aws:#ff9900; --gcp:#4285f4; --stack:#a855f7; --hybrid:#2dd4bf; --azure:#0078d4;
+    --green:#22c55e; --amber:#f59e0b; --red:#ef4444; --cyan:#22d3ee;
+    --shadow:0 8px 30px rgba(0,0,0,.4);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    background:radial-gradient(1200px 600px at 80% -10%,#13203a 0%,transparent 60%),var(--bg);
+    color:var(--txt); line-height:1.55; padding:0 0 80px;
+  }
+  header{
+    padding:48px 32px 36px; text-align:center;
+    border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,rgba(20,25,37,.6),transparent);
+  }
+  header h1{font-size:30px; font-weight:700; letter-spacing:-.5px; margin-bottom:10px}
+  header h1 .a{color:var(--aws)} header h1 .s{color:var(--stack)} header h1 .g{color:var(--gcp)} header h1 .az{color:var(--azure)}
+  header p{color:var(--muted); max-width:820px; margin:0 auto; font-size:15px}
+  .wrap{max-width:1240px; margin:0 auto; padding:0 24px}
+  section{margin-top:46px}
+  h2{font-size:22px; margin-bottom:6px; display:flex; align-items:center; gap:10px}
+  h2 .num{font-size:13px; background:var(--panel2); color:var(--cyan); border:1px solid var(--line);
+    border-radius:8px; padding:3px 9px; font-weight:600}
+  .sub{color:var(--muted); font-size:14px; margin-bottom:20px}
+
+  /* Verdict cards */
+  .verdict{display:grid; grid-template-columns:repeat(4,1fr); gap:18px; margin-top:22px}
+  .vc{background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:22px; position:relative; overflow:hidden}
+  .vc::before{content:''; position:absolute; top:0; left:0; right:0; height:4px}
+  .vc.aws::before{background:var(--aws)} .vc.stack::before{background:var(--stack)} .vc.gcp::before{background:var(--gcp)} .vc.azure::before{background:var(--azure)}
+  .vc h3{font-size:18px; margin-bottom:4px}
+  .vc .tag{font-size:12px; color:var(--muted); margin-bottom:14px}
+  .vc .price{font-size:30px; font-weight:700; margin:6px 0}
+  .vc .price small{font-size:13px; color:var(--muted); font-weight:400}
+  .vc ul{list-style:none; margin-top:12px; font-size:13px}
+  .vc li{padding:5px 0; padding-left:20px; position:relative; color:var(--muted)}
+  .vc li::before{position:absolute; left:0}
+  .vc li.y::before{content:'✓'; color:var(--green)}
+  .vc li.n::before{content:'✕'; color:var(--red)}
+  .vc li.m::before{content:'~'; color:var(--amber)}
+
+  table{width:100%; border-collapse:collapse; margin-top:8px; font-size:13.5px;
+    background:var(--panel); border:1px solid var(--line); border-radius:12px; overflow:hidden}
+  th,td{padding:11px 14px; text-align:left; border-bottom:1px solid var(--line)}
+  th{background:var(--panel2); color:var(--txt); font-weight:600; font-size:12.5px; text-transform:uppercase; letter-spacing:.4px}
+  tr:last-child td{border-bottom:none}
+  td.aws{color:var(--aws)} td.stack{color:var(--stack)} td.gcp{color:var(--gcp)} td.azure{color:var(--azure)}
+  .pill{display:inline-block; padding:2px 9px; border-radius:20px; font-size:11.5px; font-weight:600}
+  .p-best{background:rgba(34,197,94,.15); color:var(--green)}
+  .p-mid{background:rgba(245,158,11,.15); color:var(--amber)}
+  .p-low{background:rgba(239,68,68,.15); color:var(--red)}
+  .p-na{background:rgba(139,152,169,.12); color:var(--muted)}
+
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:18px}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:20px}
+  .card h4{font-size:15px; margin-bottom:10px; display:flex; align-items:center; gap:8px}
+  .card h4 .dot{width:10px; height:10px; border-radius:50%}
+  .card p{font-size:13.5px; color:var(--muted); margin-bottom:8px}
+  .card code{background:#0c111b; border:1px solid var(--line); border-radius:6px; padding:1px 6px; font-size:12.5px; color:var(--cyan)}
+
+  /* cost bars */
+  .barrow{display:grid; grid-template-columns:140px 1fr 90px; align-items:center; gap:14px; margin:10px 0}
+  .barrow .lbl{font-size:13px; color:var(--muted)}
+  .bartrack{background:#0c111b; border-radius:8px; height:26px; overflow:hidden; border:1px solid var(--line)}
+  .barfill{height:100%; display:flex; align-items:center; padding-left:10px; font-size:12px; font-weight:600; color:#0b0e14; white-space:nowrap}
+  .barrow .val{text-align:right; font-weight:700; font-size:14px}
+
+  .arch{background:#0c111b; border:1px solid var(--line); border-radius:12px; padding:18px; font-family:'Cascadia Code',Consolas,monospace; font-size:12.5px; color:var(--muted); overflow-x:auto; white-space:pre; line-height:1.7}
+  .arch .h{color:var(--cyan)} .arch .o{color:var(--aws)} .arch .v{color:var(--stack)} .arch .b{color:var(--gcp)}
+
+  .note{background:linear-gradient(90deg,rgba(34,211,238,.07),transparent); border-left:3px solid var(--cyan); border-radius:0 10px 10px 0; padding:14px 18px; margin-top:16px; font-size:13.5px; color:var(--muted)}
+  .warn{background:linear-gradient(90deg,rgba(245,158,11,.08),transparent); border-left:3px solid var(--amber)}
+  .crit{background:linear-gradient(90deg,rgba(239,68,68,.08),transparent); border-left:3px solid var(--red)}
+  .note b{color:var(--txt)}
+
+  .sources{display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:10px; margin-top:16px}
+  .sources a{display:block; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:11px 14px; color:var(--cyan); text-decoration:none; font-size:13px; transition:.15s}
+  .sources a:hover{border-color:var(--cyan); background:var(--panel2)}
+  .sources a span{display:block; color:var(--dim); font-size:11px; margin-top:2px}
+  footer{text-align:center; color:var(--dim); font-size:12.5px; margin-top:50px; padding-top:24px; border-top:1px solid var(--line)}
+  .legend{display:flex; gap:18px; flex-wrap:wrap; margin-top:14px; font-size:12.5px; color:var(--muted)}
+  .legend span{display:flex; align-items:center; gap:6px}
+  .legend i{width:12px; height:12px; border-radius:3px; display:inline-block}
+  @media(max-width:900px){.verdict,.grid2{grid-template-columns:1fr} .barrow{grid-template-columns:100px 1fr 76px}}
+  @media(max-width:1200px) and (min-width:901px){.verdict{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<header>
+  <h1>300-Project Deployment &mdash; <span class="a">AWS</span> vs <span class="s">Vercel+Railway+CF</span> vs <span class="g">GCP</span> vs <span class="az">Azure</span> <span style="color:var(--hybrid)">+ ④ GCP&plus;CF</span></h1>
+  <p>Full comparison of five deployment strategies for 300 projects (100 frontend + 200 backend APIs) under one domain — AWS · Vercel+Railway+CF · GCP · <span style="color:var(--azure)">Azure</span> · <span style="color:var(--hybrid)">GCP Serverless + Cloudflare (④)</span> — across cost, performance, security, operations, and lock-in. Pricing pulled from official sources, June 2026. <b style="color:var(--amber)">Note: AWS Business Support+ replaced Business Support (Dec 2025, discontinued Jan 1, 2027); CloudFront flat-rate plans launched Nov 2025; Cloud Run GPU support GA in 2025; Vercel Pro flexible credit model Sept 2025; Railway egress $0.05/GB; Azure Container Apps Consumption now GA.</b></p>
+</header>
+
+<div class="wrap">
+
+<!-- ================= VERDICT ================= -->
+<section>
+  <h2><span class="num">TL;DR</span> Bottom line first</h2>
+  <p class="sub">Medium-traffic monthly estimate for the full 300-project fleet. Detail and assumptions below.</p>
+  <div class="verdict">
+    <div class="vc aws">
+      <h3 class="a" style="color:var(--aws)">AWS</h3>
+      <div class="tag">ECS Fargate + ALB + CloudFront</div>
+      <div class="price">$520&ndash;$1,150<small>/mo</small></div>
+      <ul>
+        <li class="y">Max control, mature, every compliance cert</li>
+        <li class="y">Best for heavy / enterprise / regulated load</li>
+        <li class="m">Fargate scales to zero only via extra wiring</li>
+        <li class="n">Fixed infra tax: ALB + NAT + CloudFront base</li>
+        <li class="n">Highest ops burden &amp; steepest learning curve</li>
+      </ul>
+    </div>
+    <div class="vc stack">
+      <h3 class="s" style="color:var(--stack)">Vercel + Railway + Cloudflare</h3>
+      <div class="tag">Serverless PaaS stack</div>
+      <div class="price">$75&ndash;$271<small>/mo</small></div>
+      <ul>
+        <li class="y">Cheapest at low/medium traffic</li>
+        <li class="y">Near-zero ops, fastest to ship</li>
+        <li class="y">True scale-to-zero (Railway sleep)</li>
+        <li class="m">Cold starts; Spring Boot needs GraalVM</li>
+        <li class="n">3 vendors, 3 bills, weaker for heavy load</li>
+      </ul>
+    </div>
+    <div class="vc gcp">
+      <h3 class="g" style="color:var(--gcp)">GCP</h3>
+      <div class="tag">Cloud Run + Global LB + Cloud CDN</div>
+      <div class="price">$180&ndash;$650<small>/mo</small></div>
+      <ul>
+        <li class="y">Best serverless-on-hyperscaler balance</li>
+        <li class="y">Cloud Run = true scale-to-zero, per-100ms</li>
+        <li class="y">Fast cold starts, gen2 + min-instances GA; GPU support (L4/RTX 6000) GA 2025</li>
+        <li class="m">Global LB base fee + egress pricier than CF</li>
+        <li class="m">Single vendor, less ops than AWS</li>
+      </ul>
+    </div>
+    <div class="vc azure">
+      <h3 style="color:var(--azure)">Azure</h3>
+      <div class="tag">Container Apps + Front Door Standard</div>
+      <div class="price">$250&ndash;$900<small>/mo</small></div>
+      <ul>
+        <li class="y">Enterprise SLAs, hybrid/on-prem integration</li>
+        <li class="y">AD auth built-in; HIPAA, SOC2, ISO27001</li>
+        <li class="y">Container Apps scales to zero (KEDA)</li>
+        <li class="m">Front Door $35/mo base expensive vs CF $5</li>
+        <li class="n">Egress $0.087/GB; complexity higher than GCP</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Variant 4 spotlight -->
+  <div class="card" style="margin-top:18px;border:1px solid var(--hybrid);background:linear-gradient(180deg,rgba(45,212,191,.07),transparent)">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+      <h3 style="color:var(--hybrid);margin:0">★ Variant ④ — GCP Serverless + Cloudflare</h3>
+      <span class="pill p-best">BEST BALANCE</span>
+      <span class="tag" style="margin:0">Cloud Run compute + CF Worker front door</span>
+      <span class="price" style="margin-left:auto;color:var(--hybrid)">$30&ndash;$420<small>/mo</small></span>
+    </div>
+    <p style="margin:0 0 8px">A hybrid of options ② and ③: keep <b style="color:var(--gcp)">Cloud Run</b> for compute (true scale-to-zero, per-100ms, one hyperscaler for the backend) but drop GCP's always-on <b>Global LB (~$18/mo base)</b> and front everything with a <b style="color:var(--hybrid)">Cloudflare Worker</b> instead — gaining free WAF + DDoS + edge cache and a single JS routing layer for all 300 apps.</p>
+    <div class="grid2" style="gap:12px;margin-top:6px">
+      <ul style="margin:0;padding-left:18px;line-height:1.75">
+        <li class="y">Cheapest <i>serverless-on-hyperscaler</i> path (no LB floor, edge cache cuts egress)</li>
+        <li class="y">Free best-in-class WAF/DDoS at the edge; one place to secure 300 apps</li>
+        <li class="y">Cloud Run scale-to-zero + compliance/network isolation for backends</li>
+      </ul>
+      <ul style="margin:0;padding-left:18px;line-height:1.75">
+        <li class="m">Two vendors (GCP + CF), but only the Worker to "operate"</li>
+        <li class="m">Origin must be locked (secret header + ingress) so users can't bypass CF</li>
+        <li class="n">Cross-cloud hop CF→Cloud Run adds a little latency vs all-in-one</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>One-liner:</b> Low/medium traffic &amp; speed-to-market &rarr; <span style="color:var(--stack)">Vercel+Railway+CF</span>. Want serverless + edge security on one hyperscaler at the lowest floor &rarr; <span style="color:var(--hybrid)">GCP Cloud Run + CF Worker (④)</span>. Enterprise governance, single cloud &rarr; <span style="color:var(--gcp)">GCP</span>. Heavy/regulated with a platform team &rarr; <span style="color:var(--aws)">AWS</span>. Microsoft-ecosystem / hybrid/on-prem integration &rarr; <span style="color:var(--azure)">Azure</span>.
+  </div>
+</section>
+
+<!-- ================= ARCHITECTURE ================= -->
+<section>
+  <h2><span class="num">1</span> Architecture per option</h2>
+  <p class="sub">How the 300 projects (100 frontend + 200 backend) are wired in each.</p>
+  <div class="grid2">
+    <div class="card">
+      <h4><span class="dot" style="background:var(--aws)"></span>AWS</h4>
+      <div class="arch"><span class="h">Route 53</span> (DNS, one domain)
+   │
+<span class="o">CloudFront</span> (CDN + WAF + TLS, edge cache)
+   │
+<span class="o">ALB</span> (path/host routing, 300 target groups)
+   │
+<span class="o">ECS Fargate</span> tasks ×300
+   ├ 100 frontend containers (Next.js/static)
+   └ 200 backend containers (FastAPI / Spring)
+   │
+<span class="o">NAT GW</span> + VPC + RDS/Aurora + ECR</div>
+      <p style="margin-top:10px">Most moving parts. Each backend = a Fargate service behind an ALB rule. Frontends can sit in S3+CloudFront instead of Fargate to cut cost.</p>
+    </div>
+    <div class="card">
+      <h4><span class="dot" style="background:var(--stack)"></span>Vercel + Railway + Cloudflare</h4>
+      <div class="arch"><span class="b">Cloudflare Worker</span> (one domain, router)
+   │
+   ├─&gt; <span class="v">Vercel</span>  100 frontend projects
+   │      (edge CDN + SSR, built in)
+   │
+   └─&gt; <span class="v">Railway</span> 200 backend services
+          ├ FastAPI  (sleep ✓ native)
+          └ Spring   (GraalVM native img)
+          serverless = sleep after 10min</div>
+      <p style="margin-top:10px">No load balancer to manage — Worker does host/path routing. Each platform handles its own TLS, CDN, autoscale. Least infra.</p>
+    </div>
+    <div class="card">
+      <h4><span class="dot" style="background:var(--gcp)"></span>GCP</h4>
+      <div class="arch"><span class="h">Cloud DNS</span> (one domain)
+   │
+<span class="b">Global External LB</span> + <span class="b">Cloud CDN</span> + Cloud Armor (WAF)
+   │
+<span class="b">Cloud Run</span> services ×300
+   ├ 100 frontend (container/static)
+   └ 200 backend (FastAPI / Spring)
+   │  scale-to-zero, per-100ms billing
+   │
+Cloud SQL + Artifact Registry</div>
+      <p style="margin-top:10px">Cloud Run gives each service an HTTPS URL for free; the Global LB unifies them under one domain + adds CDN/WAF. Serverless without leaving one cloud.</p>
+    </div>
+    <div class="card" style="display:flex;flex-direction:column;justify-content:center">
+      <h4>Key structural difference</h4>
+      <p><b style="color:var(--aws)">AWS</b> = you assemble + run the load balancer, NAT, VPC, scaling rules. Power + tax.</p>
+      <p><b style="color:var(--stack)">Stack</b> = three managed PaaS, the Worker is the only thing you "operate".</p>
+      <p><b style="color:var(--gcp)">GCP</b> = one cloud, serverless containers, managed LB/CDN. Middle ground: serverless economics + hyperscaler governance.</p>
+      <div class="note" style="margin-top:6px"><b>Scale-to-zero?</b> AWS Fargate: not natively (needs scheduled scaling / EventBridge). Railway: yes (sleep). Cloud Run: yes (native, the default).</div>
+    </div>
+  </div>
+
+  <!-- Variant 4 architecture -->
+  <div class="card" style="margin-top:16px;border:1px solid var(--hybrid);background:linear-gradient(180deg,rgba(45,212,191,.06),transparent)">
+    <h4><span class="dot" style="background:var(--hybrid)"></span>★ Variant ④ — GCP Serverless + Cloudflare (hybrid of ② &amp; ③)</h4>
+    <div class="grid2" style="margin-top:8px">
+      <div class="arch"><span class="b">Cloudflare Worker</span> (one domain, router + WAF + cache)
+   │   free DDoS / WAF / TLS / edge cache
+   │   origin-lock secret header
+   │
+   ├─&gt; <span class="b">Cloud Run</span> 100 frontend (Next.js/OpenNext)
+   │
+   └─&gt; <span class="b">Cloud Run</span> 200 backend (FastAPI / Spring)
+          ingress = internal + LB only
+          scale-to-zero, per-100ms
+   │
+Cloud SQL / Neon + Artifact Registry</div>
+      <div style="display:flex;flex-direction:column;justify-content:center">
+        <p style="margin:0 0 8px">Same Cloud Run economics as option ③, but the <b style="color:var(--hybrid)">Worker replaces the ~$18/mo Global LB</b>. The Worker terminates TLS, applies WAF/DDoS for free, edge-caches GETs (cutting GCP egress <i>and</i> backend wake-ups), and routes host/path to each service's internal URL.</p>
+        <div class="note" style="margin:0"><b>Origin locking is mandatory:</b> set Cloud Run ingress to <i>internal + Cloud Load Balancing</i> or require an <code>X-Origin-Secret</code> the Worker injects, so attackers can't hit the <code>*.run.app</code> URL directly and skip the edge.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= COST ================= -->
+<section>
+  <h2><span class="num">2</span> Cost comparison</h2>
+  <p class="sub">300 projects, 128&ndash;512&nbsp;MB each, ~10&nbsp;KB avg response. Three traffic tiers. us-east-1 / us-central1 / eastus list pricing, June 2026. AWS Fargate: $0.04048/vCPU-hr, $0.004445/GB-hr (unchanged). Cloud Run: $0.000024/vCPU-s, $0.0000025/GiB-s (unchanged). Railway: $0.028/vCPU-hr, $0.014/GB-hr + $0.05/GB egress. Azure Container Apps Consumption: $0.000024/vCPU-s, $0.000003/GiB-s (180k vCPU-s/mo free, 360k GiB-s/mo free). Azure Front Door Standard: $35/mo base + $0.008/GB transfer.</p>
+
+  <h4 style="margin:18px 0 8px;font-size:15px">Monthly total by traffic tier</h4>
+  <div class="legend">
+    <span><i style="background:var(--aws)"></i>AWS</span>
+    <span><i style="background:var(--stack)"></i>Vercel+Railway+CF</span>
+    <span><i style="background:var(--gcp)"></i>GCP</span>
+    <span><i style="background:var(--azure)"></i>Azure</span>
+    <span><i style="background:var(--hybrid)"></i>GCP+CF (④)</span>
+  </div>
+
+  <div style="margin-top:16px">
+    <div style="font-size:13px;color:var(--muted);margin-bottom:4px">LOW traffic (~0.1× base, mostly idle)</div>
+    <div class="barrow"><span class="lbl">AWS</span><div class="bartrack"><div class="barfill" style="background:var(--aws);width:62%">$310</div></div><span class="val" style="color:var(--aws)">$310</span></div>
+    <div class="barrow"><span class="lbl">Stack</span><div class="bartrack"><div class="barfill" style="background:var(--stack);width:12%">$41</div></div><span class="val" style="color:var(--stack)">$41</span></div>
+    <div class="barrow"><span class="lbl">GCP</span><div class="bartrack"><div class="barfill" style="background:var(--gcp);width:24%">$95</div></div><span class="val" style="color:var(--gcp)">$95</span></div>
+    <div class="barrow"><span class="lbl">Azure</span><div class="bartrack"><div class="barfill" style="background:var(--azure);width:50%">$250</div></div><span class="val" style="color:var(--azure)">$250</span></div>
+    <div class="barrow"><span class="lbl">GCP+CF ④</span><div class="bartrack"><div class="barfill" style="background:var(--hybrid);width:8%">$30</div></div><span class="val" style="color:var(--hybrid)">$30</span></div>
+  </div>
+
+  <div style="margin-top:22px">
+    <div style="font-size:13px;color:var(--muted);margin-bottom:4px">MEDIUM traffic (1× base, ~1K req/day/project)</div>
+    <div class="barrow"><span class="lbl">AWS</span><div class="bartrack"><div class="barfill" style="background:var(--aws);width:72%">$520&ndash;780</div></div><span class="val" style="color:var(--aws)">$650</span></div>
+    <div class="barrow"><span class="lbl">Stack</span><div class="bartrack"><div class="barfill" style="background:var(--stack);width:9%">$75</div></div><span class="val" style="color:var(--stack)">$75</span></div>
+    <div class="barrow"><span class="lbl">GCP</span><div class="bartrack"><div class="barfill" style="background:var(--gcp);width:24%">$220</div></div><span class="val" style="color:var(--gcp)">$220</span></div>
+    <div class="barrow"><span class="lbl">Azure</span><div class="bartrack"><div class="barfill" style="background:var(--azure);width:60%">$550</div></div><span class="val" style="color:var(--azure)">$550</span></div>
+    <div class="barrow"><span class="lbl">GCP+CF ④</span><div class="bartrack"><div class="barfill" style="background:var(--hybrid);width:12%">$110</div></div><span class="val" style="color:var(--hybrid)">$110</span></div>
+  </div>
+
+  <div style="margin-top:22px">
+    <div style="font-size:13px;color:var(--muted);margin-bottom:4px">HIGH traffic (10× base, sustained load)</div>
+    <div class="barrow"><span class="lbl">AWS</span><div class="bartrack"><div class="barfill" style="background:var(--aws);width:88%">$1,150</div></div><span class="val" style="color:var(--aws)">$1,150</span></div>
+    <div class="barrow"><span class="lbl">Stack</span><div class="bartrack"><div class="barfill" style="background:var(--stack);width:21%">$271</div></div><span class="val" style="color:var(--stack)">$271</span></div>
+    <div class="barrow"><span class="lbl">GCP</span><div class="bartrack"><div class="barfill" style="background:var(--gcp);width:50%">$650</div></div><span class="val" style="color:var(--gcp)">$650</span></div>
+    <div class="barrow"><span class="lbl">Azure</span><div class="bartrack"><div class="barfill" style="background:var(--azure);width:69%">$900</div></div><span class="val" style="color:var(--azure)">$900</span></div>
+    <div class="barrow"><span class="lbl">GCP+CF ④</span><div class="bartrack"><div class="barfill" style="background:var(--hybrid);width:32%">$420</div></div><span class="val" style="color:var(--hybrid)">$420</span></div>
+  </div>
+
+  <div class="note" style="margin-top:22px;border-color:var(--hybrid)"><b style="color:var(--hybrid)">Variant ④ (GCP+CF) is the cheapest serverless-on-hyperscaler line at every tier</b> — it strips GCP's ~$18/mo Global LB floor and lets the CF edge cache absorb reads, cutting both egress and Cloud Run wake-ups. It only loses to the pure PaaS stack (②), which goes lower still by using Vercel/Railway free tiers — but ④ keeps everything on one hyperscaler backend with stronger network isolation + compliance.</div>
+
+  <div class="note warn" style="margin-top:14px"><b>Crossover:</b> The PaaS stack is cheapest at every tier here because 300 small idle services punish AWS's fixed infra (ALB + NAT + per-task minimums). AWS only wins on <i>unit economics</i> at very high sustained throughput or with Savings Plans / Graviton / Spot. GCP Cloud Run sits between — serverless billing avoids the AWS fixed tax but egress + LB base cost more than Cloudflare.</div>
+
+  <h4 style="margin:30px 0 8px;font-size:15px">Where the money goes (medium tier)</h4>
+  <table>
+    <thead><tr><th>Component</th><th class="aws">AWS</th><th class="stack">Vercel+Railway+CF</th><th class="gcp">GCP</th><th class="azure">Azure</th><th style="color:var(--hybrid)">GCP+CF ④</th></tr></thead>
+    <tbody>
+      <tr><td>Edge / CDN / DNS</td><td>CloudFront ~$20&ndash;60 + Route53</td><td>Cloudflare $5 + Workers</td><td>Cloud CDN + LB base ~$25 + egress</td><td class="azure">Front Door Std $35/mo base + $0.008/GB; Azure DNS $0.50/zone/mo</td><td><span class="pill p-best">CF $5 + Workers (edge cache)</span></td></tr>
+      <tr><td>Load balancing</td><td class="aws">ALB $16.4 base + LCU ($30&ndash;80)</td><td><span class="pill p-best">none — Worker routes</span></td><td>Global LB ~$18 base + rules</td><td class="azure"><span class="pill p-low">Front Door $35 base (bundled into CDN tier)</span></td><td><span class="pill p-best">none — Worker routes</span></td></tr>
+      <tr><td>Compute (300 svc)</td><td>Fargate $0.04048/vCPU-hr + $0.004445/GB-hr</td><td>Vercel $20 + Railway $20&ndash;165</td><td>Cloud Run $0.000024/vCPU-s + $0.0000025/GiB-s</td><td class="azure">Container Apps $0.000024/vCPU-s + $0.000003/GiB-s; 2M req/mo free</td><td>Same Cloud Run pricing</td></tr>
+      <tr><td>NAT / network</td><td class="aws">NAT GW $32/mo + $0.045/GB</td><td><span class="pill p-best">included</span></td><td>Cloud NAT ~$32/mo + egress</td><td class="azure">VNet NAT Gateway ~$32/mo + $0.045/GB</td><td>Cloud NAT only if egress needed</td></tr>
+      <tr><td>Egress / bandwidth</td><td>CloudFront $0.085/GB (1TB free pay-as-you-go; flat-rate Pro plan $15/mo for 50TB from Nov 2025)</td><td>CF ~free + Vercel 1TB incl. + Railway $0.05/GB egress</td><td>$0.12/GB premium (CDN cache cuts it)</td><td class="azure"><span class="pill p-low">$0.087/GB egress (East US); Front Door $0.008/GB transfer</span></td><td><span class="pill p-best">CF edge cache absorbs reads → less GCP egress</span></td></tr>
+      <tr><td>Scale to zero</td><td class="aws"><span class="pill p-low">No (native)</span></td><td><span class="pill p-best">Yes (sleep)</span></td><td><span class="pill p-best">Yes (default)</span></td><td class="azure"><span class="pill p-best">Yes (KEDA, ~500ms–1s cold start)</span></td><td><span class="pill p-best">Yes (default)</span></td></tr>
+      <tr><td>Fixed monthly floor</td><td class="aws">~$300 (ALB+NAT+min tasks)</td><td><span class="pill p-best">~$30</span></td><td>~$75 (LB+NAT base)</td><td class="azure"><span class="pill p-low">~$250 (Front Door $35 + NAT + min tasks)</span></td><td><span class="pill p-best">~$5 (just CF Workers)</span></td></tr>
+    </tbody>
+  </table>
+  <div class="note crit"><b>AWS hidden tax:</b> ALB (~$16/mo) + NAT Gateway (~$32/mo + $0.045/GB) + CloudFront + per-task minimums exist <i>before a single user arrives</i>. For 300 tiny services this fixed floor dominates. Mitigate with one shared ALB (host-based rules), VPC endpoints instead of NAT, S3+CloudFront for static frontends, Graviton (−20%), Fargate Spot (up to −70% vs on-demand Fargate as of 2025), and Savings Plans.</div>
+
+  <!-- ECS on EC2 t3a.2xlarge -->
+  <h4 style="margin:34px 0 8px;font-size:15px">AWS deep-dive: ECS on <span style="color:var(--aws)">EC2 (t3a.2xlarge)</span> — On-Demand vs Spot</h4>
+  <p class="sub" style="margin-bottom:14px">Instead of Fargate (per-task premium), run the ECS cluster on raw EC2 and <b>bin-pack all 300 containers</b> onto a few big instances. <code style="background:#0c111b;border:1px solid var(--line);border-radius:6px;padding:1px 6px;color:var(--cyan);font-size:12.5px">t3a.2xlarge</code> = 8 vCPU / 32 GB / AMD, on-demand $0.3008/hr ($219.58/mo), spot ~$0.112/hr (~63% off).</p>
+
+  <div class="card" style="margin-bottom:16px">
+    <h4>Capacity math (bin-packing 300 containers)</h4>
+    <p>300 services × ~256&nbsp;MB avg = <b style="color:var(--txt)">~77 GB RAM</b> needed. Usable RAM/instance ≈ 30 GB (after ECS agent + OS). 77 ÷ 30 ≈ 3 instances; add HA across 2 AZs + headroom → <b style="color:var(--aws)">4 × t3a.2xlarge</b> (32 vCPU / 128 GB total). Tune up/down with real RAM per service.</p>
+  </div>
+
+  <table>
+    <thead><tr><th>Compute model</th><th>Instances</th><th>Compute $/mo</th><th>+ Infra (ALB/NAT/CF/EBS)</th><th>Total /mo (medium)</th><th>Scale-to-zero</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="aws">Fargate (baseline)</td>
+        <td>per-task</td>
+        <td>~$500</td>
+        <td>~$150</td>
+        <td class="aws">~$650</td>
+        <td><span class="pill p-low">No</span></td>
+      </tr>
+      <tr>
+        <td class="aws">EC2 On-Demand</td>
+        <td>4 × t3a.2xlarge 24/7</td>
+        <td>$878</td>
+        <td>~$150</td>
+        <td class="aws">~$1,030</td>
+        <td><span class="pill p-low">No</span></td>
+      </tr>
+      <tr>
+        <td class="aws">EC2 Mixed (2 OD + 2 Spot)</td>
+        <td>2 OD + 2 Spot</td>
+        <td>~$603</td>
+        <td>~$150</td>
+        <td class="aws"><span class="pill p-mid">~$753</span></td>
+        <td><span class="pill p-low">No</span></td>
+      </tr>
+      <tr>
+        <td class="aws"><b>EC2 All-Spot</b></td>
+        <td>4 × t3a.2xlarge Spot</td>
+        <td><b style="color:var(--green)">~$327</b></td>
+        <td>~$150</td>
+        <td class="aws"><span class="pill p-best">~$477</span></td>
+        <td><span class="pill p-low">No (interruptible)</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="legend" style="margin-top:14px">
+    <span>On-Demand $0.3008/hr × 730 × 4 = <b style="color:var(--aws)">$878</b></span>
+    <span>Spot ~$0.112/hr × 730 × 4 = <b style="color:var(--green)">$327</b> (~63% off on-demand)</span>
+  </div>
+
+  <div class="note warn"><b>The catch with EC2 on-demand:</b> you pay for <i>whole instances 24/7</i> — no scale-to-zero. With 300 mostly-idle services, on-demand EC2 ($1,030) is actually <i>worse</i> than Fargate ($650), which at least bills per running task. EC2 only wins when you keep utilization high (&gt;70% bin-packing) <b>and/or</b> use Spot.</div>
+
+  <div class="note"><b>Spot is the real lever (~63% off).</b> All-Spot lands at <b style="color:var(--green)">~$477/mo</b> — cheaper than Fargate and the closest AWS gets to the PaaS-stack price. Trade-off: Spot instances can be reclaimed with a 2-min warning, so run a <b>capacity-provider strategy</b> = small On-Demand baseline (keeps the fleet alive) + Spot for the bulk, with ECS auto-replacing drained instances. The <b>Mixed</b> row (~$753) is the production-safe middle: HA guaranteed, ~14% cheaper than pure on-demand.</div>
+
+  <div class="note"><b>EC2 vs Fargate, when:</b> EC2 + Spot + dense bin-packing → best AWS unit economics at scale (this fleet). Fargate → less ops, better for spiky/unpredictable per-task load and true pay-per-task. For 300 long-lived services, <span style="color:var(--aws)">EC2 Spot with a mixed capacity provider</span> is the cost-optimal AWS choice — but it's the <i>most</i> ops to run (cluster scaling, AMI patching, draining, Spot interruption handling).</div>
+</section>
+
+<!-- ================= PERFORMANCE ================= -->
+<section>
+  <h2><span class="num">3</span> Performance</h2>
+  <p class="sub">Cold start, steady-state latency, autoscale behavior, global reach.</p>
+  <table>
+    <thead><tr><th>Dimension</th><th class="aws">AWS</th><th class="stack">Vercel+Railway+CF</th><th class="gcp">GCP</th><th class="azure">Azure</th></tr></thead>
+    <tbody>
+      <tr><td>Cold start (always-on)</td><td><span class="pill p-best">None — tasks stay warm</span></td><td><span class="pill p-mid">Railway sleep 1&ndash;3s (FastAPI) / 0.3&ndash;0.7s (GraalVM)</span></td><td><span class="pill p-mid">Cloud Run ~0.3&ndash;2s, &lt;100ms warm</span></td><td class="azure"><span class="pill p-mid">Container Apps ~500ms&ndash;1s (KEDA)</span></td></tr>
+      <tr><td>Cold start (Spring Boot)</td><td>N/A (warm)</td><td class="stack"><span class="pill p-low">JVM 10&ndash;30s → must use GraalVM</span></td><td><span class="pill p-mid">Same JVM issue → GraalVM or min-instances</span></td><td class="azure"><span class="pill p-mid">JVM cold start → GraalVM or min-replicas</span></td></tr>
+      <tr><td>Steady-state latency</td><td><span class="pill p-best">Lowest, tunable</span></td><td><span class="pill p-mid">Good; edge frontend fast</span></td><td><span class="pill p-best">Very good, gen2 perf</span></td><td class="azure"><span class="pill p-mid">Good; depends on Front Door PoP</span></td></tr>
+      <tr><td>Autoscale speed</td><td><span class="pill p-mid">ECS target tracking (slower)</span></td><td><span class="pill p-mid">Per-platform, decent</span></td><td><span class="pill p-best">Fast, request-based, to 0</span></td><td class="azure"><span class="pill p-mid">KEDA event-driven, flexible triggers</span></td></tr>
+      <tr><td>Frontend edge delivery</td><td>CloudFront (good)</td><td class="stack"><span class="pill p-best">Vercel + CF edge (best DX)</span></td><td>Cloud CDN (good)</td><td class="azure">Front Door 118+ PoPs (good)</td></tr>
+      <tr><td>Global PoPs</td><td><span class="pill p-best">600+ CloudFront</span></td><td><span class="pill p-best">CF 330+ cities</span></td><td><span class="pill p-mid">Google edge, fewer</span></td><td class="azure"><span class="pill p-mid">118+ Front Door PoPs</span></td></tr>
+      <tr><td>Max request timeout</td><td>ALB 4000s</td><td>Railway / Vercel 30s (Edge) / 300s (Pro)</td><td>Cloud Run 3600s</td><td class="azure">HTTP 5 min; event-driven unlimited</td></tr>
+      <tr><td>Kill cold start</td><td>—</td><td>Keep-warm ping (loses sleep savings)</td><td><span class="pill p-best">min-instances=1 (per-svc cost)</span></td><td class="azure">min-replicas=1 (per-app cost)</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><b>Reality:</b> Always-warm AWS wins raw latency but you pay 24/7 for 300 idle services. Serverless (Railway sleep / Cloud Run) trades a cold-start penalty for ~80% idle savings. For 300 low-traffic projects the cold start is acceptable; for a few hot ones set min-instances / keep-warm selectively.</div>
+</section>
+
+<!-- ================= SECURITY ================= -->
+<section>
+  <h2><span class="num">4</span> Security &amp; compliance</h2>
+  <p class="sub">WAF, DDoS, network isolation, secrets, compliance certs, shared-responsibility surface.</p>
+  <table>
+    <thead><tr><th>Aspect</th><th class="aws">AWS</th><th class="stack">Vercel+Railway+CF</th><th class="gcp">GCP</th><th class="azure">Azure</th></tr></thead>
+    <tbody>
+      <tr><td>WAF</td><td><span class="pill p-best">AWS WAF (deep rules)</span></td><td>Cloudflare WAF <span class="pill p-best">(best-in-class)</span></td><td>Cloud Armor <span class="pill p-best">(strong)</span></td><td class="azure">Front Door WAF <span class="pill p-mid">(good, $5/policy/mo)</span></td></tr>
+      <tr><td>DDoS protection</td><td>Shield Std (Adv = $$)</td><td class="stack"><span class="pill p-best">CF — industry-leading, included</span></td><td>Cloud Armor + Google edge</td><td class="azure"><span class="pill p-best">DDoS Standard bundled with Front Door Standard (L3/L4)</span></td></tr>
+      <tr><td>Network isolation</td><td><span class="pill p-best">Full VPC, SGs, private subnets</span></td><td class="stack"><span class="pill p-low">Limited — managed PaaS</span></td><td><span class="pill p-best">VPC, Cloud Run ingress controls</span></td><td class="azure"><span class="pill p-best">VNet, NSGs, private endpoints</span></td></tr>
+      <tr><td>Secrets mgmt</td><td>Secrets Manager / SSM</td><td>Per-platform env vars</td><td>Secret Manager</td><td class="azure">Key Vault ($0.03/10k ops)</td></tr>
+      <tr><td>Private networking</td><td><span class="pill p-best">PrivateLink, VPC peering</span></td><td><span class="pill p-low">Mostly public + tokens</span></td><td><span class="pill p-best">VPC connector, internal LB</span></td><td class="azure"><span class="pill p-best">Private Link, VNet integration</span></td></tr>
+      <tr><td>Compliance certs</td><td><span class="pill p-best">SOC2, HIPAA, PCI, FedRAMP, ISO…</span></td><td><span class="pill p-mid">SOC2 (CF strong; Railway lighter)</span></td><td><span class="pill p-best">SOC2, HIPAA, PCI, ISO, FedRAMP</span></td><td class="azure"><span class="pill p-best">HIPAA, SOC2, ISO27001, FedRAMP, PCI — broadest cert portfolio</span></td></tr>
+      <tr><td>IAM granularity</td><td><span class="pill p-best">Extremely fine-grained</span></td><td><span class="pill p-mid">Team/project roles</span></td><td><span class="pill p-best">Fine-grained IAM</span></td><td class="azure"><span class="pill p-best">Azure AD / Entra ID — AD auth built-in</span></td></tr>
+      <tr><td>Attack surface to manage</td><td class="aws"><span class="pill p-low">Large — you own VPC/patching/config</span></td><td><span class="pill p-best">Small — provider owns most</span></td><td><span class="pill p-mid">Medium</span></td><td class="azure"><span class="pill p-low">Large — complex portal, many knobs</span></td></tr>
+      <tr><td>TLS / cert mgmt</td><td>ACM (auto-renew, you wire it)</td><td class="stack"><span class="pill p-best">Auto TLS everywhere, zero config</span></td><td>Google-managed certs (auto)</td><td class="azure">Front Door managed TLS (auto)</td></tr>
+      <tr><td>mTLS / origin auth</td><td><span class="pill p-best">ALB mTLS, IAM-signed</span></td><td><span class="pill p-mid">Shared-secret header / CF Access</span></td><td><span class="pill p-best">Cloud Run IAM + ID tokens, mTLS</span></td><td class="azure"><span class="pill p-best">Managed Identity + mTLS support</span></td></tr>
+      <tr><td>L7 rate limiting</td><td>WAF rate rules ($$)</td><td class="stack"><span class="pill p-best">CF rate limiting at edge, granular</span></td><td>Cloud Armor rate rules</td><td class="azure">Front Door WAF rate limit rules</td></tr>
+      <tr><td>Bot management</td><td><span class="pill p-mid">AWS WAF Bot Control (add-on)</span></td><td class="stack"><span class="pill p-best">CF Bot Mgmt / Turnstile</span></td><td><span class="pill p-mid">reCAPTCHA Enterprise (add-on)</span></td><td class="azure"><span class="pill p-mid">Front Door WAF bot rules (add-on)</span></td></tr>
+      <tr><td>Zero-trust access</td><td>Verified Access (setup-heavy)</td><td class="stack"><span class="pill p-best">CF Access / Zero Trust — turnkey</span></td><td>IAP (Identity-Aware Proxy)</td><td class="azure"><span class="pill p-best">Entra ID + Conditional Access — enterprise-grade</span></td></tr>
+      <tr><td>Encryption at rest</td><td><span class="pill p-best">KMS, per-service, BYOK</span></td><td><span class="pill p-mid">Provider-managed (less control)</span></td><td><span class="pill p-best">Google KMS, CMEK/BYOK</span></td><td class="azure"><span class="pill p-best">Key Vault, BYOK, Customer-managed keys</span></td></tr>
+      <tr><td>Secrets rotation</td><td><span class="pill p-best">Automatic (Secrets Manager)</span></td><td><span class="pill p-low">Manual env-var redeploy</span></td><td><span class="pill p-mid">Secret Manager (manual/scripted)</span></td><td class="azure"><span class="pill p-best">Key Vault rotation policies (auto)</span></td></tr>
+      <tr><td>Audit logging</td><td><span class="pill p-best">CloudTrail (every API call)</span></td><td><span class="pill p-mid">Per-platform audit logs</span></td><td><span class="pill p-best">Cloud Audit Logs</span></td><td class="azure"><span class="pill p-best">Azure Monitor Activity Log + Defender</span></td></tr>
+      <tr><td>Container/supply-chain scan</td><td><span class="pill p-best">ECR scan, Inspector</span></td><td><span class="pill p-low">DIY / external</span></td><td><span class="pill p-best">Artifact Registry + Binary Authorization</span></td><td class="azure"><span class="pill p-best">Azure Container Registry + Defender for Containers</span></td></tr>
+      <tr><td>Patch responsibility</td><td class="aws"><span class="pill p-low">You (EC2 OS) / shared (Fargate)</span></td><td><span class="pill p-best">Provider</span></td><td><span class="pill p-best">Provider (Cloud Run)</span></td><td class="azure"><span class="pill p-best">Provider (Container Apps managed)</span></td></tr>
+      <tr><td>Edge-side auth/JWT</td><td><span class="pill p-mid">Lambda@Edge (extra)</span></td><td class="stack"><span class="pill p-best">Worker validates JWT before origin</span></td><td><span class="pill p-mid">At LB w/ IAP or in-app</span></td><td class="azure"><span class="pill p-mid">Front Door WAF + Entra ID policy</span></td></tr>
+    </tbody>
+  </table>
+  <div class="note warn"><b>Regulated workloads (HIPAA/PCI/FedRAMP):</b> AWS or GCP — both sign BAAs and carry the full cert stack. The PaaS stack is fine for standard SaaS but Railway's compliance posture is lighter; Cloudflare's edge security is the strongest single piece in any of the three.</div>
+  <div class="note"><b>Misconfig risk:</b> AWS gives the most rope — public S3 buckets, open security groups, over-broad IAM are the classic breaches. More knobs = more ways to get it wrong. The PaaS stack has fewer knobs, so fewer self-inflicted holes, but you also can't lock things down as tightly.</div>
+
+  <!-- Defense-in-depth layers -->
+  <h3 style="margin-top:28px">4.1 &nbsp;Defense-in-depth — who owns each layer</h3>
+  <p class="sub">Same request path (edge → network → app → data), graded per stack. More green = more security handled <em>for</em> you.</p>
+  <div class="grid2">
+    <div class="card">
+      <h4 class="aws" style="margin:0 0 8px">AWS</h4>
+      <ul style="margin:0;padding-left:18px;line-height:1.8">
+        <li><b>Edge:</b> CloudFront + WAF + Shield Std <span class="pill p-mid">you configure</span></li>
+        <li><b>Network:</b> VPC, SGs, NACLs, private subnets <span class="pill p-best">strongest isolation</span></li>
+        <li><b>App:</b> ALB mTLS, IAM auth, Cognito <span class="pill p-best">deep</span></li>
+        <li><b>Data:</b> KMS/BYOK, RDS encryption <span class="pill p-best">full control</span></li>
+        <li><b>You own:</b> config correctness, patching, least-privilege IAM <span class="pill p-low">large surface</span></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4 class="stack" style="margin:0 0 8px">Vercel + Railway + CF</h4>
+      <ul style="margin:0;padding-left:18px;line-height:1.8">
+        <li><b>Edge:</b> CF WAF + DDoS + Bot Mgmt <span class="pill p-best">best-in-class, included</span></li>
+        <li><b>Network:</b> managed, mostly public + tokens <span class="pill p-low">limited isolation</span></li>
+        <li><b>App:</b> Worker pre-auth (JWT/Access) <span class="pill p-best">edge auth</span></li>
+        <li><b>Data:</b> provider-managed encryption <span class="pill p-mid">less control / no BYOK on Railway</span></li>
+        <li><b>You own:</b> origin-lock secret, env-var hygiene <span class="pill p-best">small surface</span></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4 class="gcp" style="margin:0 0 8px">GCP</h4>
+      <ul style="margin:0;padding-left:18px;line-height:1.8">
+        <li><b>Edge:</b> Global LB + Cloud Armor <span class="pill p-best">strong</span></li>
+        <li><b>Network:</b> VPC, Cloud Run ingress=internal, connectors <span class="pill p-best">strong isolation</span></li>
+        <li><b>App:</b> IAP, Cloud Run IAM + ID tokens <span class="pill p-best">deep</span></li>
+        <li><b>Data:</b> CMEK/BYOK, default encryption <span class="pill p-best">full control</span></li>
+        <li><b>You own:</b> IAM, Armor policies <span class="pill p-mid">medium surface</span></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4 style="margin:0 0 8px;color:var(--azure)">Azure</h4>
+      <ul style="margin:0;padding-left:18px;line-height:1.8">
+        <li><b>Edge:</b> Front Door WAF + DDoS Standard bundled <span class="pill p-best">strong at-edge control</span></li>
+        <li><b>Network:</b> VNet, NSGs, Private Link, Container Apps VNet integration <span class="pill p-best">full isolation</span></li>
+        <li><b>App:</b> Managed Identity, Entra ID Conditional Access <span class="pill p-best">AD-native auth</span></li>
+        <li><b>Data:</b> Key Vault BYOK, default encryption <span class="pill p-best">full control</span></li>
+        <li><b>You own:</b> Azure portal complexity, IAM role design <span class="pill p-low">steeper learning curve</span></li>
+      </ul>
+    </div>
+    <div class="card" style="display:flex;flex-direction:column;justify-content:center">
+      <h4 style="margin:0 0 8px">Quick read</h4>
+      <p style="margin:0;line-height:1.7">Cloudflare owns the <b>edge</b> layer better than anyone — biggest single security win for a public single-domain app. AWS/GCP/Azure own <b>network + data</b> control. Azure is uniquely strong for Microsoft-ecosystem/AD-integrated workloads. The PaaS stack trades deep network isolation for a much smaller surface you can actually get right.</p>
+    </div>
+  </div>
+
+  <!-- Single-domain proxy specific risks -->
+  <h3 style="margin-top:28px">4.2 &nbsp;Single-domain / reverse-proxy specific risks</h3>
+  <p class="sub">Routing 300 apps through one Worker/LB concentrates these into the front door — handle them once, centrally.</p>
+  <table>
+    <thead><tr><th>Risk</th><th>What goes wrong</th><th>Mitigation (where)</th></tr></thead>
+    <tbody>
+      <tr><td>Origin bypass</td><td>Attacker hits Cloud Run/Vercel URL directly, skipping WAF</td><td class="stack"><span class="pill p-best">Origin-lock secret header + ingress=internal-and-LB / CF Access service token</span></td></tr>
+      <tr><td>SSRF via proxy</td><td>User-controlled path tricks router into hitting internal/metadata endpoints</td><td>Allowlist routes in KV; never forward raw user host; block <code>169.254.169.254</code></td></tr>
+      <tr><td>Host-header / routing confusion</td><td>Spoofed Host routes to wrong backend or poisons cache</td><td>Validate Host against route table; key cache by full host+path</td></tr>
+      <tr><td>Cross-tenant cookie/header leak</td><td>One app's <code>Set-Cookie</code>/auth header bleeds to another on shared domain</td><td>Scope cookies by path/subdomain; strip hop-by-hop + sensitive headers at Worker</td></tr>
+      <tr><td>Cache poisoning</td><td>Unkeyed header cached, served to others</td><td>Edge cache GET only; explicit cache keys; <code>Vary</code> discipline</td></tr>
+      <tr><td>One blast radius</td><td>Single front door = single point of WAF/DDoS bypass affects all 300</td><td>Per-route rate limits + WAF rules; isolate auth per app behind shared edge</td></tr>
+      <tr><td>Header injection / smuggling</td><td>Malformed req splits into two at origin</td><td>Normalize/drop ambiguous <code>Content-Length</code>/<code>Transfer-Encoding</code> at edge</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><b>Why this favors the Worker front door:</b> all seven mitigations live in <em>one</em> place — the routing Worker — so you write origin-locking, SSRF allowlisting, header stripping and per-route rate limits once and every one of the 300 apps inherits them. With AWS you'd wire equivalent controls across CloudFront + WAF + ALB + SGs; with GCP across LB + Armor + ingress policy.</div>
+
+  <!-- Shared responsibility -->
+  <h3 style="margin-top:28px">4.3 &nbsp;Shared-responsibility surface</h3>
+  <table>
+    <thead><tr><th>You are responsible for…</th><th class="aws">AWS (Fargate/EC2)</th><th class="stack">PaaS stack</th><th class="gcp">GCP (Cloud Run)</th><th class="azure">Azure (Container Apps)</th></tr></thead>
+    <tbody>
+      <tr><td>Host OS patching</td><td><span class="pill p-low">EC2: you · Fargate: shared</span></td><td><span class="pill p-best">Provider</span></td><td><span class="pill p-best">Provider</span></td><td class="azure"><span class="pill p-best">Provider</span></td></tr>
+      <tr><td>Runtime/base-image CVEs</td><td><span class="pill p-mid">You (image)</span></td><td><span class="pill p-mid">You (image)</span></td><td><span class="pill p-mid">You (image)</span></td><td class="azure"><span class="pill p-mid">You (image)</span></td></tr>
+      <tr><td>Network ACL / firewall</td><td><span class="pill p-low">You (SG/NACL)</span></td><td><span class="pill p-best">Provider</span></td><td><span class="pill p-mid">You (lightweight)</span></td><td class="azure"><span class="pill p-mid">You (NSG/lightweight)</span></td></tr>
+      <tr><td>IAM least-privilege</td><td><span class="pill p-low">You (large)</span></td><td><span class="pill p-best">You (small)</span></td><td><span class="pill p-mid">You (medium)</span></td><td class="azure"><span class="pill p-low">You (large — RBAC + Entra)</span></td></tr>
+      <tr><td>WAF/DDoS tuning</td><td><span class="pill p-mid">You</span></td><td><span class="pill p-best">Mostly provider defaults</span></td><td><span class="pill p-mid">You</span></td><td class="azure"><span class="pill p-mid">You (Front Door WAF policies)</span></td></tr>
+      <tr><td>Secrets storage/rotation</td><td><span class="pill p-best">Managed service</span></td><td><span class="pill p-low">Manual</span></td><td><span class="pill p-best">Managed service</span></td><td class="azure"><span class="pill p-best">Key Vault (auto rotation)</span></td></tr>
+    </tbody>
+  </table>
+  <div class="note warn"><b>Bottom line:</b> the more cells say "You," the more security <em>work</em> — and breach risk — sits with your team. AWS gives the strongest controls but the largest surface to misconfigure; the PaaS stack inherits secure defaults at the cost of deep tuning; GCP Cloud Run lands in the middle with strong defaults and optional depth.</div>
+
+  <!-- Scorecard -->
+  <h3 style="margin-top:28px">4.4 &nbsp;Security scorecard (this single-domain use case)</h3>
+  <table>
+    <thead><tr><th>Dimension</th><th class="aws">AWS</th><th class="stack">PaaS stack</th><th class="gcp">GCP</th><th class="azure">Azure</th></tr></thead>
+    <tbody>
+      <tr><td>Edge / WAF / DDoS</td><td>★★★★☆</td><td class="stack">★★★★★</td><td>★★★★☆</td><td class="azure">★★★★☆</td></tr>
+      <tr><td>Network isolation</td><td class="aws">★★★★★</td><td>★★☆☆☆</td><td>★★★★☆</td><td class="azure">★★★★★</td></tr>
+      <tr><td>Compliance / regulated</td><td>★★★★★</td><td>★★★☆☆</td><td>★★★★★</td><td class="azure">★★★★★</td></tr>
+      <tr><td>Secrets / data control</td><td>★★★★★</td><td>★★☆☆☆</td><td>★★★★☆</td><td class="azure">★★★★★</td></tr>
+      <tr><td>Low misconfig risk (secure by default)</td><td>★★☆☆☆</td><td class="stack">★★★★★</td><td>★★★★☆</td><td class="azure">★★☆☆☆</td></tr>
+      <tr><td>Centralized control (1 front door)</td><td>★★★☆☆</td><td class="stack">★★★★★</td><td>★★★★☆</td><td class="azure">★★★☆☆</td></tr>
+      <tr><td>Effort to reach "secure enough"</td><td><span class="pill p-low">High</span></td><td class="stack"><span class="pill p-best">Low</span></td><td><span class="pill p-mid">Medium</span></td><td class="azure"><span class="pill p-low">High</span></td></tr>
+    </tbody>
+  </table>
+  <div class="note"><b>Verdict for 300 apps on one domain:</b> if you have a platform/security team and regulated data → <b class="aws">AWS</b> or <b class="gcp">GCP</b> for the control depth. If you want the strongest <em>edge</em> security with the smallest surface to get wrong, at low budget → the <b class="stack">CF Worker front door</b> wins; pair it with GCP Cloud Run (variant ④) when you also need network isolation + compliance for the backend.</div>
+</section>
+
+<!-- ================= OPS / OTHER ================= -->
+<section>
+  <h2><span class="num">5</span> Operations, DX &amp; lock-in</h2>
+  <table>
+    <thead><tr><th>Aspect</th><th class="aws">AWS</th><th class="stack">Vercel+Railway+CF</th><th class="gcp">GCP</th><th class="azure">Azure</th></tr></thead>
+    <tbody>
+      <tr><td>Time to first deploy</td><td><span class="pill p-low">Days (IaC, VPC, pipelines)</span></td><td class="stack"><span class="pill p-best">Minutes (git push)</span></td><td><span class="pill p-mid">Hours (gcloud run deploy)</span></td><td class="azure"><span class="pill p-low">Days (ARM/Bicep, VNet, AD setup)</span></td></tr>
+      <tr><td>Ops burden (300 svc)</td><td><span class="pill p-low">High — needs platform team</span></td><td><span class="pill p-best">Low — managed</span></td><td><span class="pill p-mid">Medium</span></td><td class="azure"><span class="pill p-low">High — portal complexity, many services</span></td></tr>
+      <tr><td>CI/CD</td><td>CodePipeline / GH Actions + IaC</td><td class="stack"><span class="pill p-best">Built-in git deploys</span></td><td>Cloud Build / GH Actions</td><td class="azure">Azure DevOps / GH Actions + Bicep/Terraform</td></tr>
+      <tr><td>Observability</td><td><span class="pill p-best">CloudWatch + X-Ray (deep)</span></td><td><span class="pill p-mid">Per-platform dashboards</span></td><td><span class="pill p-best">Cloud Monitoring/Logging</span></td><td class="azure">Azure Monitor ($2.76/GB ingest; 5GB/day free) + App Insights</td></tr>
+      <tr><td>IaC maturity</td><td><span class="pill p-best">CloudFormation/CDK/Terraform</span></td><td><span class="pill p-mid">Terraform providers (partial)</span></td><td><span class="pill p-best">Terraform/Deployment Mgr</span></td><td class="azure"><span class="pill p-best">Bicep/ARM/Terraform (mature)</span></td></tr>
+      <tr><td>Multi-region</td><td><span class="pill p-best">Full control</span></td><td>Provider-managed edge</td><td><span class="pill p-best">Global by design</span></td><td class="azure"><span class="pill p-best">East US, West EU, Southeast Asia, etc.</span></td></tr>
+      <tr><td>Vendor lock-in</td><td class="aws"><span class="pill p-low">High (deep AWS APIs)</span></td><td><span class="pill p-mid">Medium (3 vendors, but containers portable)</span></td><td><span class="pill p-best">Low-ish (Cloud Run = std containers/Knative)</span></td><td class="azure"><span class="pill p-low">High (Azure-specific services, AD)</span></td></tr>
+      <tr><td>Bills to manage</td><td><span class="pill p-best">1</span></td><td class="stack"><span class="pill p-low">3</span></td><td><span class="pill p-best">1</span></td><td class="azure"><span class="pill p-best">1</span></td></tr>
+      <tr><td>Portability of code</td><td>Containers portable; infra not</td><td class="stack"><span class="pill p-mid">Containers portable; Worker = CF-specific</span></td><td><span class="pill p-best">Knative containers most portable</span></td><td class="azure">Containers portable; AD/Entra tie-in not</td></tr>
+      <tr><td>Hybrid/on-prem integration</td><td><span class="pill p-mid">AWS Outposts (costly)</span></td><td><span class="pill p-low">None</span></td><td><span class="pill p-mid">Anthos (complex)</span></td><td class="azure"><span class="pill p-best">Azure Arc — best-in-class hybrid/on-prem</span></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ================= DECISION ================= -->
+<section>
+  <h2><span class="num">6</span> Which should you pick?</h2>
+  <div class="grid2">
+    <div class="card">
+      <h4><span class="dot" style="background:var(--stack)"></span>Pick the PaaS stack if…</h4>
+      <p>✓ Cost at low/medium traffic is the priority</p>
+      <p>✓ Small team, no dedicated DevOps</p>
+      <p>✓ Want to ship in days, iterate fast</p>
+      <p>✓ Most of 300 projects are low-traffic / idle</p>
+      <p>✓ Standard SaaS compliance is enough</p>
+      <p style="color:var(--red)">✗ Avoid if: heavy sustained load, deep network isolation, or strict single-vendor procurement</p>
+    </div>
+    <div class="card">
+      <h4><span class="dot" style="background:var(--gcp)"></span>Pick GCP if…</h4>
+      <p>✓ You want serverless economics but on one hyperscaler</p>
+      <p>✓ Scale-to-zero + fast cold starts matter</p>
+      <p>✓ Need enterprise compliance (HIPAA/PCI/FedRAMP)</p>
+      <p>✓ Want portable Knative containers (low lock-in)</p>
+      <p>✓ One bill, one IAM, one support contract</p>
+      <p style="color:var(--amber)">~ Watch: egress + Global LB base pricier than Cloudflare</p>
+    </div>
+    <div class="card">
+      <h4><span class="dot" style="background:var(--aws)"></span>Pick AWS if…</h4>
+      <p>✓ Heavy, sustained, predictable traffic</p>
+      <p>✓ Deep VPC isolation / private networking required</p>
+      <p>✓ Strictest regulated workloads</p>
+      <p>✓ You have a platform team + use Savings Plans/Spot/Graviton</p>
+      <p>✓ Already all-in on AWS ecosystem</p>
+      <p style="color:var(--red)">✗ Avoid if: 300 idle services &amp; small team — fixed infra tax kills you</p>
+    </div>
+    <div class="card" style="border:1px solid var(--hybrid)">
+      <h4><span class="dot" style="background:var(--hybrid)"></span>★ Pick Variant ④ (GCP+CF) if…</h4>
+      <p>✓ You want the <b>lowest serverless-on-hyperscaler</b> bill (no LB floor)</p>
+      <p>✓ Want free best-in-class WAF/DDoS at the edge for all 300 apps</p>
+      <p>✓ Need Cloud Run compliance + network isolation on the backend</p>
+      <p>✓ One JS routing layer for host/path across the fleet</p>
+      <p>✓ OK running two vendors (GCP + CF) but only the Worker to operate</p>
+      <p style="color:var(--amber)">~ Must lock origins (secret header + internal ingress) so CF can't be bypassed</p>
+    </div>
+    <div class="card" style="border:1px solid var(--azure)">
+      <h4><span class="dot" style="background:var(--azure)"></span>Pick Azure if…</h4>
+      <p>✓ Already in Microsoft ecosystem (Office 365, Teams, AD)</p>
+      <p>✓ Need hybrid / on-prem integration (Azure Arc)</p>
+      <p>✓ AD auth built-in is a hard requirement</p>
+      <p>✓ Broadest compliance cert portfolio (HIPAA/SOC2/ISO/FedRAMP)</p>
+      <p>✓ Enterprise SLAs with TAM support preferred</p>
+      <p style="color:var(--red)">✗ Avoid if: cost-sensitive — Front Door $35 base is expensive; complexity exceeds GCP for pure serverless</p>
+    </div>
+    <div class="card">
+      <h4><span class="dot" style="background:var(--cyan)"></span>Hybrid (often best)</h4>
+      <p><b>Cloudflare</b> as the universal front door (DNS + WAF + DDoS) for any backend.</p>
+      <p><b>Vercel</b> for the 100 frontends (best frontend DX/edge).</p>
+      <p><b>Cloud Run</b> <i>or</i> <b>Railway</b> for the 200 backends depending on compliance needs.</p>
+      <p>Keep AWS only for the few heavy/regulated services. Route everything through the one Worker domain.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= OPERATIONAL & SECURITY ADD-ONS ================= -->
+<section>
+  <h2><span class="num">7</span> Operational &amp; security add-on costs</h2>
+  <p class="sub">Costs that are <em>required to face a client</em> — logging, monitoring/observability, security add-ons, backup/DR, and support. These sit on top of the compute totals in Section&nbsp;2 and are frequently under-estimated. All figures are estimates at medium-traffic tier (1K&nbsp;req/day/project) unless noted.</p>
+
+  <div class="note warn"><b>Why this matters:</b> A production deployment without structured logging, alerting, WAF managed rules, and a support contract is not client-ready. These add-ons commonly add <b>$150–$800/mo</b> to the baseline compute bill and shift the cost ranking between strategies significantly.</div>
+
+  <!-- Logging -->
+  <h3 style="margin-top:28px">7.1 &nbsp;Logging</h3>
+  <table>
+    <thead><tr><th>Strategy</th><th>Service</th><th>Pricing (2026)</th><th>Est. monthly (medium tier)</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="aws"><b>AWS</b></td>
+        <td>CloudWatch Logs</td>
+        <td>$0.50/GB ingest (Standard); $0.25/GB (Infrequent Access, added May 2025); $0.03/GB-mo storage; first 5&nbsp;GB free</td>
+        <td class="aws">~$20–$60</td>
+        <td>300 services × ~0.1–0.2&nbsp;GB/day log volume. Use IA class + 7-day TTL to reduce. CloudWatch Logs Insights: $0.005/GB scanned. As of Dec 2025, CW data can be exported to S3 Tables (queryable via Athena/Redshift with no Insights cost).</td>
+      </tr>
+      <tr>
+        <td class="stack"><b>Vercel+Railway+CF</b></td>
+        <td>Better Stack / Logflare / Railway log drain</td>
+        <td>Better Stack from $0/mo (3&nbsp;GB, 3&nbsp;days) → $24/mo (10&nbsp;GB, 30&nbsp;days); overage ~$0.15/GB ingest</td>
+        <td class="stack">~$24–$50</td>
+        <td>Railway and Vercel expose log drains (HTTP/S3). Better Stack is the go-to for consolidated logging; integrates natively with Vercel Marketplace. CF Workers logs via Logpush to R2/S3 (Workers Paid plan). Note: Vercel restructured billing in Sept 2025 with a $20 monthly flexible credit model; build minutes now metered per-machine-tier (Turbo is default as of Feb 2026).</td>
+      </tr>
+      <tr>
+        <td class="gcp"><b>GCP</b></td>
+        <td>Cloud Logging</td>
+        <td>First 50&nbsp;GB/project/mo free; then $0.50/GiB ingest; retention beyond 30 days $0.01/GiB-mo</td>
+        <td class="gcp">~$0–$25</td>
+        <td>300 Cloud Run services generate structured JSON logs automatically. 50&nbsp;GB free tier typically covers medium-traffic fleets; heavy log verbosity busts it quickly. Exclude health-check noise with log exclusion filters.</td>
+      </tr>
+      <tr>
+        <td style="color:var(--azure)"><b>Azure</b></td>
+        <td>Azure Monitor Logs (Log Analytics)</td>
+        <td>$2.76/GB ingestion; first 5&nbsp;GB/day free per workspace; retention beyond 31 days $0.12/GB-mo</td>
+        <td style="color:var(--azure)">~$15–$50</td>
+        <td>Container Apps emit structured logs to Log Analytics automatically. 5&nbsp;GB/day free tier typically covers medium-traffic fleets. Use data collection rules to filter noisy logs. Azure Monitor is pricier per-GB than GCP Cloud Logging but the free tier is generous daily.</td>
+      </tr>
+      <tr>
+        <td style="color:var(--hybrid)"><b>GCP+CF ④</b></td>
+        <td>Cloud Logging + CF Workers Logs</td>
+        <td>Same GCP Cloud Logging rates; CF Workers Trace Events included in paid plan ($5/mo)</td>
+        <td style="color:var(--hybrid)">~$0–$25</td>
+        <td>Same as GCP. CF Workers request logs available via Logpush to R2/S3 (Workers Paid plan). No extra cost beyond $5 Workers plan for trace-level logs.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Monitoring -->
+  <h3 style="margin-top:28px">7.2 &nbsp;Monitoring &amp; observability</h3>
+  <table>
+    <thead><tr><th>Strategy</th><th>Service</th><th>Pricing (2026)</th><th>Est. monthly (medium tier)</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="aws"><b>AWS</b></td>
+        <td>CloudWatch Metrics + Alarms + Dashboards + X-Ray</td>
+        <td>First 10 metrics free; $0.30/metric/mo thereafter; alarms $0.10 each; dashboards $3/mo each; X-Ray traces $5/M</td>
+        <td class="aws">~$30–$80</td>
+        <td>300 services × ~5 custom metrics + 10 alarms each = significant at scale. Use 1 shared dashboard per team. Container Insights (ECS) adds ~$0.35/GB log + $0.30/metric. Budget ~$50/mo for a production-grade CloudWatch setup.</td>
+      </tr>
+      <tr>
+        <td class="stack"><b>Vercel+Railway+CF</b></td>
+        <td>Better Stack Uptime + CF Web Analytics</td>
+        <td>Better Stack uptime from $0 (5 monitors) → $29/mo (50 monitors, 30s intervals); CF Web Analytics free</td>
+        <td class="stack">~$29–$59</td>
+        <td>CF Web Analytics is free and privacy-first for frontend. For backend health: Better Stack uptime monitors or Grafana Cloud free tier (10K series). No native APM — add OpenTelemetry export to Grafana Cloud ($0 ≤50K series).</td>
+      </tr>
+      <tr>
+        <td class="gcp"><b>GCP</b></td>
+        <td>Cloud Monitoring + Cloud Trace + Uptime checks</td>
+        <td>First 150 MB metrics/mo free; $0.18/MB thereafter; first 2.5M trace spans free; uptime checks free (up to 1M/mo)</td>
+        <td class="gcp">~$10–$30</td>
+        <td>Cloud Run emits metrics automatically (request count, latency, instance count). 300 uptime checks at 1-min intervals ≈ 13M checks/mo — keep to 5-min intervals or use a subset. Alerting policies free. GCP monitoring is the best value among the four.</td>
+      </tr>
+      <tr>
+        <td style="color:var(--azure)"><b>Azure</b></td>
+        <td>Azure Monitor Metrics + Application Insights + Alerts</td>
+        <td>Platform metrics: free for standard metrics; custom metrics $0.10/metric series/mo. App Insights: $2.76/GB data ingested (same as logs). Alerts $0.10/alert rule/mo; first 1,000 free.</td>
+        <td style="color:var(--azure)">~$25–$60</td>
+        <td>Container Apps emit metrics automatically (request count, CPU, memory). Application Insights provides full APM (distributed tracing, live metrics). At 300 services, App Insights sampling is recommended to avoid per-GB costs exceeding budget. Azure Monitor Workbooks for dashboards (free). Pricier than GCP at scale; use sampling + workspace caps.</td>
+      </tr>
+      <tr>
+        <td style="color:var(--hybrid)"><b>GCP+CF ④</b></td>
+        <td>Cloud Monitoring + CF Analytics</td>
+        <td>Same GCP Cloud Monitoring rates; CF Workers Analytics free</td>
+        <td style="color:var(--hybrid)">~$10–$30</td>
+        <td>Same as GCP. CF Workers dashboard shows request rates, CPU time, error rates per route at no extra cost. Add CF Health Checks (from $5/mo on Pro plan) for external uptime.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Security add-ons -->
+  <h3 style="margin-top:28px">7.3 &nbsp;Security add-ons</h3>
+  <table>
+    <thead><tr><th>Security control</th><th class="aws">AWS</th><th class="stack">Vercel+Railway+CF</th><th class="gcp">GCP</th><th class="azure">Azure</th><th style="color:var(--hybrid)">GCP+CF ④</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>WAF managed rules</td>
+        <td>AWS WAF: $5/policy/mo + $1/rule/mo + $0.60/M req. OWASP core ruleset + bot control ~$15–$40/mo</td>
+        <td><span class="pill p-best">Cloudflare managed rulesets included in $25/mo Pro plan</span> (OWASP + CF rulesets + exposed-credentials check)</td>
+        <td>Cloud Armor: $5/policy/mo + $1/rule/mo + $0.75/M req. OWASP pre-config rules ~$10–$25/mo</td>
+        <td class="azure">Front Door WAF: $5/policy/mo + $1/rule/mo. Microsoft default rule set (DRS) included. ~$10–$25/mo for OWASP coverage.</td>
+        <td><span class="pill p-best">Included in CF $25 Pro plan</span> — same as stack ②</td>
+      </tr>
+      <tr>
+        <td>DDoS protection</td>
+        <td>Shield Standard: <span class="pill p-best">free</span>. <b>Shield Advanced: $3,000/mo</b> (org-wide 1-year commitment). Recommended only if you face targeted L3/L4 attacks.</td>
+        <td><span class="pill p-best">CF DDoS — industry-leading, included in all plans at no extra cost</span></td>
+        <td>Google front-end absorbs volumetric DDoS free; Cloud Armor adaptive protection (L7): included in Armor Standard per-policy model. Cloud Armor Enterprise ~$3,000/mo for advanced DDoS response.</td>
+        <td class="azure"><span class="pill p-best">DDoS Standard bundled with Front Door Standard (L3/L4 free)</span>. DDoS Network Protection: $2,944/mo per VNet if needed for deeper coverage.</td>
+        <td><span class="pill p-best">CF DDoS included free</span> — largest DDoS mitigation network (330+ PoPs), no surcharge</td>
+      </tr>
+      <tr>
+        <td>Secrets management</td>
+        <td>AWS Secrets Manager: <b>$0.40/secret/mo</b> + $0.05/10K API calls. 300 services × ~3 secrets = ~$36/mo. Plus KMS CMK $1/key/mo if BYOK.</td>
+        <td>Per-platform env vars (free). No automatic rotation — manual redeploy on secret change. <span class="pill p-low">No managed rotation</span></td>
+        <td>GCP Secret Manager: <b>$0.06/active version/mo</b> + $0.03/10K ops. 300 services × 3 secrets ≈ ~$54/mo. 6 versions free. Rotation via Pub/Sub.</td>
+        <td class="azure">Azure Key Vault: <b>$0.03/10k operations</b>; secrets storage free tier (first 10k ops/mo). 300 services × 3 secrets = 900 secrets (no per-secret fee). ~$5–$15/mo at medium ops volume. Rotation policies built-in.</td>
+        <td>Same GCP Secret Manager pricing. ~$54/mo for 900 active versions.</td>
+      </tr>
+      <tr>
+        <td>Container / image scanning</td>
+        <td>ECR basic scan: <span class="pill p-best">free</span>. Inspector enhanced scan: <b>$0.09/image initial</b> + $0.01/rescan. 300 images × weekly rescan ≈ ~$12–$20/mo.</td>
+        <td><span class="pill p-low">Not built-in</span> — use Snyk (from $25/mo), Trivy (free/self-hosted), or GitHub Advanced Security GHAS.</td>
+        <td>Artifact Registry + Vulnerability scanning: <span class="pill p-best">first container scan free</span>; ~$0.26/container/mo for on-push scanning. 300 images ≈ ~$78/mo. Binary Authorization: $0.02/attestation.</td>
+        <td class="azure">Azure Container Registry + Defender for Containers: <b>$0.0015/image digest/hr</b> for registry scanning. 300 images ≈ ~$33/mo. Defender for Containers (cluster-level) ~$7/node/mo.</td>
+        <td>Same Artifact Registry scanning. ~$78/mo. Same CF edge, no extra scanning cost.</td>
+      </tr>
+      <tr>
+        <td>Threat detection / CSPM</td>
+        <td>GuardDuty (recommended): ~$10–$50/mo at medium traffic (CloudTrail events + VPC flow logs). Free 30-day trial. Security Hub: $0.001/finding + $0.0010/check.</td>
+        <td><span class="pill p-na">No equivalent</span> — rely on CF's edge threat intel + manual review.</td>
+        <td>Security Command Center Standard: <span class="pill p-best">free</span> (basic asset inventory + misconfig checks). Premium: ~3.5% of spend (~$6–$23/mo at medium tier).</td>
+        <td class="azure">Microsoft Defender for Cloud: free foundational CSPM. Defender for Containers ~$7/node/mo. Defender CSPM (enhanced) ~$0.015/server/hr. ~$15–$40/mo at medium tier.</td>
+        <td>GCP SCC Standard free. CF Bot Management and security analytics included in Workers plan.</td>
+      </tr>
+      <tr>
+        <td>TLS / certificates</td>
+        <td>ACM: <span class="pill p-best">free</span> (auto-renew, wired to ALB/CloudFront)</td>
+        <td><span class="pill p-best">Free auto-TLS</span> on all platforms (CF, Vercel, Railway)</td>
+        <td><span class="pill p-best">Free</span> Google-managed certs (auto-renew)</td>
+        <td class="azure"><span class="pill p-best">Free</span> Front Door managed TLS (auto-renew)</td>
+        <td><span class="pill p-best">Free</span> CF Universal SSL + GCP managed certs</td>
+      </tr>
+      <tr>
+        <td>Audit logging</td>
+        <td>CloudTrail: management events <span class="pill p-best">free</span>; data events $0.10/100K events. 1 trail free. Multi-region trail recommended.</td>
+        <td>CF audit logs in dashboard (free); Vercel/Railway activity logs per-plan. <span class="pill p-mid">Not CloudTrail-equivalent depth</span></td>
+        <td>Cloud Audit Logs: Admin activity logs <span class="pill p-best">free</span>; Data access logs ~$0.50/GiB if enabled. Free tier usually sufficient.</td>
+        <td class="azure">Azure Activity Log: <span class="pill p-best">free</span>. Diagnostic logs to Log Analytics: billed at Monitor ingestion rates ($2.76/GB). Entra ID sign-in logs: P1 license required for full retention.</td>
+        <td>Same GCP Cloud Audit Logs. CF Workers access logs via Logpush.</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="note"><b>Cloudflare WAF note:</b> The CF Pro plan ($20/mo annual or $25/mo month-to-month) includes managed OWASP rulesets, rate limiting (standard), and DDoS for all Workers-fronted traffic. The Workers Paid plan ($5/mo base) includes 10M requests + 30M CPU-ms; overages are $0.30/M requests and $0.02/M CPU-ms. This single line item replaces WAF + DDoS add-ons for strategies ② and ④ — a material cost advantage over AWS WAF or Cloud Armor at small/medium scale.</div>
+  <div class="note crit"><b>Shield Advanced:</b> $3,000/mo is an enterprise decision, not a routine add-on. Only enable for regulated workloads under active threat or where SLA-backed DDoS response is contractually required. At medium scale on this fleet, Shield Std + WAF rules are sufficient.</div>
+
+  <!-- Backup / DR -->
+  <h3 style="margin-top:28px">7.4 &nbsp;Backup &amp; disaster recovery</h3>
+  <table>
+    <thead><tr><th>Component</th><th class="aws">AWS</th><th class="stack">Vercel+Railway+CF</th><th class="gcp">GCP</th><th class="azure">Azure</th><th style="color:var(--hybrid)">GCP+CF ④</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Database automated backups</td>
+        <td>RDS automated backups: <span class="pill p-best">free</span> up to DB storage size. Snapshot storage beyond that: $0.095/GB-mo. Typical 300-project fleet DB: ~$10–$30/mo for snapshots.</td>
+        <td>Railway Postgres automated backups: included on Pro plan (daily, 7-day retention). Additional backup storage: ~$0.25/GB-mo.</td>
+        <td>Cloud SQL automated backups: $0.08/GB-mo (included storage is 0). Cloud SQL 300-project fleet: ~$15–$40/mo depending on DB size.</td>
+        <td class="azure">Azure Database for PostgreSQL Flexible Server automated backups: <span class="pill p-best">free</span> up to 100% of provisioned storage (7 days default, up to 35 days). GRS backup storage: $0.021/GB-mo. ~$10–$25/mo at fleet scale.</td>
+        <td>Same Cloud SQL pricing. Or use Neon (serverless Postgres, free tier 0.5&nbsp;GB + $0.000164/compute-hr above free).</td>
+      </tr>
+      <tr>
+        <td>Cross-region replication / DR</td>
+        <td>RDS cross-region replica: ~2× DB cost + $0.10/GB data transfer. Full DR setup adds ~$50–$200/mo. Recommend at minimum cross-region snapshot copy ($0.02/GB-mo).</td>
+        <td><span class="pill p-low">Not natively supported</span> — DIY via pg_dump to S3/R2 ($0.015/GB-mo on R2, free egress)</td>
+        <td>Cloud SQL cross-region read replica: ~2× DB cost. Cloud Storage snapshots: $0.026/GB-mo (Standard). Recommend at minimum daily export to GCS.</td>
+        <td class="azure">Azure Database geo-redundant backups + read replicas. GRS: $0.021/GB-mo. Cross-region DR adds ~$50–$150/mo. Azure Site Recovery: $25/instance/mo for VM-level DR.</td>
+        <td>Same GCP. R2 for cheap backup storage (CF R2: $0.015/GB-mo, free egress) is a cost-effective DR target for this hybrid strategy.</td>
+      </tr>
+      <tr>
+        <td>Object storage / artifact backup</td>
+        <td>S3 Standard: $0.023/GB-mo. ECR image storage: $0.10/GB-mo. Use S3 Lifecycle rules to expire old versions.</td>
+        <td>CF R2: $0.015/GB-mo (Standard), free egress; free tier 10&nbsp;GB/mo + 1M Class-A ops. Vercel artifacts cached by platform.</td>
+        <td>GCS Standard: $0.020/GB-mo. Artifact Registry: $0.10/GB-mo.</td>
+        <td class="azure">Azure Blob Storage LRS hot tier: $0.018/GB-mo. Azure Container Registry: $0.10/GB-mo. Lifecycle management policies for auto-tiering to cool/archive.</td>
+        <td>GCS + CF R2 for DR objects. Best egress economics (R2 free egress).</td>
+      </tr>
+      <tr>
+        <td>RTO / RPO posture</td>
+        <td><span class="pill p-best">Best — full AWS Backup, point-in-time recovery, cross-region snapshots</span></td>
+        <td><span class="pill p-low">Weakest — no managed cross-region DR; relies on export scripts</span></td>
+        <td><span class="pill p-best">Strong — managed point-in-time recovery, cross-region export</span></td>
+        <td class="azure"><span class="pill p-best">Best — Azure Backup, PITR, geo-redundant storage, Site Recovery for VMs</span></td>
+        <td><span class="pill p-mid">Good — GCP handles DB DR; CF side is stateless</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Support -->
+  <h3 style="margin-top:28px">7.5 &nbsp;Support plans</h3>
+  <table>
+    <thead><tr><th>Plan</th><th class="aws">AWS</th><th class="stack">Vercel+Railway+CF</th><th class="gcp">GCP</th><th class="azure">Azure</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Minimum recommended</td>
+        <td class="aws"><span class="pill p-mid">⚠ AWS Business Support discontinued Jan 1, 2027</span> (stopped new subscriptions Dec 2, 2025). Successor: <b>Business Support+</b> — greater of $29/mo or 9% of charges up to $10K (then 5% $10K–$80K, 3% $80K–$250K). At $650/mo spend → <b>~$58.50/mo</b>. Includes AI-powered guidance + 24/7 expert access.</td>
+        <td>Vercel: Pro plan includes email support. Railway: Pro plan community + email. Cloudflare: Pro ($20–$25/mo) includes standard support. Total: <b>~$0–$30/mo</b> extra beyond plan fees (support included).</td>
+        <td>GCP Standard Support: <b>greater of $29/mo or 3% of spend</b>. At $220/mo spend → <b>~$29/mo</b>. Enhanced Support: max($100, 10% spend) for faster response. Standard is sufficient for most non-enterprise deployments.</td>
+        <td class="azure">Azure Developer Support: <b>$29/mo</b>. Standard Support: <b>$100/mo</b> (1 business day SLA). At $550/mo spend → Standard recommended. Includes Azure Advisor + technical support tickets.</td>
+      </tr>
+      <tr>
+        <td>Response time (critical)</td>
+        <td><span class="pill p-best">Business Support+: &lt;1 hr (production system down)</span></td>
+        <td><span class="pill p-low">Hours (email-based, no SLA)</span></td>
+        <td><span class="pill p-mid">Standard: 4 hr · Enhanced: 1 hr production</span></td>
+        <td class="azure"><span class="pill p-mid">Standard: 2 hr (critical) · Professional Direct: 1 hr</span></td>
+      </tr>
+      <tr>
+        <td>Enterprise-grade support</td>
+        <td>AWS Enterprise On-Ramp: being auto-upgraded to Enterprise Support at renewal from 2026. Enterprise: $15,000/mo min. Includes dedicated TAM.</td>
+        <td>Vercel Enterprise: custom pricing. Cloudflare Enterprise: custom. Railway: no enterprise tier currently.</td>
+        <td>GCP Enhanced: max($100, 10% spend). Premium: $15,000/mo min. Dedicated Technical Account Manager.</td>
+        <td class="azure">Azure Professional Direct: $1,000/mo. Unified Support: custom pricing. Dedicated Customer Success Account Manager (CSAM) available.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Roll-up summary -->
+  <h3 style="margin-top:28px">7.6 &nbsp;Add-on cost roll-up (medium-traffic tier)</h3>
+  <p class="sub">How operational add-ons change the medium-tier monthly total per strategy. Minimum production-ready configuration (logging + monitoring + WAF + secrets + basic support). Backup/DR estimated for a typical 300-project DB footprint (~200&nbsp;GB total).</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Add-on category</th>
+        <th class="aws">AWS (est.)</th>
+        <th class="stack">Vercel+Railway+CF (est.)</th>
+        <th class="gcp">GCP (est.)</th>
+        <th class="azure">Azure (est.)</th>
+        <th style="color:var(--hybrid)">GCP+CF ④ (est.)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Logging</td><td>$30</td><td>$30</td><td>$10</td><td class="azure">$25</td><td>$10</td></tr>
+      <tr><td>Monitoring / observability</td><td>$50</td><td>$35</td><td>$20</td><td class="azure">$40</td><td>$20</td></tr>
+      <tr><td>WAF managed rules</td><td>$25</td><td><span class="pill p-best">incl. CF Pro $25</span></td><td>$20</td><td class="azure">$15 (Front Door WAF policy)</td><td><span class="pill p-best">incl. CF Pro $25</span></td></tr>
+      <tr><td>DDoS (beyond standard)</td><td>$0 (Shield Std)</td><td><span class="pill p-best">$0 (CF incl.)</span></td><td>$0 (Google absorbs)</td><td class="azure"><span class="pill p-best">$0 (bundled Front Door Std)</span></td><td><span class="pill p-best">$0 (CF incl.)</span></td></tr>
+      <tr><td>Secrets management</td><td>$36</td><td>$0 (env vars)</td><td>$54</td><td class="azure"><span class="pill p-best">$10 (Key Vault ops-based)</span></td><td>$54</td></tr>
+      <tr><td>Container scanning</td><td>$15</td><td>$25 (Snyk free/OSS)</td><td>$20</td><td class="azure">$33 (Defender for Containers)</td><td>$20</td></tr>
+      <tr><td>Threat detection</td><td>$25 (GuardDuty)</td><td>$0</td><td>$0 (SCC free)</td><td class="azure">$20 (Defender for Cloud)</td><td>$0</td></tr>
+      <tr><td>Backup / DR (DB snapshots)</td><td>$20</td><td>$10</td><td>$20</td><td class="azure">$20</td><td>$20</td></tr>
+      <tr><td>Support (min. production)</td><td><span class="pill p-mid">~$59 (Business Support+, 9% of $650 spend)</span> <small style="color:var(--dim)">Old Business plan discontinued Jan 1, 2027</small></td><td>$0 (incl.)</td><td>$29 (Standard min.)</td><td class="azure">$100 (Standard min.)</td><td>$29</td></tr>
+      <tr style="font-weight:700">
+        <td><b>Add-on subtotal</b></td>
+        <td class="aws"><b>~$260/mo</b></td>
+        <td class="stack"><b>~$100/mo</b></td>
+        <td class="gcp"><b>~$153/mo</b></td>
+        <td class="azure"><b>~$263/mo</b></td>
+        <td style="color:var(--hybrid)"><b>~$153/mo</b></td>
+      </tr>
+      <tr>
+        <td><b>Base compute (Section 2 medium)</b></td>
+        <td>$650</td>
+        <td>$75</td>
+        <td>$220</td>
+        <td class="azure">$550</td>
+        <td>$110</td>
+      </tr>
+      <tr style="font-weight:700;font-size:14px">
+        <td><b>Total (production-ready)</b></td>
+        <td class="aws"><b>~$910/mo</b></td>
+        <td class="stack"><b>~$175/mo</b></td>
+        <td class="gcp"><b>~$373/mo</b></td>
+        <td class="azure"><b>~$813/mo</b></td>
+        <td style="color:var(--hybrid)"><b>~$263/mo</b></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="note" style="border-color:var(--hybrid)"><b>Key insight:</b> Add-ons hit AWS hardest (+40% to compute) due to Secrets Manager per-secret fees and GuardDuty. The switch from old Business Support ($100 min) to Business Support+ (~$59 at this spend level) marginally reduces the AWS add-on overhead. GCP and GCP+CF benefit from Cloud Logging's 50&nbsp;GB free tier, SCC Standard free, and lower support minimum. The PaaS stack stays cheapest overall (<b>$175/mo</b> production-ready) but has the thinnest security controls — suitable for standard SaaS, not regulated workloads. Variant ④ at <b>~$263/mo</b> is the best production-ready serverless-on-hyperscaler price. <b style="color:var(--azure)">Azure at ~$813/mo production-ready is the most expensive option</b> — the $35 Front Door base, Azure Monitor ingestion costs, Defender for Containers, and $100 Standard support combine to exceed even AWS. Azure's value proposition is enterprise compliance breadth and Microsoft-ecosystem integration, not raw cost.</div>
+  <div class="note warn"><b>What these estimates exclude:</b> database compute itself (Cloud SQL / RDS instance costs vary enormously by tier), Datadog/New Relic APM if chosen over native tools ($50–$500+/mo), compliance audit tooling (AWS Audit Manager, GCP Assured Workloads), and AWS Shield Advanced ($3,000/mo) — all are add-ons evaluated case-by-case.</div>
+</section>
+
+<!-- ================= SOURCES ================= -->
+<section>
+  <h2><span class="num">8</span> Pricing sources (official + verified, June 2026)</h2>
+  <div class="sources">
+    <a href="https://aws.amazon.com/fargate/pricing/" target="_blank" rel="noopener noreferrer">AWS Fargate pricing<span>$0.04048/vCPU-hr · $0.004445/GB-hr — verified Jun 2026</span></a>
+    <a href="https://aws.amazon.com/ecs/pricing/" target="_blank" rel="noopener noreferrer">Amazon ECS pricing<span>official ECS rate card</span></a>
+    <a href="https://aws.amazon.com/elasticloadbalancing/pricing/" target="_blank" rel="noopener noreferrer">AWS ELB / ALB pricing<span>$0.0225/hr + $0.008/LCU-hr — verified Jun 2026</span></a>
+    <a href="https://aws.amazon.com/cloudfront/pricing/" target="_blank" rel="noopener noreferrer">AWS CloudFront pricing<span>$0.085/GB pay-as-you-go; flat-rate plans (Nov 2025): Pro $15/mo 50TB, Business $200/mo, Premium $1,000/mo</span></a>
+    <a href="https://aws.amazon.com/vpc/pricing/" target="_blank" rel="noopener noreferrer">AWS VPC / NAT Gateway pricing<span>$0.045/hr + $0.045/GB — verified Jun 2026</span></a>
+    <a href="https://docs.aws.amazon.com/vpc/latest/userguide/nat-gateway-pricing.html" target="_blank" rel="noopener noreferrer">NAT Gateway pricing docs<span>per-AZ detail</span></a>
+    <a href="https://aws.amazon.com/cloudwatch/pricing/" target="_blank" rel="noopener noreferrer">Amazon CloudWatch pricing<span>$0.50/GB logs ingest · $0.03/GB-mo storage · $0.30/metric/mo</span></a>
+    <a href="https://aws.amazon.com/secrets-manager/pricing/" target="_blank" rel="noopener noreferrer">AWS Secrets Manager pricing<span>$0.40/secret/mo + $0.05/10K API calls</span></a>
+    <a href="https://aws.amazon.com/guardduty/pricing/" target="_blank" rel="noopener noreferrer">Amazon GuardDuty pricing<span>$4/M CloudTrail events + tiered VPC flow logs</span></a>
+    <a href="https://aws.amazon.com/shield/pricing/" target="_blank" rel="noopener noreferrer">AWS Shield pricing<span>Shield Std: free · Shield Advanced: $3,000/mo (1-yr commit)</span></a>
+    <a href="https://aws.amazon.com/premiumsupport/pricing/" target="_blank" rel="noopener noreferrer">AWS Support plan pricing<span>Business Support discontinued Jan 1, 2027 · Business Support+: max($29, 9% spend up to $10K) — replaces Business plan</span></a>
+    <a href="https://cloud.google.com/run/pricing" target="_blank" rel="noopener noreferrer">Google Cloud Run pricing<span>$0.000024/vCPU-s · $0.0000025/GiB-s · 2M req free — verified Jun 2026</span></a>
+    <a href="https://cloud.google.com/vpc/network-pricing" target="_blank" rel="noopener noreferrer">GCP network egress pricing<span>~$0.12/GB premium tier</span></a>
+    <a href="https://cloud.google.com/load-balancing/pricing" target="_blank" rel="noopener noreferrer">GCP Cloud Load Balancing pricing<span>global external LB base + rules</span></a>
+    <a href="https://cloud.google.com/stackdriver/pricing" target="_blank" rel="noopener noreferrer">GCP Cloud Logging &amp; Monitoring pricing<span>first 50 GB/mo free · $0.50/GiB ingest thereafter</span></a>
+    <a href="https://cloud.google.com/secret-manager/pricing" target="_blank" rel="noopener noreferrer">GCP Secret Manager pricing<span>$0.06/active version/mo + $0.03/10K ops</span></a>
+    <a href="https://cloud.google.com/armor/pricing" target="_blank" rel="noopener noreferrer">GCP Cloud Armor pricing<span>$5/policy/mo + $1/rule/mo + $0.75/M req</span></a>
+    <a href="https://cloud.google.com/support" target="_blank" rel="noopener noreferrer">GCP Support plans<span>Standard: max($29, 3% spend)</span></a>
+    <a href="https://cloud.google.com/blog/products/serverless/whats-new-for-cloud-run-at-next26" target="_blank" rel="noopener noreferrer">Cloud Run — What's new (Next '26)<span>GPU GA (L4/RTX PRO 6000), multi-region preview, ephemeral disk preview, service-level min-instances GA</span></a>
+    <a href="https://cloud.google.com/blog/products/serverless/cloud-run-gpus-are-now-generally-available" target="_blank" rel="noopener noreferrer">Cloud Run GPU support GA<span>NVIDIA L4 + RTX PRO 6000 Blackwell (96 GB) — scale-to-zero included</span></a>
+    <a href="https://docs.aws.amazon.com/awssupport/latest/user/support-plans-eos.html" target="_blank" rel="noopener noreferrer">AWS Support plan end-of-support notice<span>Business + Enterprise On-Ramp discontinued Jan 1, 2027; Business Support+ replaces Business</span></a>
+    <a href="https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/flat-rate-pricing-plan.html" target="_blank" rel="noopener noreferrer">AWS CloudFront flat-rate pricing plans<span>Launched Nov 2025 — Pro $15/mo (50TB), Business $200/mo, Premium $1,000/mo</span></a>
+    <a href="https://vercel.com/pricing" target="_blank" rel="noopener noreferrer">Vercel pricing<span>Pro $20/seat + $20 monthly flexible credit (Sept 2025 model) · 1TB Fast Data Transfer · overage $0.15/GB · Edge req overage $2/M</span></a>
+    <a href="https://railway.com/pricing" target="_blank" rel="noopener noreferrer">Railway pricing<span>$0.014/GB-hr RAM · $0.028/vCPU-hr · $0.05/GB egress · Pro $20/seat incl. $20 credit</span></a>
+    <a href="https://www.cloudflare.com/plans/" target="_blank" rel="noopener noreferrer">Cloudflare plans<span>Pro $20/mo (annual) / $25/mo (month-to-month) · Workers Paid $5/mo + WAF/DDoS included</span></a>
+    <a href="https://developers.cloudflare.com/workers/platform/pricing/" target="_blank" rel="noopener noreferrer">Cloudflare Workers pricing<span>$5/mo · 10M req + 30M CPU-ms incl · req overage $0.30/M · CPU-ms overage $0.02/M ms</span></a>
+    <a href="https://betterstack.com/pricing" target="_blank" rel="noopener noreferrer">Better Stack pricing<span>Logs from $0 (3GB/3d) → $24/mo (10GB/30d); uptime from $29/mo</span></a>
+    <a href="https://azure.microsoft.com/en-us/pricing/details/container-apps/" target="_blank" rel="noopener noreferrer">Azure Container Apps pricing<span>$0.000024/vCPU-s · $0.000003/GiB-s · 180k vCPU-s free · 2M req/mo free — verified Jun 2026</span></a>
+    <a href="https://azure.microsoft.com/en-us/pricing/details/frontdoor/" target="_blank" rel="noopener noreferrer">Azure Front Door Standard pricing<span>$35/mo base + $0.008/GB transfer · 118+ PoPs · WAF: $5/policy/mo + $1/rule/mo · DDoS Standard bundled</span></a>
+    <a href="https://azure.microsoft.com/en-us/pricing/details/dns/" target="_blank" rel="noopener noreferrer">Azure DNS pricing<span>$0.50/zone/mo + $0.40/M queries</span></a>
+    <a href="https://azure.microsoft.com/en-us/pricing/details/storage/blobs/" target="_blank" rel="noopener noreferrer">Azure Blob Storage pricing<span>$0.018/GB-mo LRS hot tier (East US) — verified Jun 2026</span></a>
+    <a href="https://azure.microsoft.com/en-us/pricing/details/key-vault/" target="_blank" rel="noopener noreferrer">Azure Key Vault pricing<span>$0.03/10k operations; secrets storage included</span></a>
+    <a href="https://azure.microsoft.com/en-us/pricing/details/monitor/" target="_blank" rel="noopener noreferrer">Azure Monitor pricing<span>$2.76/GB ingestion · first 5 GB/day free per workspace · retention beyond 31d $0.12/GB-mo</span></a>
+    <a href="https://azure.microsoft.com/en-us/pricing/details/defender-for-cloud/" target="_blank" rel="noopener noreferrer">Microsoft Defender for Cloud pricing<span>Foundational CSPM free · Defender for Containers ~$7/node/mo · enhanced CSPM $0.015/server/hr</span></a>
+    <a href="https://azure.microsoft.com/en-us/support/plans/" target="_blank" rel="noopener noreferrer">Azure Support plans<span>Developer $29/mo · Standard $100/mo (2hr critical SLA) · Professional Direct $1,000/mo</span></a>
+    <a href="https://azure.microsoft.com/en-us/pricing/details/bandwidth/" target="_blank" rel="noopener noreferrer">Azure egress pricing<span>$0.087/GB outbound (East US, first 10TB/mo)</span></a>
+  </div>
+</section>
+
+<footer>
+  Estimates are list-price approximations for planning only — actual cost varies with region, reserved/committed discounts, real traffic shape, response sizes, and data egress. Always confirm against official calculators and your own load profile before committing. Compute pricing verified June 2026; operational add-on pricing (Section 7) verified June 2026. Last updated June 5, 2026 with: <b>Azure Container Apps + Front Door Standard added as a full fifth platform</b>; AWS Business Support→Business Support+ migration notice (Dec 2025, discontinued Jan 1, 2027); CloudFront flat-rate plans (Nov 2025); Fargate Spot up to 70% discount; Cloud Run GPU GA (L4/RTX 6000, 2025); Cloud Run min-instances pricing update; Vercel Pro $20/seat flexible credit model (Sept 2025); Vercel Hobby commercial ban (Dec 2024); Railway $0.05/GB egress; Cloudflare Workers CPU-ms overage rate; Cloudflare R2 10 GB free tier.
+</footer>
+
+</div>
+</body>
+</html>

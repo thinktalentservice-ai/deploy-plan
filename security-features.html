@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Security Features by Deployment Variant — 300-Project Fleet (Client Brief)</title>
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#141925; --panel2:#1b2230; --line:#263041;
+    --txt:#e6edf3; --muted:#8b98a9; --dim:#5d6b7d;
+    --aws:#ff9900; --gcp:#4285f4; --stack:#a855f7; --hybrid:#2dd4bf; --azure:#0078d4;
+    --green:#22c55e; --amber:#f59e0b; --red:#ef4444; --cyan:#22d3ee;
+    --shadow:0 8px 30px rgba(0,0,0,.4);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    background:radial-gradient(1200px 600px at 80% -10%,#13203a 0%,transparent 60%),var(--bg);
+    color:var(--txt); line-height:1.55; padding:0 0 80px;
+  }
+  header{
+    padding:48px 32px 36px; text-align:center;
+    border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,rgba(20,25,37,.6),transparent);
+  }
+  header h1{font-size:30px; font-weight:700; letter-spacing:-.5px; margin-bottom:10px}
+  header h1 .a{color:var(--aws)} header h1 .s{color:var(--stack)} header h1 .g{color:var(--gcp)} header h1 .h{color:var(--hybrid)}
+  header p{color:var(--muted); max-width:860px; margin:0 auto; font-size:15px}
+  .badge{display:inline-block;margin-top:14px;font-size:12px;color:var(--cyan);border:1px solid var(--line);background:var(--panel2);border-radius:20px;padding:5px 14px}
+  .wrap{max-width:1240px; margin:0 auto; padding:0 24px}
+  section{margin-top:46px}
+  h2{font-size:22px; margin-bottom:6px; display:flex; align-items:center; gap:10px}
+  h2 .num{font-size:13px; background:var(--panel2); color:var(--cyan); border:1px solid var(--line);
+    border-radius:8px; padding:3px 9px; font-weight:600}
+  h3{font-size:17px;margin:24px 0 10px}
+  .sub{color:var(--muted); font-size:14px; margin-bottom:20px}
+
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:18px}
+  .grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:20px}
+  .card h4{font-size:15px; margin-bottom:10px; display:flex; align-items:center; gap:8px}
+  .card h4 .dot{width:10px; height:10px; border-radius:50%}
+  .card p{font-size:13.5px; color:var(--muted); margin-bottom:8px}
+  .card code{background:#0c111b; border:1px solid var(--line); border-radius:6px; padding:1px 6px; font-size:12.5px; color:var(--cyan)}
+
+  /* Variant security cards */
+  .vsec{background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:22px; position:relative; overflow:hidden}
+  .vsec::before{content:''; position:absolute; top:0; left:0; right:0; height:4px}
+  .vsec.aws::before{background:var(--aws)} .vsec.stack::before{background:var(--stack)}
+  .vsec.gcp::before{background:var(--gcp)} .vsec.hybrid::before{background:var(--hybrid)}
+  .vsec.azure::before{background:var(--azure)}
+  .vsec h3{font-size:18px; margin:0 0 2px}
+  .vsec .tag{font-size:12px; color:var(--muted); margin-bottom:14px; display:block}
+  .vsec ul{list-style:none; font-size:13px}
+  .vsec li{padding:5px 0; padding-left:22px; position:relative; color:var(--muted)}
+  .vsec li b{color:var(--txt)}
+  .vsec li::before{position:absolute; left:0}
+  .vsec li.y::before{content:'✓'; color:var(--green)}
+  .vsec li.n::before{content:'✕'; color:var(--red)}
+  .vsec li.m::before{content:'~'; color:var(--amber)}
+  .vsec li.lock::before{content:'🔒'}
+
+  table{width:100%; border-collapse:collapse; margin-top:8px; font-size:13.5px;
+    background:var(--panel); border:1px solid var(--line); border-radius:12px; overflow:hidden}
+  th,td{padding:11px 14px; text-align:left; border-bottom:1px solid var(--line); vertical-align:top}
+  th{background:var(--panel2); color:var(--txt); font-weight:600; font-size:12.5px; text-transform:uppercase; letter-spacing:.4px}
+  tr:last-child td{border-bottom:none}
+  td.aws{color:var(--aws)} td.stack{color:var(--stack)} td.gcp{color:var(--gcp)} td.hybrid{color:var(--hybrid)}
+  .pill{display:inline-block; padding:2px 9px; border-radius:20px; font-size:11.5px; font-weight:600}
+  .p-best{background:rgba(34,197,94,.15); color:var(--green)}
+  .p-mid{background:rgba(245,158,11,.15); color:var(--amber)}
+  .p-low{background:rgba(239,68,68,.15); color:var(--red)}
+  .p-na{background:rgba(139,152,169,.12); color:var(--muted)}
+  .p-free{background:rgba(34,211,238,.15); color:var(--cyan)}
+
+  .note{background:linear-gradient(90deg,rgba(34,211,238,.07),transparent); border-left:3px solid var(--cyan); border-radius:0 10px 10px 0; padding:14px 18px; margin-top:16px; font-size:13.5px; color:var(--muted)}
+  .warn{background:linear-gradient(90deg,rgba(245,158,11,.08),transparent); border-left:3px solid var(--amber)}
+  .crit{background:linear-gradient(90deg,rgba(239,68,68,.08),transparent); border-left:3px solid var(--red)}
+  .ok{background:linear-gradient(90deg,rgba(34,197,94,.08),transparent); border-left:3px solid var(--green)}
+  .note b{color:var(--txt)}
+
+  .chk{list-style:none;margin-top:8px}
+  .chk li{padding:7px 0 7px 28px;position:relative;font-size:13.5px;color:var(--muted);border-bottom:1px solid var(--line)}
+  .chk li:last-child{border-bottom:none}
+  .chk li::before{content:'☑';position:absolute;left:0;color:var(--green)}
+  .chk li b{color:var(--txt)}
+
+  .legend{display:flex; gap:18px; flex-wrap:wrap; margin-top:14px; font-size:12.5px; color:var(--muted)}
+  .legend span{display:flex; align-items:center; gap:6px}
+  .legend i{width:12px; height:12px; border-radius:3px; display:inline-block}
+  .legend .i-green{background:var(--green)}
+  .legend .i-amber{background:var(--amber)}
+  .legend .i-red{background:var(--red)}
+
+  /* defence-in-depth card helpers */
+  .card-h4{margin:0 0 8px}
+  .dot-aws{background:var(--aws)}
+  .dot-stack{background:var(--stack)}
+  .dot-gcp{background:var(--gcp)}
+  .dot-hybrid{background:var(--hybrid)}
+  .dot-azure{background:var(--azure)}
+  .card-list{margin:0;padding-left:18px;line-height:1.8;color:var(--muted);font-size:13.5px}
+
+  /* vsec heading colours */
+  .vsec-h-aws{color:var(--aws)}
+  .vsec-h-stack{color:var(--stack)}
+  .vsec-h-gcp{color:var(--gcp)}
+  .vsec-h-hybrid{color:var(--hybrid)}
+  .vsec-h-azure{color:var(--azure)}
+
+  /* inline link accent */
+  .link-cyan{color:var(--cyan)}
+
+  .sources{display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:10px; margin-top:16px}
+  .sources a{display:block; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:11px 14px; color:var(--cyan); text-decoration:none; font-size:13px; transition:.15s}
+  .sources a:hover{border-color:var(--cyan); background:var(--panel2)}
+  .sources a span{display:block; color:var(--dim); font-size:11px; margin-top:2px}
+  .navbar{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:18px}
+  .navbar a{font-size:12.5px;color:var(--muted);text-decoration:none;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:6px 12px;transition:.15s}
+  .navbar a:hover{border-color:var(--cyan);color:var(--cyan)}
+  footer{text-align:center; color:var(--dim); font-size:12.5px; margin-top:50px; padding-top:24px; border-top:1px solid var(--line)}
+  .mb-18{margin-bottom:18px}
+  .mt-28{margin-top:28px}
+  @media(max-width:980px){.grid2,.grid3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Security Features by Deployment Variant</h1>
+  <p>How each strategy for the <b>300-project fleet</b> (100 frontends + 200 backend APIs, one domain) protects the application — edge defence, network isolation, identity, secrets, data, compliance and audit — and exactly what a client gets <i>out of the box</i> vs what must be added. Variants: <span class="a">AWS</span> · <span class="s">Vercel + Railway + Cloudflare</span> · <span class="g">GCP</span> · <span class="h">GCP + Cloudflare (④)</span>.</p>
+  <span class="badge">Client security brief · verified against official docs · June 2026</span>
+  <div class="navbar">
+    <a href="platform-comparison.html">⇄ Platform comparison</a>
+    <a href="cost-estimate.html">$ Cost estimate</a>
+    <a href="cost-simulator.html">▦ Cost simulator</a>
+    <a href="best-serverless-lowbudget.html">★ Low-budget stack</a>
+  </div>
+</header>
+
+<div class="wrap">
+
+<!-- ============ EXEC SUMMARY ============ -->
+<section>
+  <h2><span class="num">0</span> What this means for the client</h2>
+  <p class="sub">The one-paragraph version your security reviewer needs.</p>
+  <div class="note ok">
+    <b>Every variant can be made secure enough for a standard SaaS client.</b> They differ in <i>who does the work</i> and <i>how much is free</i>. The <b class="s">Cloudflare front door</b> gives the strongest <i>edge</i> security (WAF + unmetered DDoS + bot management + TLS + AI scraper blocking) at near-zero cost and concentrates all routing controls in one place. <b class="a">AWS</b> and <b class="g">GCP</b> add the deepest <i>network isolation, data-encryption control (BYOK/CMEK) and regulated-industry compliance</i> (HIPAA / PCI / FedRAMP with a signed BAA) — at the cost of a larger surface you must configure correctly. <b class="h">Variant ④ (GCP + Cloudflare)</b> is the recommended balance: Cloudflare's free edge security in front of Cloud Run's network isolation + compliance behind it. In 2025–2026, supply-chain attacks doubled — SBOM generation, SLSA provenance and Sigstore signing are now baseline expectations, not optional extras.
+  </div>
+</section>
+
+<!-- ============ SCORECARD ============ -->
+<section>
+  <h2><span class="num">1</span> Security scorecard</h2>
+  <p class="sub">Single-domain, 300-app use case. ★ = relative strength of the control as delivered, not a vendor ranking.</p>
+  <table>
+    <thead><tr>
+      <th>Security dimension</th>
+      <th class="aws">AWS</th>
+      <th class="stack">Vercel+Railway+CF</th>
+      <th class="gcp">GCP</th>
+      <th class="hybrid">GCP+CF ④</th>
+    </tr></thead>
+    <tbody>
+      <tr><td>Edge — WAF / DDoS / bot</td><td>★★★★☆</td><td class="stack">★★★★★</td><td>★★★★☆</td><td class="hybrid">★★★★★</td></tr>
+      <tr><td>AI scraper / LLM bot protection</td><td>★★☆☆☆</td><td class="stack">★★★★★</td><td>★★☆☆☆</td><td class="hybrid">★★★★★</td></tr>
+      <tr><td>Network isolation (VPC / private)</td><td class="aws">★★★★★</td><td>★★☆☆☆</td><td>★★★★☆</td><td class="hybrid">★★★★☆</td></tr>
+      <tr><td>Identity &amp; access (IAM granularity)</td><td>★★★★★</td><td>★★★☆☆</td><td>★★★★★</td><td>★★★★★</td></tr>
+      <tr><td>Secrets &amp; data control (BYOK)</td><td>★★★★★</td><td>★★☆☆☆</td><td>★★★★☆</td><td>★★★★☆</td></tr>
+      <tr><td>Compliance / regulated (HIPAA/PCI)</td><td>★★★★★</td><td>★★★☆☆</td><td>★★★★★</td><td>★★★★★</td></tr>
+      <tr><td>Audit &amp; supply-chain (SBOM/SLSA)</td><td>★★★★★</td><td>★★★☆☆</td><td>★★★★★</td><td>★★★★★</td></tr>
+      <tr><td>Low misconfig risk (secure by default)</td><td>★★☆☆☆</td><td class="stack">★★★★★</td><td>★★★★☆</td><td>★★★★☆</td></tr>
+      <tr><td>Centralised control (one front door)</td><td>★★★☆☆</td><td class="stack">★★★★★</td><td>★★★★☆</td><td class="hybrid">★★★★★</td></tr>
+      <tr><td>Effort to reach "secure enough"</td><td><span class="pill p-low">High</span></td><td><span class="pill p-best">Low</span></td><td><span class="pill p-mid">Medium</span></td><td><span class="pill p-mid">Medium</span></td></tr>
+      <tr><td>Cost of the security add-ons</td><td><span class="pill p-low">$$$ (WAF+Shield+tools)</span></td><td><span class="pill p-best">~free–$ (CF included)</span></td><td><span class="pill p-mid">$$ (Armor+tools)</span></td><td><span class="pill p-best">$ (CF edge free + GCP tools)</span></td></tr>
+    </tbody>
+  </table>
+  <div class="legend">
+    <span><i class="i-green"></i>strong / handled for you</span>
+    <span><i class="i-amber"></i>partial / you tune it</span>
+    <span><i class="i-red"></i>weak / large effort</span>
+  </div>
+</section>
+
+<!-- ============ PER-VARIANT CARDS ============ -->
+<section>
+  <h2><span class="num">2</span> Security features in each variant</h2>
+  <p class="sub">What's built in (✓), what's optional/configurable (~), what's missing or weak (✕), and what you must lock down (🔒).</p>
+
+  <div class="grid2">
+    <!-- AWS -->
+    <div class="vsec aws">
+      <h3 class="vsec-h-aws">① AWS</h3>
+      <span class="tag">ECS Fargate/EC2 + ALB + CloudFront + WAF + VPC</span>
+      <ul>
+        <li class="y"><b>Edge:</b> CloudFront + AWS WAF managed rule groups + AWS Shield Standard (always-on L3/4 DDoS); WAF now includes enhanced CloudFront Rule Packs with automated TLS provisioning</li>
+        <li class="y"><b>Network:</b> full VPC — private subnets, security groups, NACLs, PrivateLink, VPC peering; Shield Network Security Director auto-discovers &amp; prioritises network risks across accounts</li>
+        <li class="y"><b>Identity:</b> IAM — extremely fine-grained, roles, SCPs, permission boundaries; Cognito for app auth; Verified Access for Zero Trust</li>
+        <li class="y"><b>Secrets:</b> Secrets Manager with <b>automatic rotation</b>; SSM Parameter Store</li>
+        <li class="y"><b>Data:</b> KMS with <b>BYOK / customer-managed keys</b>, encryption at rest everywhere, TLS via ACM</li>
+        <li class="y"><b>Compliance:</b> SOC 2, ISO 27001, HIPAA, PCI-DSS, FedRAMP — signs a BAA</li>
+        <li class="y"><b>Audit/supply-chain:</b> CloudTrail (every API call), GuardDuty, Inspector, ECR image scanning; SBOM export via Inspector; SLSA provenance via AWS CodeBuild</li>
+        <li class="m"><b>Cost:</b> WAF managed rules pricing updated (June 2026): $5/ACL/mo + $1/rule/mo + $0.60/M requests; Shield Advanced $3,000/mo fixed fee (confirmed); GuardDuty, Secrets Manager billed separately; L7 DDoS protection free up to 50B WAF requests/mo for Shield Advanced customers</li>
+        <li class="n"><b>Surface:</b> largest — public S3, open SGs, over-broad IAM are the classic self-inflicted breaches</li>
+        <li class="lock"><b>Must do:</b> least-privilege IAM, private subnets for backends, WAF rate rules, patch base images, enable Shield Network Security Posture Management</li>
+      </ul>
+    </div>
+
+    <!-- Stack -->
+    <div class="vsec stack">
+      <h3 class="vsec-h-stack">② Vercel + Railway + Cloudflare</h3>
+      <span class="tag">CF Worker front door → Vercel (FE) + Railway (BE)</span>
+      <ul>
+        <li class="y"><b>Edge:</b> Cloudflare WAF + <b>unmetered DDoS (included on every plan)</b> + Bot Management / Turnstile + rate limiting + <b>AI Scraper &amp; Crawler blocking (one-click, free)</b> — best-in-class</li>
+        <li class="y"><b>AI threat protection:</b> Block GPTBot, ClaudeBot, PerplexityBot and 1 M+ customers' worth of known LLM crawlers with a single dashboard toggle; automatically updated fingerprints</li>
+        <li class="y"><b>Zero Trust:</b> Cloudflare Access + MCP Server Portals (Open Beta) — consolidate all MCP tool calls and set user-level policies per gateway and per MCP server; WARP connector now extends Zero Trust to private networks (on-prem / internal services)</li>
+        <li class="y"><b>Identity at edge:</b> Worker validates JWT / Cloudflare Access (Zero Trust) <i>before</i> the request reaches any origin; AI Prompt Protection to block sensitive data leakage to LLMs</li>
+        <li class="y"><b>TLS:</b> automatic, zero-config, everywhere</li>
+        <li class="y"><b>Secure by default:</b> fewest knobs → fewest self-inflicted holes; provider patches the platform</li>
+        <li class="m"><b>Network:</b> mostly public + token/secret auth — <b>limited deep isolation</b> (no full VPC)</li>
+        <li class="m"><b>Secrets:</b> per-platform env vars, <b>manual rotation</b> (redeploy); no BYOK on Railway</li>
+        <li class="y"><b>R2 storage:</b> improved CORS policies — granular per-bucket CORS rules now configurable without a Worker proxy; reduces surface for misconfigured cross-origin access</li>
+        <li class="m"><b>Compliance:</b> Cloudflare &amp; Vercel SOC 2 strong; Railway lighter — fine for standard SaaS, weaker for HIPAA/PCI</li>
+        <li class="y"><b>Cost:</b> most edge security is <b>free / included</b> — biggest budget win; Turnstile free with unlimited challenges</li>
+        <li class="lock"><b>Must do:</b> origin-lock secret header so users can't bypass CF and hit Vercel/Railway URLs directly; env-var hygiene; enable AI scraper block + WAF managed ruleset</li>
+      </ul>
+    </div>
+
+    <!-- GCP -->
+    <div class="vsec gcp">
+      <h3 class="vsec-h-gcp">③ GCP</h3>
+      <span class="tag">Cloud Run + Global LB + Cloud Armor + Cloud CDN</span>
+      <ul>
+        <li class="y"><b>Edge:</b> Cloud Armor WAF — managed OWASP rules + Google-edge DDoS absorption + rate-limit rules; <b>enhanced WAF body inspection expanded to 64 KB</b> (up from 8 KB); Thales Imperva-powered managed rules for zero-day coverage (preview); <b>Adaptive Protection now GA</b> — ML-based DDoS detection and auto-generated mitigation rules across L3/L4 and L7</li>
+        <li class="y"><b>Hierarchical policies:</b> Cloud Armor Hierarchical Security Policies (GA) — centrally manage rules across all 300 apps from one org-level policy; org-scoped address groups for IP allowlists/denylists</li>
+        <li class="y"><b>Network:</b> VPC, Cloud Run <b>ingress = internal + LB only</b>, VPC connectors, internal load balancing; Cloud NGFW enforces service-centric security for Cloud Run &amp; GKE traffic</li>
+        <li class="y"><b>Identity:</b> fine-grained IAM; Cloud Run service identity + ID tokens; <b>IAP</b> (Identity-Aware Proxy) for zero-trust; Workload Identity Federation</li>
+        <li class="y"><b>Secrets:</b> Secret Manager (versioned, IAM-scoped); rotation via scripts/automation</li>
+        <li class="y"><b>Data:</b> default encryption + <b>CMEK / BYOK</b>, Google-managed TLS certs (auto)</li>
+        <li class="y"><b>Compliance:</b> SOC 2, ISO 27001, HIPAA, PCI-DSS, FedRAMP — signs a BAA</li>
+        <li class="y"><b>Audit/supply-chain:</b> Cloud Audit Logs, Security Command Center, Artifact Analysis + <b>Binary Authorization</b>; SBOM export GA; SLSA provenance from Cloud Build; Model Armor for LLM prompt/response filtering</li>
+        <li class="m"><b>Surface:</b> medium — strong defaults, you still own IAM &amp; Armor policy tuning</li>
+        <li class="lock"><b>Must do:</b> set Cloud Run ingress to internal+LB, scope IAM, enable Armor hierarchical policies + managed rules, audit logs, Binary Authorization</li>
+      </ul>
+    </div>
+
+    <!-- Variant 4 -->
+    <div class="vsec hybrid">
+      <h3 class="vsec-h-hybrid">★ ④ GCP + Cloudflare (recommended)</h3>
+      <span class="tag">CF Worker edge → Cloud Run origins (ingress-locked)</span>
+      <ul>
+        <li class="y"><b>Edge (CF):</b> free best-in-class WAF + unmetered DDoS + bot + rate limiting + edge JWT/Access + AI scraper blocking for all 300 apps</li>
+        <li class="y"><b>Origin (GCP):</b> Cloud Run network isolation + Armor hierarchical policies, VPC, IAM, CMEK/BYOK, compliance + BAA on the backend</li>
+        <li class="y"><b>Identity:</b> edge pre-auth at the Worker <b>and</b> Cloud Run IAM/ID-token on the origin — defence in depth; MCP Server Portals for AI agent Zero Trust</li>
+        <li class="y"><b>AI security:</b> CF AI Prompt Protection + GCP Model Armor — two independent layers filtering LLM interactions at edge and at origin</li>
+        <li class="y"><b>Audit:</b> Cloudflare logs at the edge + Cloud Audit Logs / SCC at the origin; SBOM + SLSA provenance from Cloud Build</li>
+        <li class="y"><b>Cost:</b> edge security free; only GCP-side tools (Secret Manager, SCC, Artifact Analysis) are paid</li>
+        <li class="m"><b>Surface:</b> two vendors, but only the Worker to "operate"; cross-cloud hop adds minor latency</li>
+        <li class="lock"><b>Mandatory:</b> lock the origin — Cloud Run ingress <code>internal-and-cloud-load-balancing</code> <i>or</i> a Worker-injected <code>X-Origin-Secret</code> header, so attackers can't hit <code>*.run.app</code> directly and skip the edge</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FEATURE MATRIX ============ -->
+<section>
+  <h2><span class="num">3</span> Control-by-control matrix</h2>
+  <p class="sub">Same security control across all four variants. "Best-in-class" pills mark where a variant is the standout.</p>
+  <table>
+    <thead><tr><th>Control</th><th class="aws">AWS</th><th class="stack">Vercel+Railway+CF</th><th class="gcp">GCP</th><th class="hybrid">GCP+CF ④</th></tr></thead>
+    <tbody>
+      <tr><td>WAF</td><td>AWS WAF + CloudFront Rule Packs</td><td><span class="pill p-best">Cloudflare WAF (free managed ruleset)</span></td><td>Cloud Armor + Imperva managed rules (preview)</td><td><span class="pill p-best">Cloudflare WAF</span></td></tr>
+      <tr><td>DDoS protection</td><td>Shield Std (Adv $3,000/mo fixed; 50B req/mo free for Adv)</td><td><span class="pill p-best">CF — unmetered, included</span></td><td>Cloud Armor + Google edge; <b>Adaptive Protection GA</b> — ML auto-mitigation L3/L4+L7</td><td><span class="pill p-best">CF — unmetered, included</span></td></tr>
+      <tr><td>Bot management</td><td><span class="pill p-mid">WAF Bot Control (add-on)</span></td><td><span class="pill p-best">CF Bot Mgmt / Turnstile (free, unlimited challenges)</span></td><td><span class="pill p-mid">reCAPTCHA Enterprise</span></td><td><span class="pill p-best">CF Bot Mgmt / Turnstile</span></td></tr>
+      <tr><td>AI scraper / LLM bot block</td><td><span class="pill p-mid">Manual WAF rules required</span></td><td><span class="pill p-best">CF one-click AI Scrapers toggle (free)</span></td><td><span class="pill p-mid">Manual WAF + robots.txt</span></td><td><span class="pill p-best">CF one-click AI Scrapers toggle</span></td></tr>
+      <tr><td>L7 rate limiting</td><td>WAF rate rules ($$)</td><td><span class="pill p-best">CF edge, granular</span></td><td>Cloud Armor rate rules</td><td><span class="pill p-best">CF edge, granular</span></td></tr>
+      <tr><td>WAF body inspection depth</td><td>Up to 8 KB (configurable)</td><td>CF default limits</td><td><span class="pill p-best">64 KB body inspection (up from 8 KB, GA 2025)</span></td><td>CF + 64 KB Armor</td></tr>
+      <tr><td>Centralised WAF policy</td><td><span class="pill p-mid">Firewall Manager (setup-heavy)</span></td><td><span class="pill p-best">Single CF Worker</span></td><td><span class="pill p-best">Armor Hierarchical Policies (GA)</span></td><td><span class="pill p-best">CF Worker + Armor hierarchy</span></td></tr>
+      <tr><td>Network isolation</td><td><span class="pill p-best">Full VPC / SGs / private</span></td><td><span class="pill p-low">Limited (managed PaaS)</span></td><td><span class="pill p-best">VPC + ingress controls + Cloud NGFW</span></td><td><span class="pill p-best">VPC + ingress-locked</span></td></tr>
+      <tr><td>Private networking</td><td><span class="pill p-best">PrivateLink, peering</span></td><td><span class="pill p-low">Public + tokens</span></td><td>VPC connector, internal LB</td><td>VPC connector, internal LB</td></tr>
+      <tr><td>Edge auth / JWT</td><td><span class="pill p-mid">Lambda@Edge (extra)</span></td><td><span class="pill p-best">Worker pre-auth</span></td><td><span class="pill p-mid">IAP / at LB</span></td><td><span class="pill p-best">Worker pre-auth</span></td></tr>
+      <tr><td>Zero-trust access</td><td>Verified Access (setup-heavy)</td><td><span class="pill p-best">CF Access + MCP Server Portals + WARP connector (private networks)</span></td><td>IAP + Workload Identity Federation</td><td><span class="pill p-best">CF Access + IAP + MCP Server Portals + WARP connector</span></td></tr>
+      <tr><td>AI / LLM security</td><td><span class="pill p-mid">DIY WAF rules</span></td><td><span class="pill p-best">CF AI Prompt Protection + AI Gateway</span></td><td><span class="pill p-best">Model Armor (prompt/response filter)</span></td><td><span class="pill p-best">CF AI Prompt Protection + Model Armor</span></td></tr>
+      <tr><td>Secrets storage</td><td>Secrets Manager / SSM</td><td>Per-platform env vars</td><td>Secret Manager</td><td>Secret Manager</td></tr>
+      <tr><td>Secrets rotation</td><td><span class="pill p-best">Automatic</span></td><td><span class="pill p-low">Manual (redeploy)</span></td><td><span class="pill p-mid">Scripted</span></td><td><span class="pill p-mid">Scripted</span></td></tr>
+      <tr><td>Encryption at rest / BYOK</td><td><span class="pill p-best">KMS, BYOK</span></td><td><span class="pill p-mid">Provider-managed</span></td><td><span class="pill p-best">CMEK / BYOK</span></td><td><span class="pill p-best">CMEK / BYOK</span></td></tr>
+      <tr><td>TLS / cert mgmt</td><td>ACM (auto-renew)</td><td><span class="pill p-best">Auto, zero-config</span></td><td>Google-managed (auto)</td><td><span class="pill p-best">CF auto + GCP certs</span></td></tr>
+      <tr><td>Security headers (CSP/HSTS)</td><td><span class="pill p-mid">CloudFront response headers policy</span></td><td><span class="pill p-best">CF Transform Rules — one policy, 300 apps</span></td><td><span class="pill p-mid">LB + Cloud Run headers</span></td><td><span class="pill p-best">CF Transform Rules centrally</span></td></tr>
+      <tr><td>Audit logging</td><td><span class="pill p-best">CloudTrail (all API)</span></td><td><span class="pill p-mid">Per-platform logs</span></td><td><span class="pill p-best">Cloud Audit Logs</span></td><td><span class="pill p-best">CF logs + Audit Logs</span></td></tr>
+      <tr><td>Threat detection</td><td>GuardDuty + Shield Network SPM</td><td><span class="pill p-low">DIY / external</span></td><td>Security Command Center (Agentic AI SCC, 2026)</td><td>SCC (origin)</td></tr>
+      <tr><td>Image / supply-chain scan</td><td><span class="pill p-best">ECR scan + Inspector (SBOM export)</span></td><td><span class="pill p-mid">Trivy / Dependabot (free); SLSA via GitHub Actions</span></td><td><span class="pill p-best">Artifact Analysis + Binary Auth + SBOM (GA)</span></td><td><span class="pill p-best">Artifact Analysis + Binary Auth + SBOM</span></td></tr>
+      <tr><td>SLSA provenance</td><td><span class="pill p-best">AWS CodeBuild SLSA L3</span></td><td><span class="pill p-mid">GitHub Actions SLSA generator (free)</span></td><td><span class="pill p-best">Cloud Build SLSA L3</span></td><td><span class="pill p-best">Cloud Build SLSA L3</span></td></tr>
+      <tr><td>Compliance / BAA</td><td><span class="pill p-best">SOC2·HIPAA·PCI·FedRAMP</span></td><td><span class="pill p-mid">SOC2 (Railway lighter)</span></td><td><span class="pill p-best">SOC2·HIPAA·PCI·FedRAMP</span></td><td><span class="pill p-best">SOC2·HIPAA·PCI·FedRAMP</span></td></tr>
+      <tr><td>Patch responsibility</td><td><span class="pill p-low">You (EC2) / shared (Fargate)</span></td><td><span class="pill p-best">Provider</span></td><td><span class="pill p-best">Provider (Cloud Run)</span></td><td><span class="pill p-best">Provider (Cloud Run)</span></td></tr>
+    </tbody>
+  </table>
+  <div class="note warn"><b>Regulated workloads (HIPAA / PCI / FedRAMP):</b> choose <b class="aws">AWS</b>, <b class="gcp">GCP</b> or <b class="hybrid">④</b> — all sign a BAA and carry the full certification stack. The pure PaaS stack (②) suits standard SaaS; Railway's compliance posture is the lightest link. Cloudflare's edge security is the single strongest piece in any variant.</div>
+</section>
+
+<!-- ============ OWASP TOP 10 2025 ============ -->
+<section>
+  <h2><span class="num">4</span> OWASP Top 10 : 2025 — mapping to your stack</h2>
+  <p class="sub">The 2025 edition, based on 175,000+ CVE records, has two new categories and significant re-ranking. Security Misconfiguration moved from #5 to #2. Software Supply Chain Failures replaces the older "Vulnerable Components" framing.</p>
+  <table>
+    <thead><tr><th>OWASP 2025 Risk</th><th>Change from 2021</th><th>Edge mitigation (CF / Armor / WAF)</th><th>App-layer action</th></tr></thead>
+    <tbody>
+      <tr><td><b>A01 Broken Access Control</b></td><td>Still #1</td><td>CF Access / IAP / Worker pre-auth blocks unauthenticated requests at edge</td><td>Enforce authz in every service; never trust client-supplied roles</td></tr>
+      <tr><td><b>A02 Security Misconfiguration</b></td><td>Up from #5</td><td>WAF managed rules block common misconfig exploits; CF defaults reduce surface</td><td>IaC scanning (tfsec/Checkov), CIS benchmarks, Armor Hierarchical Policies</td></tr>
+      <tr><td><b>A03 Software Supply Chain Failures</b></td><td>New / expanded from A06:2021</td><td>Binary Auth / SLSA provenance gates at build; Sigstore signing</td><td>Generate SBOM (SPDX/CycloneDX) per image; SLSA Level 2+ in CI; pin base images</td></tr>
+      <tr><td><b>A04 Cryptographic Failures</b></td><td>Down from #2</td><td>HSTS + TLS 1.2 min enforced at CF/Armor; ACM/Google-managed certs auto-renew</td><td>No weak ciphers; BYOK/CMEK for data at rest; no secrets in logs</td></tr>
+      <tr><td><b>A05 Injection</b></td><td>Down from #3</td><td>WAF OWASP CRS rules block SQLi, CMDi, XSS vectors; 64 KB body inspection (GCP Armor GA)</td><td>Parameterised queries; ORM; strict input validation; output encoding</td></tr>
+      <tr><td><b>A06 Insecure Design</b></td><td>Expanded to cover AI-integrated apps</td><td>CF AI Prompt Protection / Model Armor filter LLM prompt injection &amp; data exfil</td><td>Threat-model AI surfaces; define trust boundaries for LLM calls; rate-limit AI endpoints</td></tr>
+      <tr><td><b>A07 Authentication Failures</b></td><td>Renamed from Identification &amp; Auth</td><td>Edge MFA / CF Access / Zero Trust before origin; brute-force rate limits at CF</td><td>MFA everywhere; short-lived tokens; rotate secrets on schedule</td></tr>
+      <tr><td><b>A08 Software/Data Integrity Failures</b></td><td>Previously CI/CD &amp; deserialization</td><td>Binary Authorization blocks unsigned images; Sigstore cosign verification</td><td>Sign all artifacts; verify checksums; use trusted registries only</td></tr>
+      <tr><td><b>A09 Security Logging &amp; Alerting Failures</b></td><td>Unchanged at #9</td><td>CF Logpush / CloudTrail / Cloud Audit Logs — 30–90 day retention; alert on anomalies</td><td>Structured logs; SIEM ingest; alert on auth failures &amp; error spikes</td></tr>
+      <tr><td><b>A10 Mishandling of Exceptional Conditions</b></td><td>New in 2025</td><td>CF error pages / WAF block pages prevent stack-trace leakage to clients</td><td>Global error handlers; never expose internal errors; graceful degradation</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><b>New in OWASP 2025:</b> A06 Insecure Design now explicitly covers AI-integrated application attack surfaces — model injection, prompt manipulation, and trust boundary failures in apps that call LLM APIs. If you're exposing AI features, this is now a first-class OWASP risk, not a footnote.</div>
+</section>
+
+<!-- ============ SECURITY HEADERS ============ -->
+<section>
+  <h2><span class="num">5</span> HTTP security headers — 2026 recommendations</h2>
+  <p class="sub">Headers cost nothing to add; over 95% of sites still score below a "B" on Mozilla Observatory. Set these centrally at the edge (CF Transform Rules or CloudFront response-headers policy) so all 300 apps inherit them.</p>
+  <table>
+    <thead><tr><th>Header</th><th>Recommended value</th><th>Status 2026</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td><b>Strict-Transport-Security</b></td><td><code>max-age=63072000; includeSubDomains; preload</code></td><td><span class="pill p-best">Required</span></td><td>Two-year max-age. Add preload only after confirming all subdomains are HTTPS. Prevents SSL-stripping attacks.</td></tr>
+      <tr><td><b>Content-Security-Policy</b></td><td>Allowlist-based; use nonces/hashes instead of <code>unsafe-inline</code></td><td><span class="pill p-best">Required</span></td><td>Deploy in Report-Only mode first. Never use <code>unsafe-inline</code> + <code>unsafe-eval</code> — they negate XSS protection entirely. Most powerful header available.</td></tr>
+      <tr><td><b>X-Frame-Options</b></td><td><code>DENY</code> or <code>SAMEORIGIN</code></td><td><span class="pill p-best">Required (or CSP frame-ancestors)</span></td><td>Use <code>CSP: frame-ancestors 'none'</code> as the modern equivalent; X-Frame-Options is legacy fallback for older browsers.</td></tr>
+      <tr><td><b>X-Content-Type-Options</b></td><td><code>nosniff</code></td><td><span class="pill p-best">Required</span></td><td>Blocks MIME-type sniffing attacks. Zero downside; add universally.</td></tr>
+      <tr><td><b>Referrer-Policy</b></td><td><code>strict-origin-when-cross-origin</code></td><td><span class="pill p-best">Required</span></td><td>Prevents leaking full URL paths to third-party origins.</td></tr>
+      <tr><td><b>Permissions-Policy</b></td><td>Deny unused features: <code>camera=(), microphone=(), geolocation=()</code></td><td><span class="pill p-best">Required</span></td><td>Replaces the deprecated <code>Feature-Policy</code> header. Deny all features you don't use — empty <code>()</code> means "deny to all origins including self."</td></tr>
+      <tr><td><b>Cross-Origin-Opener-Policy</b></td><td><code>same-origin</code></td><td><span class="pill p-best">Recommended 2026</span></td><td>Isolates your browsing context; required to enable SharedArrayBuffer &amp; high-resolution timers safely. Defends against Spectre-class attacks.</td></tr>
+      <tr><td><b>Cross-Origin-Embedder-Policy</b></td><td><code>require-corp</code></td><td><span class="pill p-mid">Recommended for apps using SharedArrayBuffer</span></td><td>Use alongside COOP. Required for cross-origin isolation.</td></tr>
+      <tr><td><b>Cross-Origin-Resource-Policy</b></td><td><code>same-origin</code> (or <code>same-site</code>)</td><td><span class="pill p-mid">Recommended 2026</span></td><td>Prevents other origins from reading your resources via no-cors requests.</td></tr>
+      <tr><td><b>X-XSS-Protection</b></td><td><code>0</code> (explicitly disabled)</td><td><span class="pill p-low">Deprecated — set to 0</span></td><td>The legacy XSS Auditor is removed from all modern browsers. Setting non-zero values introduces client-side vulnerabilities. Disable it and rely on CSP.</td></tr>
+      <tr><td><b>Public-Key-Pins (HPKP)</b></td><td>Do not use</td><td><span class="pill p-low">Removed — do not implement</span></td><td>Deprecated in 2017, removed from browsers in 2018. Complex to use correctly; misconfiguration causes permanent DoS. Superseded by Certificate Transparency.</td></tr>
+      <tr><td><b>Expect-CT</b></td><td>Do not use</td><td><span class="pill p-low">Obsolete as of 2021</span></td><td>Certificate Transparency enforcement is now mandatory in all major browsers natively. Header no longer needed.</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><b>Cloudflare advantage:</b> set these headers <em>once</em> in a CF Transform Rule and every one of your 300 apps inherits them immediately — no redeploy needed. On AWS, use CloudFront Response Headers Policies; on GCP, set them in Cloud Run service configuration or at the LB level.</div>
+</section>
+
+<!-- ============ SINGLE-DOMAIN RISKS ============ -->
+<section>
+  <h2><span class="num">6</span> Single-domain / reverse-proxy risks (apply to all variants)</h2>
+  <p class="sub">Routing 300 apps through one front door concentrates these risks — handle them <i>once</i>, centrally, at the Worker / LB.</p>
+  <table>
+    <thead><tr><th>Risk</th><th>What goes wrong</th><th>Mitigation</th></tr></thead>
+    <tbody>
+      <tr><td>Origin bypass</td><td>Attacker hits the Cloud Run / Vercel / Railway URL directly, skipping the WAF</td><td><span class="pill p-best">Origin-lock secret header + ingress=internal-and-LB / CF Access service token</span></td></tr>
+      <tr><td>SSRF via proxy</td><td>User-controlled path tricks the router into hitting internal / metadata endpoints</td><td>Allowlist routes; never forward raw user host; block <code>169.254.169.254</code> and <code>fd00:ec2::254</code> (IPv6 IMDS)</td></tr>
+      <tr><td>Host-header / routing confusion</td><td>Spoofed Host routes to the wrong backend or poisons cache</td><td>Validate Host against the route table; key cache by full host+path</td></tr>
+      <tr><td>Cross-tenant cookie / header leak</td><td>One app's <code>Set-Cookie</code> / auth header bleeds to another on the shared domain</td><td>Scope cookies by path/subdomain; strip hop-by-hop &amp; sensitive headers at the edge; set <code>SameSite=Strict</code> and <code>Secure</code> on all cookies</td></tr>
+      <tr><td>Cache poisoning</td><td>Unkeyed header is cached and served to others</td><td>Cache GET only; explicit cache keys; <code>Vary</code> discipline; CF Cache Rules with strict key config</td></tr>
+      <tr><td>Single blast radius</td><td>One front door = one WAF/DDoS bypass affects all 300 apps</td><td>Per-route rate limits + WAF rules; isolate auth per app behind the shared edge</td></tr>
+      <tr><td>Request smuggling / header injection</td><td>Malformed request splits into two at the origin (HTTP/1.1 TE-CL desync)</td><td>Normalise / drop ambiguous <code>Content-Length</code> / <code>Transfer-Encoding</code> at the edge; CF normalises by default in strict mode</td></tr>
+      <tr><td>AI / LLM prompt injection via proxy</td><td>Attacker crafts path or body to manipulate AI backends through your proxy</td><td>CF AI Prompt Protection / GCP Model Armor at edge; validate and sanitise all content passed to LLM APIs; rate-limit AI endpoints separately</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><b>Why the Worker front door wins here:</b> all eight mitigations live in <em>one</em> place — write origin-locking, SSRF allowlisting, header stripping and per-route rate limits once and every one of the 300 apps inherits them. On AWS you'd wire equivalents across CloudFront + WAF + ALB + SGs; on GCP across LB + Armor + ingress policy.</div>
+</section>
+
+<!-- ============ DEFENCE IN DEPTH ============ -->
+<section>
+  <h2><span class="num">7</span> Defence-in-depth — who owns each layer</h2>
+  <p class="sub">Request path: edge → network → app → data. More green = more security handled <em>for</em> you.</p>
+  <div class="grid2">
+    <div class="card">
+      <h4 class="aws card-h4"><span class="dot dot-aws"></span>AWS</h4>
+      <ul class="card-list">
+        <li><b>Edge:</b> CloudFront + WAF Rule Packs + Shield + SPM <span class="pill p-mid">you configure</span></li>
+        <li><b>Network:</b> VPC, SGs, NACLs, private subnets <span class="pill p-best">strongest</span></li>
+        <li><b>App:</b> ALB mTLS, IAM auth, Cognito, Verified Access <span class="pill p-best">deep</span></li>
+        <li><b>Data:</b> KMS / BYOK, RDS encryption <span class="pill p-best">full control</span></li>
+        <li><b>Supply-chain:</b> ECR SBOM export, CodeBuild SLSA L3 <span class="pill p-best">strong</span></li>
+        <li><b>You own:</b> config correctness, patching, least-privilege IAM <span class="pill p-low">large surface</span></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4 class="stack card-h4"><span class="dot dot-stack"></span>Vercel + Railway + CF</h4>
+      <ul class="card-list">
+        <li><b>Edge:</b> CF WAF + DDoS + Bot Mgmt + AI Scraper Block <span class="pill p-best">best-in-class, included</span></li>
+        <li><b>Network:</b> managed, mostly public + tokens <span class="pill p-low">limited</span></li>
+        <li><b>App:</b> Worker pre-auth (JWT / Access / MCP Portals) <span class="pill p-best">edge auth</span></li>
+        <li><b>AI security:</b> CF AI Prompt Protection + AI Gateway <span class="pill p-best">new 2025–26</span></li>
+        <li><b>Data:</b> provider-managed encryption <span class="pill p-mid">no BYOK on Railway</span></li>
+        <li><b>Supply-chain:</b> GitHub Actions SLSA generator + Trivy <span class="pill p-mid">DIY but free</span></li>
+        <li><b>You own:</b> origin-lock secret, env-var hygiene <span class="pill p-best">small surface</span></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4 class="gcp card-h4"><span class="dot dot-gcp"></span>GCP</h4>
+      <ul class="card-list">
+        <li><b>Edge:</b> Global LB + Cloud Armor (64 KB inspection, hierarchical) <span class="pill p-best">strong</span></li>
+        <li><b>Network:</b> VPC, ingress=internal, Cloud NGFW <span class="pill p-best">strong</span></li>
+        <li><b>App:</b> IAP, Cloud Run IAM + ID tokens, Workload Identity Fed. <span class="pill p-best">deep</span></li>
+        <li><b>AI security:</b> Model Armor (prompt/response filter, GA 2026) <span class="pill p-best">new</span></li>
+        <li><b>Data:</b> CMEK / BYOK, default encryption <span class="pill p-best">full control</span></li>
+        <li><b>Supply-chain:</b> Artifact Analysis + Binary Auth + SBOM (GA) + SLSA L3 <span class="pill p-best">strongest</span></li>
+        <li><b>You own:</b> IAM, Armor policies <span class="pill p-mid">medium surface</span></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4 class="hybrid card-h4"><span class="dot dot-hybrid"></span>★ GCP + Cloudflare ④</h4>
+      <ul class="card-list">
+        <li><b>Edge:</b> CF WAF + DDoS + Bot + Access + AI Scraper Block <span class="pill p-best">best-in-class, free</span></li>
+        <li><b>Network:</b> Cloud Run ingress-locked + VPC + Cloud NGFW <span class="pill p-best">strong</span></li>
+        <li><b>App:</b> edge JWT <i>and</i> Cloud Run IAM + MCP Server Portals <span class="pill p-best">layered</span></li>
+        <li><b>AI security:</b> CF Prompt Protection (edge) + GCP Model Armor (origin) <span class="pill p-best">dual layer</span></li>
+        <li><b>Data:</b> CMEK / BYOK on the origin <span class="pill p-best">full control</span></li>
+        <li><b>Supply-chain:</b> Cloud Build SLSA L3 + SBOM + Binary Auth <span class="pill p-best">strongest</span></li>
+        <li><b>You own:</b> origin-lock + GCP IAM <span class="pill p-mid">small–medium</span></li>
+      </ul>
+    </div>
+  </div>
+  <div class="note"><b>Quick read:</b> Cloudflare owns the <b>edge</b> better than anyone — the biggest single security win for a public single-domain app. AWS / GCP own <b>network + data</b> control. Variant ④ deliberately takes the best of both: CF edge in front, GCP isolation behind. In 2025–26, AI-layer security (prompt injection, LLM bot scraping) is a new front — Cloudflare + GCP both ship native controls.</div>
+</section>
+
+<!-- ============ SHARED RESPONSIBILITY ============ -->
+<section>
+  <h2><span class="num">8</span> Shared-responsibility surface</h2>
+  <p class="sub">The more cells say "You," the more security <em>work</em> — and breach risk — sits with your team.</p>
+  <table>
+    <thead><tr><th>You are responsible for…</th><th class="aws">AWS (Fargate/EC2)</th><th class="stack">PaaS stack</th><th class="gcp">GCP (Cloud Run)</th><th class="hybrid">GCP+CF ④</th></tr></thead>
+    <tbody>
+      <tr><td>Host OS patching</td><td><span class="pill p-low">EC2: you · Fargate: shared</span></td><td><span class="pill p-best">Provider</span></td><td><span class="pill p-best">Provider</span></td><td><span class="pill p-best">Provider</span></td></tr>
+      <tr><td>Runtime / base-image CVEs</td><td><span class="pill p-mid">You (image)</span></td><td><span class="pill p-mid">You (image)</span></td><td><span class="pill p-mid">You (image)</span></td><td><span class="pill p-mid">You (image)</span></td></tr>
+      <tr><td>SBOM generation</td><td><span class="pill p-best">ECR Inspector (auto)</span></td><td><span class="pill p-mid">You (Trivy in CI)</span></td><td><span class="pill p-best">Artifact Analysis (auto)</span></td><td><span class="pill p-best">Artifact Analysis (auto)</span></td></tr>
+      <tr><td>SLSA provenance</td><td><span class="pill p-best">CodeBuild SLSA L3</span></td><td><span class="pill p-mid">You (GitHub Actions SLSA gen)</span></td><td><span class="pill p-best">Cloud Build SLSA L3</span></td><td><span class="pill p-best">Cloud Build SLSA L3</span></td></tr>
+      <tr><td>Network ACL / firewall</td><td><span class="pill p-low">You (SG/NACL)</span></td><td><span class="pill p-best">Provider</span></td><td><span class="pill p-mid">You (lightweight)</span></td><td><span class="pill p-mid">You (ingress + CF)</span></td></tr>
+      <tr><td>IAM least-privilege</td><td><span class="pill p-low">You (large)</span></td><td><span class="pill p-best">You (small)</span></td><td><span class="pill p-mid">You (medium)</span></td><td><span class="pill p-mid">You (medium)</span></td></tr>
+      <tr><td>WAF / DDoS tuning</td><td><span class="pill p-mid">You</span></td><td><span class="pill p-best">Mostly CF defaults</span></td><td><span class="pill p-mid">You</span></td><td><span class="pill p-best">Mostly CF defaults</span></td></tr>
+      <tr><td>Secrets storage / rotation</td><td><span class="pill p-best">Managed service</span></td><td><span class="pill p-low">Manual</span></td><td><span class="pill p-mid">Managed (scripted rotation)</span></td><td><span class="pill p-mid">Managed (scripted rotation)</span></td></tr>
+      <tr><td>Security headers (CSP/HSTS)</td><td><span class="pill p-mid">You (CloudFront policy)</span></td><td><span class="pill p-best">You (1 CF Transform Rule)</span></td><td><span class="pill p-mid">You (Cloud Run config)</span></td><td><span class="pill p-best">You (1 CF Transform Rule)</span></td></tr>
+      <tr><td>Edge origin-lock</td><td><span class="pill p-na">n/a (internal ALB)</span></td><td><span class="pill p-low">You (critical)</span></td><td><span class="pill p-mid">You (ingress)</span></td><td><span class="pill p-low">You (critical)</span></td></tr>
+      <tr><td>AI / LLM endpoint security</td><td><span class="pill p-mid">You (WAF rules)</span></td><td><span class="pill p-best">CF AI Prompt Protection (toggle)</span></td><td><span class="pill p-best">Model Armor (config)</span></td><td><span class="pill p-best">CF + Model Armor (dual)</span></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============ CLIENT CHECKLIST ============ -->
+<section>
+  <h2><span class="num">9</span> Minimum security to ship — client checklist</h2>
+  <p class="sub">The baseline every variant should satisfy before facing a client's security review. Pricing of these add-ons is detailed in the cost docs.</p>
+  <div class="grid2">
+    <div class="card">
+      <h4>🔒 Common to every variant</h4>
+      <ul class="chk">
+        <li><b>TLS everywhere</b> (HTTPS only, HSTS <code>max-age=63072000; includeSubDomains; preload</code>) — free on all variants</li>
+        <li><b>WAF + DDoS</b> in front of all 300 apps (CF free / WAF + Shield / Cloud Armor)</li>
+        <li><b>Origin-lock</b> so the edge can't be bypassed (secret header / internal ingress)</li>
+        <li><b>Per-route rate limiting</b> at the front door</li>
+        <li><b>Security headers</b> set at edge: CSP (nonce-based), X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy, COOP/COEP; disable X-XSS-Protection (<code>0</code>); never implement HPKP</li>
+        <li><b>Secrets in a manager</b>, never in code/images; rotate on a schedule; never commit to source control</li>
+        <li><b>SBOM generated</b> per container image (SPDX or CycloneDX format); stored alongside the artefact</li>
+        <li><b>SLSA Level 2+ provenance</b> from CI (GitHub Actions SLSA generator / Cloud Build / CodeBuild)</li>
+        <li><b>Centralised logging</b> + 30–90 day retention; <b>alerting</b> on errors &amp; auth failures</li>
+        <li><b>Audit log</b> of admin / API actions, retained for review</li>
+        <li><b>Image / dependency scanning</b> in CI (Trivy / Dependabot / ECR / Artifact Analysis)</li>
+        <li><b>Automated DB backups</b> + a tested restore (RPO/RTO documented)</li>
+        <li><b>Least-privilege access</b> to consoles; MFA on all admin accounts</li>
+        <li><b>AI scraper / LLM bot blocking</b> if you serve content you don't want harvested for model training</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>➕ Variant-specific must-dos</h4>
+      <p><b class="aws">AWS:</b> private subnets for backends · scoped IAM roles + SCPs · GuardDuty on · Shield Network Security Posture Management · CloudTrail to a locked bucket · WAF managed rules + CloudFront Rule Packs · Secrets Manager rotation · ECR SBOM export enabled · CodeBuild SLSA L3 provenance.</p>
+      <p><b class="stack">PaaS stack:</b> origin-lock secret header (critical) · CF WAF managed ruleset on · CF Access for admin routes · AI Scrapers &amp; Crawlers toggle enabled · CF Transform Rule for security headers · env-var hygiene · enable platform audit logs · GitHub Actions SLSA generator + Trivy in CI · add Sentry + uptime monitor.</p>
+      <p><b class="gcp">GCP:</b> Cloud Run ingress = internal+LB · Cloud Armor hierarchical policies + managed rules (incl. Imperva rules preview) · scoped IAM + service accounts + Workload Identity Federation · enable SCC + Audit Logs · Binary Authorization for images · Artifact Analysis SBOM export · Cloud Build SLSA L3 · Model Armor for AI endpoints.</p>
+      <p><b class="hybrid">GCP + CF ④:</b> all of GCP's list <i>plus</i> the Worker origin-lock (<code>X-Origin-Secret</code> or service-token) so <code>*.run.app</code> can't be reached directly · CF Transform Rule for security headers · CF AI Prompt Protection + GCP Model Armor for AI features.</p>
+    </div>
+  </div>
+  <div class="note ok"><b>Selling point for the budget variants (② &amp; ④):</b> most of the "common baseline" — TLS, WAF, unmetered DDoS, bot mitigation, edge rate limiting, AI scraper blocking — is <b>included free</b> with Cloudflare. The equivalent on AWS (WAF + Shield Advanced + Bot Control) can run <b>$50–$3,000+/mo</b>. You reach a client-ready security posture for near-zero incremental cost.</div>
+</section>
+
+<!-- ============ COST OF SECURITY ============ -->
+<section>
+  <h2><span class="num">10</span> What the security add-ons cost (medium tier)</h2>
+  <p class="sub">Indicative monthly list-price estimates for the baseline above. Full breakdown in <a href="cost-estimate.html" class="link-cyan">cost-estimate.html</a>.</p>
+  <table>
+    <thead><tr><th>Add-on</th><th class="aws">AWS</th><th class="stack">Vercel+Railway+CF</th><th class="gcp">GCP</th><th class="hybrid">GCP+CF ④</th></tr></thead>
+    <tbody>
+      <tr><td>WAF</td><td>~$5/ACL/mo + $1/rule/mo + $0.60/M req (June 2026 pricing); managed rule groups additional; CloudFront Rule Packs extra</td><td><span class="pill p-free">included (Pro $25 for managed; free tier has managed ruleset)</span></td><td>~$5/policy/mo + $1/rule/mo + $0.75/M req; Imperva managed rules (preview pricing TBD); Adaptive Protection included</td><td><span class="pill p-free">CF included</span></td></tr>
+      <tr><td>DDoS</td><td>Std free · Adv $3,000/mo fixed (confirmed June 2026; 50B WAF req/mo free for Adv)</td><td><span class="pill p-free">unmetered, free</span></td><td>Cloud Armor + Google edge; <b>Adaptive Protection GA</b> (ML auto-mitigation, included)</td><td><span class="pill p-free">unmetered, free</span></td></tr>
+      <tr><td>Bot management</td><td>WAF Bot Control add-on (usage-based)</td><td><span class="pill p-free">Turnstile — free, unlimited challenges; Enterprise Bot Mgmt $2,000+/mo for advanced</span></td><td>reCAPTCHA Enterprise (usage-based)</td><td><span class="pill p-free">CF Turnstile free</span></td></tr>
+      <tr><td>AI scraper block</td><td><span class="pill p-low">Manual WAF rules — engineer time</span></td><td><span class="pill p-free">One-click toggle, free (1M+ customers use it)</span></td><td><span class="pill p-low">Manual WAF rules</span></td><td><span class="pill p-free">One-click toggle, free</span></td></tr>
+      <tr><td>Security headers</td><td>CloudFront Response Headers Policy (free)</td><td><span class="pill p-free">CF Transform Rules (free)</span></td><td>Cloud Run config / LB (free)</td><td><span class="pill p-free">CF Transform Rules (free)</span></td></tr>
+      <tr><td>Logging</td><td>CloudWatch ~$0.50/GB</td><td>Better Stack / Axiom free–$29</td><td>Cloud Logging 50GB free, then ~$0.50/GB</td><td>CF Logpush + Cloud Logging</td></tr>
+      <tr><td>Monitoring / errors</td><td>CloudWatch + dashboards</td><td>Sentry free–$29 · uptime free</td><td>Cloud Monitoring (largely free)</td><td>Sentry + Cloud Monitoring</td></tr>
+      <tr><td>Secrets</td><td>$0.40/secret/mo</td><td>env vars (free) / Doppler $0–24</td><td>$0.06/version/mo</td><td>$0.06/version/mo</td></tr>
+      <tr><td>SBOM + supply-chain</td><td>ECR Inspector (usage-based); Trivy free in CI</td><td><span class="pill p-free">Trivy + GitHub Actions SLSA generator (free)</span></td><td>Artifact Analysis (usage-based); Binary Auth (usage-based)</td><td>Artifact Analysis + Binary Auth</td></tr>
+      <tr><td>AI / LLM security</td><td><span class="pill p-low">DIY WAF rules (engineer time)</span></td><td><span class="pill p-free">CF AI Prompt Protection (included in Zero Trust plans)</span></td><td><span class="pill p-mid">Model Armor (usage-based, preview pricing)</span></td><td><span class="pill p-best">CF included + GCP Model Armor</span></td></tr>
+      <tr><td>Threat / scanning</td><td>GuardDuty + Inspector (usage)</td><td>Trivy + Dependabot (free)</td><td>SCC + Artifact Analysis; Agentic AI SCC (2026)</td><td>SCC + Artifact Analysis</td></tr>
+      <tr><td>Support / SLA</td><td>Business: max($100, 10% spend)</td><td>plan tiers ($0–49)</td><td>Standard ~$29+</td><td>Standard ~$29 + CF plan</td></tr>
+      <tr><td>Typical add-on total</td><td class="aws"><span class="pill p-low">~$150–300+/mo</span></td><td class="stack"><span class="pill p-best">~$0–75/mo</span></td><td class="gcp"><span class="pill p-mid">~$80–150/mo</span></td><td class="hybrid"><span class="pill p-best">~$40–110/mo</span></td></tr>
+    </tbody>
+  </table>
+  <div class="note warn"><b>Estimates only.</b> WAF/DDoS per-request fees scale with traffic; Shield Advanced is an enterprise-only line item; Cloudflare Enterprise Bot Management starts at $2,000/mo but the free Turnstile + managed ruleset covers most use cases. Confirm against the official calculators and the interactive simulators in this set before committing.</div>
+</section>
+
+<!-- ============ VERDICT ============ -->
+<section>
+  <h2><span class="num">11</span> Security verdict</h2>
+  <div class="grid2">
+    <div class="card"><h4><span class="dot dot-hybrid"></span>Recommended: Variant ④ (GCP + Cloudflare)</h4><p>Strongest <b>edge</b> security (free, CF) — including AI scraper blocking, Prompt Protection and MCP Server Portals — <i>and</i> deep <b>network + data</b> control with compliance (Cloud Run + Model Armor). Best balance of protection, low misconfig risk, and cost for this 300-app fleet — provided you lock the origin.</p></div>
+    <div class="card"><h4><span class="dot dot-stack"></span>Lowest budget, low risk: PaaS stack ②</h4><p>If the data is standard SaaS (no HIPAA/PCI/FedRAMP), the CF Worker front door delivers a client-ready security posture with the smallest surface to get wrong and almost no incremental security cost. AI Scraper blocking and AI Prompt Protection are included.</p></div>
+    <div class="card"><h4><span class="dot dot-aws"></span>Strictest / regulated: AWS</h4><p>When you need the deepest VPC isolation, BYOK, and the broadest compliance — and you have a platform/security team to own the large surface, WAF/Shield/GuardDuty spend, and the new Shield Network Security Posture Management.</p></div>
+    <div class="card"><h4><span class="dot dot-gcp"></span>Single-cloud compliance: GCP</h4><p>Serverless economics with hyperscaler governance, compliance + BAA, one IAM/audit plane, and the new Cloud Armor hierarchical policies — plus Model Armor for AI workloads and Agentic AI SCC for threat detection — when single-vendor procurement matters more than the free CF edge.</p></div>
+  </div>
+</section>
+
+<!-- ============ WHAT'S CHANGED 2025-2026 ============ -->
+<section>
+  <h2><span class="num">12</span> What changed in 2025–2026 (update log)</h2>
+  <p class="sub">Key developments since the prior version of this document that affect your security posture choices.</p>
+  <table>
+    <thead><tr><th>Category</th><th>What's new</th><th>Impact on this fleet</th></tr></thead>
+    <tbody>
+      <tr><td><b>OWASP Top 10 2025</b></td><td>New edition published. Security Misconfiguration rises to #2. "Software Supply Chain Failures" replaces "Vulnerable &amp; Outdated Components." New A10: Mishandling of Exceptional Conditions. A06 Insecure Design expanded to cover AI/LLM attack surfaces.</td><td>SBOM + SLSA are now OWASP-endorsed baseline; AI prompt injection is an official Top 10 risk</td></tr>
+      <tr><td><b>Cloudflare AI Scraper Block</b></td><td>One-click toggle to block GPTBot, ClaudeBot, PerplexityBot and all known LLM crawlers — free on all plans including Free. Auto-updated fingerprints. Over 1M customers have enabled it.</td><td>Enable the toggle for all 300 apps in one dashboard action — no per-app config</td></tr>
+      <tr><td><b>Cloudflare AI Prompt Protection</b></td><td>Inline policy enforcement at the prompt level; warns or blocks employees/users from submitting sensitive data to AI models. Part of Cloudflare One Zero Trust.</td><td>Relevant if any of the 300 apps expose LLM features to users</td></tr>
+      <tr><td><b>Cloudflare MCP Server Portals</b></td><td>Open Beta — Zero Trust control plane for MCP tool calls. Consolidates all MCP traffic through CF; user-level policies per gateway and per MCP server.</td><td>New attack surface for AI agent apps; Zero Trust now covers the agentic layer</td></tr>
+      <tr><td><b>GCP Cloud Armor — 64 KB body inspection</b></td><td>Preconfigured WAF rule request-body inspection limit raised from 8 KB to 64 KB. GA in 2025. Thales Imperva-powered managed rules added (preview).</td><td>Better detection of payload-embedded attacks in APIs; update Armor policy to opt in</td></tr>
+      <tr><td><b>GCP Armor Hierarchical Policies</b></td><td>Org-level security policies that propagate to all projects/services. GA 2025. Org-scoped address groups for IP lists at scale.</td><td>Replaces per-service Armor policy management — one policy governs all 300 backends</td></tr>
+      <tr><td><b>GCP Model Armor</b></td><td>Managed prompt and response filtering for LLM APIs. GA 2026. Prevents sensitive data exfiltration and prompt injection through the origin-side AI layer.</td><td>Use alongside CF AI Prompt Protection for dual-layer AI security in Variant ④</td></tr>
+      <tr><td><b>GCP Agentic AI SCC (2026)</b></td><td>Security Command Center gains AI-powered agentic threat detection for Google Cloud workloads.</td><td>Automatic threat detection across all GCP services in the fleet; no additional config</td></tr>
+      <tr><td><b>SBOM + SLSA now baseline</b></td><td>Software supply-chain attacks doubled in 2025 (global cost $60B, projected $138B by 2031). SLSA 1.0, SPDX 3, and Sigstore are now stable standards. AWS Inspector SBOM export and GCP Artifact Analysis SBOM are GA.</td><td>SBOM generation and SLSA L2+ provenance added to the minimum checklist for all variants</td></tr>
+      <tr><td><b>Security headers — deprecations</b></td><td>X-XSS-Protection: browsers removed the XSS Auditor — setting non-zero values now introduces vulnerabilities. HPKP (Public-Key-Pins): removed from browsers in 2018, still sometimes seen in old configs — never implement. Expect-CT: obsolete since 2021.</td><td>Audit existing headers; set <code>X-XSS-Protection: 0</code>; remove any HPKP or Expect-CT headers</td></tr>
+      <tr><td><b>AWS Shield Network Security Director</b></td><td>Auto-discovers network resources across AWS accounts, prioritises DDoS risks, and gives actionable remediation recommendations. Replaces manual posture assessment.</td><td>Relevant for the AWS variant; reduces the "large surface" risk of AWS network config</td></tr>
+      <tr><td><b>Cloudflare WAF — React/Next.js CVE coverage</b></td><td>CF deployed rules (default: Block) for CVE-2025-55182 (React/Next.js/React Router RCE), CVE-2026-23744 (MCP Server RCE), and other zero-days — included in the Free Managed Ruleset.</td><td>If your 300 apps use React 19.x or Next.js 15–16, the WAF already has you covered at zero cost</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============ AZURE SECURITY ============ -->
+<section>
+  <h2><span class="num">13</span> Azure security features — serverless single-domain deployment (June 2026)</h2>
+  <p class="sub">Reference security stack for Azure Container Apps (serverless, single-domain). Pricing is June 2026 list-price. Use this if evaluating Azure as an alternative to the four primary variants.</p>
+
+  <!-- Top-level feature cards -->
+  <div class="grid2 mb-18">
+
+    <!-- Azure WAF -->
+    <div class="vsec azure">
+      <h3 class="vsec-h-azure">Azure WAF (Web Application Firewall)</h3>
+      <span class="tag">Azure Front Door WAF · Application Gateway WAF</span>
+      <ul>
+        <li class="y"><b>Azure Front Door WAF:</b> OWASP Core Rule Set 3.2 (default-on managed ruleset); custom rules (IP, geo, rate, request-size); bot protection rule set included</li>
+        <li class="y"><b>Managed rule groups:</b> OWASP Core (SQLi, XSS, RCE, LFI, RFI, Scanner, Protocol), Bot Manager, IP Reputation — all updated by Microsoft</li>
+        <li class="y"><b>Custom rules:</b> up to 100 custom rules per policy; priority-ordered; match + rate-limit conditions</li>
+        <li class="m"><b>Pricing:</b> $5/policy/mo + $1/rule/mo + $0.0000015/request for WAF processing; managed rule groups included in the policy fee</li>
+        <li class="m"><b>Modes:</b> Detection (log only) and Prevention (block); use Detection first for baseline, then switch to Prevention</li>
+        <li class="lock"><b>Must do:</b> enable Prevention mode; tune OWASP exclusions to reduce false positives; configure geo-filtering rules; enable bot protection rule set</li>
+      </ul>
+    </div>
+
+    <!-- Azure DDoS -->
+    <div class="vsec azure">
+      <h3 class="vsec-h-azure">Azure DDoS Protection</h3>
+      <span class="tag">Front Door Standard · DDoS IP Protection · DDoS Network Protection</span>
+      <ul>
+        <li class="y"><b>Front Door Standard:</b> Layer 3/4 DDoS mitigation <b>INCLUDED at no extra cost</b> — recommended for serverless single-domain deployments</li>
+        <li class="n"><b>DDoS Network Protection:</b> $2,944/mo — enterprise-grade, VNet-scoped; overkill for pure serverless (Container Apps without VNet injection)</li>
+        <li class="m"><b>DDoS IP Protection:</b> $199/public IP/mo — per-resource protection; cost-effective for 1–5 public IPs without full Network Protection</li>
+        <li class="y"><b>Always-on traffic monitoring:</b> Azure DDoS basic (platform-level) absorbs volumetric attacks for free on all Azure resources</li>
+        <li class="y"><b>Recommendation for serverless:</b> use <b>Front Door Standard</b> (L3/L4 DDoS free) + WAF ($5/policy) — full edge protection at minimal cost; skip DDoS Network Protection unless you have VNet-injected workloads</li>
+        <li class="lock"><b>Must do:</b> deploy Container Apps behind Front Door; never expose container app URLs (<code>*.azurecontainerapps.io</code>) directly — use ingress restrictions or private endpoints</li>
+      </ul>
+    </div>
+
+    <!-- Azure Key Vault -->
+    <div class="vsec azure">
+      <h3 class="vsec-h-azure">Azure Key Vault</h3>
+      <span class="tag">Secrets · Keys · Certificates</span>
+      <ul>
+        <li class="y"><b>Secret storage:</b> $0.03 per 10,000 operations; versioned, IAM-scoped, audit-logged; compatible with Container Apps managed identity (zero credential management)</li>
+        <li class="y"><b>Key operations (software keys):</b> $0.03 per 10,000 operations; RSA/EC keys for envelope encryption</li>
+        <li class="y"><b>Key operations (HSM-backed keys):</b> $1.00 per 10,000 operations; FIPS 140-2 Level 3; required for PCI-DSS / HIPAA BYOK</li>
+        <li class="y"><b>Certificate management:</b> $3.00 per renewed certificate; automated renewal via DigiCert / GlobalSign integration; Let's Encrypt integration via ACME</li>
+        <li class="y"><b>Soft-delete:</b> 90-day retention (configurable); purge protection available (prevents immediate deletion, even by admins)</li>
+        <li class="y"><b>Managed identity integration:</b> Container Apps can pull secrets at runtime via system-assigned or user-assigned identity — no credentials in code or environment variables</li>
+        <li class="lock"><b>Must do:</b> enable purge protection; set RBAC (not legacy Access Policies) for Key Vault; restrict network access to VNet/private endpoint; audit Key Vault diagnostic logs</li>
+      </ul>
+    </div>
+
+    <!-- Azure Container Apps Security -->
+    <div class="vsec azure">
+      <h3 class="vsec-h-azure">Azure Container Apps Security</h3>
+      <span class="tag">Managed identity · VNet · Dapr · KEDA</span>
+      <ul>
+        <li class="y"><b>Managed identity:</b> <b>FREE</b> — system-assigned or user-assigned; no credentials to manage, rotate, or store; grants access to Key Vault, Storage, Service Bus, ACR etc.</li>
+        <li class="y"><b>VNet integration:</b> available on dedicated workload profiles; supports internal-only ingress (no public endpoint); enables private connectivity to databases and internal services</li>
+        <li class="y"><b>Dapr sidecar:</b> mTLS between services in the same environment by default; service-to-service auth via Dapr app tokens; secrets API backed by Key Vault</li>
+        <li class="y"><b>KEDA-based autoscaling:</b> HTTP triggers (scale to zero when idle — zero attack surface when no traffic); event-based triggers (Service Bus, Event Hub, Azure Queue)</li>
+        <li class="y"><b>Container registry:</b> pull from Azure Container Registry using managed identity — no registry credentials stored anywhere</li>
+        <li class="m"><b>Image scanning:</b> Microsoft Defender for Containers scans ACR images for CVEs (usage-based pricing); integrate with SBOM generation in CI</li>
+        <li class="lock"><b>Must do:</b> set ingress to internal-only if behind Front Door; use managed identity exclusively (never connection strings in env vars); enable Defender for Containers; restrict egress via UDR if handling sensitive data</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <div class="grid2">
+
+    <!-- Azure Active Directory / Entra ID -->
+    <div class="vsec azure">
+      <h3 class="vsec-h-azure">Azure Active Directory / Entra ID</h3>
+      <span class="tag">OIDC · OAuth 2.0 · Conditional Access</span>
+      <ul>
+        <li class="y"><b>OIDC / OAuth 2.0 built-in:</b> Container Apps Easy Auth provides zero-code OIDC integration — supports Entra ID, GitHub, Google, Twitter; JWTs validated at the platform before the app sees the request</li>
+        <li class="y"><b>Conditional access policies:</b> MFA enforcement, device compliance checks, named-location restrictions, sign-in risk policies — enforced at the identity plane, not the app layer</li>
+        <li class="y"><b>Free tier:</b> unlimited users for core identity features (SSO, MFA with Microsoft Authenticator, basic conditional access); no per-user cost for standard SaaS scenarios</li>
+        <li class="y"><b>Workload identity federation:</b> GitHub Actions, external OIDC providers can authenticate as managed identities without secrets — eliminates CI/CD credential sprawl</li>
+        <li class="m"><b>Entra ID P1/P2:</b> advanced conditional access, PIM (Privileged Identity Management), Identity Protection — $6/user/mo (P1) or $9/user/mo (P2); required for regulated workloads</li>
+        <li class="lock"><b>Must do:</b> enable MFA for all admin accounts; configure conditional access; use PIM for privileged roles; enable sign-in logs + audit logs (route to Log Analytics)</li>
+      </ul>
+    </div>
+
+    <!-- Azure Compliance -->
+    <div class="vsec azure">
+      <h3 class="vsec-h-azure">Azure Compliance &amp; Governance</h3>
+      <span class="tag">SOC · ISO · HIPAA · FedRAMP · GDPR</span>
+      <ul>
+        <li class="y"><b>SOC 1 / SOC 2 / SOC 3:</b> Type II reports available; annual third-party audit; applies to Azure platform services including Container Apps, Front Door, Key Vault</li>
+        <li class="y"><b>ISO 27001 / ISO 27018:</b> certified; ISO 27018 specifically covers protection of PII in cloud services</li>
+        <li class="y"><b>HIPAA / HITECH:</b> Microsoft signs a BAA (Business Associate Agreement); Azure Container Apps, Key Vault, and Front Door are in scope</li>
+        <li class="y"><b>FedRAMP High:</b> Azure Government regions carry FedRAMP High authorization; commercial regions carry FedRAMP Moderate for many services</li>
+        <li class="y"><b>GDPR:</b> Azure is a Data Processor under GDPR; DPA (Data Processing Agreement) available; EU data residency via EU-only regions; Azure Policy enforces regional constraints</li>
+        <li class="y"><b>PCI-DSS Level 1:</b> Azure platform is PCI-DSS Level 1 certified; Container Apps + Key Vault + Front Door are in scope; you are still responsible for your application's card data handling</li>
+        <li class="m"><b>Microsoft Defender for Cloud:</b> continuous compliance score against NIST, CIS, PCI, HIPAA benchmarks; free foundational posture; Defender plans for enhanced protection (usage-based)</li>
+        <li class="lock"><b>Must do:</b> review Azure compliance documentation for your specific services; sign DPA/BAA before handling regulated data; enable Defender for Cloud foundational CSPM (free); assign Azure Policy for guardrails</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <!-- Azure pricing summary table -->
+  <h3 class="mt-28">Azure security add-on cost summary (serverless, single-domain)</h3>
+  <table>
+    <thead><tr><th>Security component</th><th>Azure service</th><th>Pricing (June 2026)</th><th>Recommendation for serverless</th></tr></thead>
+    <tbody>
+      <tr><td>WAF</td><td>Front Door WAF</td><td>$5/policy/mo + $1/rule/mo + $0.0000015/req</td><td><span class="pill p-best">Enable — essential</span></td></tr>
+      <tr><td>L3/L4 DDoS</td><td>Front Door Standard (included)</td><td><span class="pill p-free">Free with Front Door</span></td><td><span class="pill p-best">Use Front Door — free DDoS</span></td></tr>
+      <tr><td>Enterprise DDoS</td><td>DDoS Network Protection</td><td>$2,944/mo</td><td><span class="pill p-low">Skip for serverless</span></td></tr>
+      <tr><td>DDoS per-IP</td><td>DDoS IP Protection</td><td>$199/public IP/mo</td><td><span class="pill p-mid">Only if VNet-injected + exposed IPs</span></td></tr>
+      <tr><td>Secrets</td><td>Azure Key Vault</td><td>$0.03/10k ops (software); $1.00/10k ops (HSM)</td><td><span class="pill p-best">Enable — use managed identity</span></td></tr>
+      <tr><td>Certificates</td><td>Key Vault certificates</td><td>$3.00/renewed cert</td><td><span class="pill p-best">Enable — auto-renew</span></td></tr>
+      <tr><td>Managed identity</td><td>Container Apps identity</td><td><span class="pill p-free">Free</span></td><td><span class="pill p-best">Use exclusively — no credentials</span></td></tr>
+      <tr><td>mTLS / service mesh</td><td>Dapr sidecar</td><td><span class="pill p-free">Free (included with Container Apps)</span></td><td><span class="pill p-best">Enable for service-to-service</span></td></tr>
+      <tr><td>Identity / SSO</td><td>Entra ID (Free tier)</td><td><span class="pill p-free">Free for core features</span></td><td><span class="pill p-best">Use Easy Auth for app OIDC</span></td></tr>
+      <tr><td>Advanced IAM</td><td>Entra ID P1</td><td>$6/user/mo</td><td><span class="pill p-mid">Required for HIPAA/PCI</span></td></tr>
+      <tr><td>Image scanning</td><td>Defender for Containers</td><td>$0.0013/core-hour</td><td><span class="pill p-mid">Recommended; pair with Trivy in CI</span></td></tr>
+      <tr><td>Posture / compliance</td><td>Defender for Cloud (CSPM)</td><td><span class="pill p-free">Foundational CSPM free; enhanced plans usage-based</span></td><td><span class="pill p-best">Enable free tier minimum</span></td></tr>
+      <tr><td><b>Estimated total (serverless baseline)</b></td><td colspan="2"><b>~$30–80/mo</b> (WAF policy + Key Vault ops + Front Door; excludes traffic volume and optional Defender plans)</td><td><span class="pill p-best">Competitive with GCP, less than AWS</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="note ok"><b>Azure vs the four primary variants:</b> Azure Container Apps serverless + Front Door WAF delivers a security posture comparable to GCP Cloud Run + Cloud Armor — L3/L4 DDoS free at the edge, managed OWASP WAF, managed identity for zero-credential secret access, and full HIPAA/PCI/FedRAMP compliance. The main gaps vs Cloudflare-fronted stacks are: no native AI scraper toggle (must write custom WAF rules), no equivalent to CF AI Prompt Protection (must use Azure OpenAI content filtering instead), and bot management requires Azure WAF bot protection (less sophisticated than Cloudflare Bot Management). For a team already on the Microsoft ecosystem, Azure is a strong fifth option.</div>
+  <div class="note warn"><b>Serverless origin-lock on Azure:</b> when using Front Door + Container Apps, set Container Apps ingress to <code>Limited to VNet</code> (with VNet injection) or use the <code>allowedIPAddresses</code> ingress restriction to the Front Door service tag — otherwise attackers can hit <code>*.azurecontainerapps.io</code> directly and bypass the WAF entirely. Same pattern as the <code>X-Origin-Secret</code> approach in the Cloudflare variants.</div>
+</section>
+
+<!-- ============ SOURCES ============ -->
+<section>
+  <h2><span class="num">14</span> Security references (official, June 2026)</h2>
+  <div class="sources">
+    <a href="https://docs.aws.amazon.com/waf/latest/developerguide/waf-chapter.html" target="_blank" rel="noopener noreferrer">AWS WAF docs<span>managed rule groups + CloudFront Rule Packs</span></a>
+    <a href="https://aws.amazon.com/shield/" target="_blank" rel="noopener noreferrer">AWS Shield (DDoS)<span>Std free · Adv $3,000/mo</span></a>
+    <a href="https://docs.aws.amazon.com/waf/latest/developerguide/ddos-overview.html" target="_blank" rel="noopener noreferrer">AWS Shield Network Security Director<span>auto network posture mgmt</span></a>
+    <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html" target="_blank" rel="noopener noreferrer">AWS IAM best practices<span>least-privilege</span></a>
+    <a href="https://aws.amazon.com/secrets-manager/" target="_blank" rel="noopener noreferrer">AWS Secrets Manager<span>auto rotation</span></a>
+    <a href="https://aws.amazon.com/guardduty/" target="_blank" rel="noopener noreferrer">Amazon GuardDuty<span>threat detection</span></a>
+    <a href="https://aws.amazon.com/compliance/programs/" target="_blank" rel="noopener noreferrer">AWS compliance programs<span>SOC2·HIPAA·PCI·FedRAMP</span></a>
+    <a href="https://docs.cloud.google.com/armor/docs/cloud-armor-overview" target="_blank" rel="noopener noreferrer">Google Cloud Armor<span>WAF + DDoS + 64 KB inspection + hierarchical policies</span></a>
+    <a href="https://cloud.google.com/run/docs/securing/ingress" target="_blank" rel="noopener noreferrer">Cloud Run ingress controls<span>internal + LB lock</span></a>
+    <a href="https://cloud.google.com/security-command-center" target="_blank" rel="noopener noreferrer">Security Command Center<span>posture + Agentic AI threats (2026)</span></a>
+    <a href="https://cloud.google.com/binary-authorization" target="_blank" rel="noopener noreferrer">Binary Authorization<span>image supply-chain</span></a>
+    <a href="https://cloud.google.com/security/products/model-armor" target="_blank" rel="noopener noreferrer">GCP Model Armor<span>LLM prompt/response filtering (GA 2026)</span></a>
+    <a href="https://cloud.google.com/security/compliance" target="_blank" rel="noopener noreferrer">GCP compliance<span>HIPAA·PCI·FedRAMP·BAA</span></a>
+    <a href="https://www.cloudflare.com/application-services/products/waf/" target="_blank" rel="noopener noreferrer">Cloudflare WAF<span>managed rulesets — React/Next.js CVEs covered</span></a>
+    <a href="https://www.cloudflare.com/ddos/" target="_blank" rel="noopener noreferrer">Cloudflare DDoS<span>unmetered, all plans</span></a>
+    <a href="https://www.cloudflare.com/zero-trust/products/access/" target="_blank" rel="noopener noreferrer">Cloudflare Access<span>zero-trust + MCP Server Portals</span></a>
+    <a href="https://developers.cloudflare.com/bots/additional-configurations/block-ai-bots/" target="_blank" rel="noopener noreferrer">Cloudflare Block AI Bots<span>one-click, free, all plans</span></a>
+    <a href="https://www.cloudflare.com/press/press-releases/2025/cloudflare-launches-new-zero-trust-tools-for-secure-ai-adoption-at-scale/" target="_blank" rel="noopener noreferrer">Cloudflare AI Prompt Protection<span>Zero Trust for AI adoption (Aug 2025)</span></a>
+    <a href="https://blog.cloudflare.com/zero-trust-mcp-server-portals/" target="_blank" rel="noopener noreferrer">Cloudflare MCP Server Portals<span>Zero Trust control for AI agents</span></a>
+    <a href="https://developers.cloudflare.com/turnstile/" target="_blank" rel="noopener noreferrer">Cloudflare Turnstile<span>free CAPTCHA — unlimited challenges</span></a>
+    <a href="https://vercel.com/docs/security" target="_blank" rel="noopener noreferrer">Vercel security<span>platform posture</span></a>
+    <a href="https://docs.railway.com/reference/production-readiness" target="_blank" rel="noopener noreferrer">Railway production readiness<span>secrets · networking</span></a>
+    <a href="https://owasp.org/Top10/2025/" target="_blank" rel="noopener noreferrer">OWASP Top 10 : 2025<span>new edition — supply chain + AI risks</span></a>
+    <a href="https://owasp.org/www-project-secure-headers/" target="_blank" rel="noopener noreferrer">OWASP Secure Headers Project<span>canonical header recommendations</span></a>
+    <a href="https://slsa.dev" target="_blank" rel="noopener noreferrer">SLSA Framework<span>supply-chain levels for software artifacts</span></a>
+    <a href="https://www.sigstore.dev" target="_blank" rel="noopener noreferrer">Sigstore<span>artifact signing — cosign, fulcio, rekor</span></a>
+    <a href="https://developers.cloudflare.com/changelog/product/waf/" target="_blank" rel="noopener noreferrer">Cloudflare WAF Changelog<span>2025–2026 rule updates</span></a>
+  </div>
+</section>
+
+<footer>
+  Security posture and pricing are list-price approximations for client planning — actual controls and cost depend on region, plan tier, traffic shape and your own configuration. Verify against the official docs above and the cost docs in this set before committing. Updated June 2026 with OWASP Top 10:2025, Cloudflare AI/MCP security features, GCP Armor hierarchical policies &amp; Model Armor, AWS Shield Network Security Director, SBOM/SLSA supply-chain baseline, and 2026 security header recommendations.
+</footer>
+
+</div>
+</body>
+</html>

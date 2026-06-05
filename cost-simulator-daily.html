@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Cloud Cost Simulator</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #21262d;
+    --surface3: #2d333b;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-dim: #6e7681;
+    --low: #3fb950;
+    --low-bg: #0f2a1a;
+    --low-border: #238636;
+    --medium: #d29922;
+    --medium-bg: #2a1f0a;
+    --medium-border: #9e6a03;
+    --high: #f85149;
+    --high-bg: #2a0f0f;
+    --high-border: #da3633;
+    --accent: #58a6ff;
+    --cf: #f6821f;
+    --vercel: #c8d3e0;
+    --railway: #a855f7;
+    --azure: #0078d4;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-size: 14px; line-height: 1.5; min-height: 100vh;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Topbar */
+  .topbar {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 11px 24px; display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .topbar-title { font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+  .topbar-links { display: flex; gap: 14px; font-size: 12px; flex-wrap: wrap; }
+
+  /* Layout */
+  .layout { display: grid; grid-template-columns: 340px 1fr; min-height: calc(100vh - 48px); }
+
+  /* Sidebar */
+  .sidebar {
+    background: var(--surface); border-right: 1px solid var(--border);
+    overflow-y: auto; padding: 18px; height: calc(100vh - 48px);
+    position: sticky; top: 48px;
+  }
+  .sb-section { margin-bottom: 22px; }
+  .sb-title {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--text-dim); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+  }
+  .sb-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .ctrl { margin-bottom: 14px; }
+  .ctrl-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; }
+  .ctrl-label { font-size: 12px; color: var(--text-muted); }
+  .ctrl-val { font-size: 14px; font-weight: 700; color: var(--text); }
+  .ctrl-val input[type="number"] {
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    border-radius: 6px; padding: 2px 6px; font-size: 13px; font-weight: 700;
+    width: 80px; text-align: right; outline: none;
+  }
+  .ctrl-val input:focus { border-color: var(--accent); }
+  input[type="range"] {
+    width: 100%; height: 4px; appearance: none;
+    background: var(--border); border-radius: 2px; outline: none; cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    appearance: none; width: 15px; height: 15px; border-radius: 50%;
+    background: var(--accent); cursor: pointer;
+  }
+  .ctrl-hint { font-size: 10px; color: var(--text-dim); margin-top: 3px; }
+
+  select {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); border-radius: 8px; padding: 7px 10px;
+    font-size: 12px; outline: none; cursor: pointer;
+  }
+  select:focus { border-color: var(--accent); }
+
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .toggle-label { font-size: 12px; color: var(--text-muted); }
+  .toggle { position: relative; width: 34px; height: 18px; display: inline-block; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute; inset: 0; background: var(--surface3); border-radius: 20px;
+    cursor: pointer; transition: background 0.2s; border: 1px solid var(--border);
+  }
+  .toggle-slider::before {
+    content: ''; position: absolute; width: 12px; height: 12px;
+    left: 2px; top: 2px; background: white; border-radius: 50%; transition: transform 0.2s;
+  }
+  .toggle input:checked + .toggle-slider { background: var(--accent); border-color: var(--accent); }
+  .toggle input:checked + .toggle-slider::before { transform: translateX(16px); }
+
+  .btn { width: 100%; padding: 7px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); border-radius: 8px; cursor: pointer; font-size: 12px; margin-top: 4px; }
+  .btn:hover { background: var(--surface2); color: var(--text); }
+  .btn-accent { border-color: var(--accent); color: var(--accent); }
+  .btn-accent:hover { background: rgba(88,166,255,0.1); }
+
+  /* Main */
+  .main { padding: 20px; overflow-y: auto; }
+
+  /* Daily cards */
+  .daily-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+  .dc {
+    border-radius: 12px; padding: 18px; position: relative; overflow: hidden;
+    transition: transform 0.15s;
+  }
+  .dc:hover { transform: translateY(-2px); }
+  .dc-low { background: var(--low-bg); border: 2px solid var(--low-border); }
+  .dc-medium { background: var(--medium-bg); border: 2px solid var(--medium-border); }
+  .dc-high { background: var(--high-bg); border: 2px solid var(--high-border); }
+  .dc-tier { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
+  .dc-amount { font-size: 36px; font-weight: 800; line-height: 1; }
+  .dc-unit { font-size: 11px; opacity: 0.7; margin-bottom: 12px; }
+  .dc-meta { border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px; }
+  .dcm-row { display: flex; justify-content: space-between; font-size: 11px; padding: 2px 0; }
+  .dcm-label { opacity: 0.65; }
+  .dcm-val { font-weight: 600; }
+  .low-text { color: var(--low); }
+  .medium-text { color: var(--medium); }
+  .high-text { color: var(--high); }
+  .cf-text { color: var(--cf); }
+  .vercel-text { color: var(--vercel); }
+  .railway-text { color: var(--railway); }
+  .azure-text { color: var(--azure); }
+  .dc-azure { background: #0a1929; border: 2px solid #005a9e; }
+
+  /* Panel */
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 18px; }
+  .panel-hdr {
+    background: var(--surface2); padding: 12px 18px; border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .panel-title { font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 7px; }
+  .panel-body { padding: 18px; }
+
+  /* Metric grid */
+  .metric-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+  .metric-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+  .metric-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .metric-vals { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  .mv { font-size: 14px; font-weight: 700; }
+  .mv-sep { color: var(--text-dim); font-size: 10px; }
+  .metric-sub { font-size: 10px; color: var(--text-dim); margin-top: 3px; }
+
+  /* Time chart */
+  .chart-wrap { position: relative; height: 180px; margin-bottom: 8px; }
+  canvas { width: 100%; height: 100%; }
+  .chart-legend { display: flex; gap: 14px; margin-top: 8px; flex-wrap: wrap; }
+  .cl-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-muted); }
+  .cl-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  /* Day simulation */
+  .day-sim { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .day-col { }
+  .day-col-header { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+  .day-row { display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0; border-bottom: 1px dashed rgba(255,255,255,0.05); }
+  .day-row:last-child { border-bottom: none; font-weight: 700; font-size: 13px; border-top: 1px solid var(--border); padding-top: 6px; }
+  .day-label { color: var(--text-muted); }
+
+  /* Hourly breakdown */
+  .hour-grid { display: grid; grid-template-columns: repeat(24, 1fr); gap: 2px; margin-bottom: 6px; }
+  .hour-bar {
+    height: 32px; border-radius: 3px; position: relative; cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .hour-bar:hover { opacity: 0.8; }
+  .hour-labels { display: flex; justify-content: space-between; font-size: 9px; color: var(--text-dim); }
+  .hour-legend { display: flex; gap: 12px; margin-top: 8px; font-size: 11px; flex-wrap: wrap; }
+  .hl { display: flex; align-items: center; gap: 5px; color: var(--text-muted); }
+  .hl-box { width: 10px; height: 10px; border-radius: 2px; }
+
+  /* Detail table */
+  .dt { width: 100%; border-collapse: collapse; }
+  .dt th {
+    text-align: left; font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.5px; color: var(--text-dim); padding: 7px 10px;
+    border-bottom: 1px solid var(--border); background: var(--surface2);
+  }
+  .dt td { padding: 8px 10px; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .dt tr:last-child td { border-bottom: none; }
+  .dt .total-row td { background: var(--surface2); font-weight: 700; font-size: 13px; }
+  .dt tr:hover:not(.total-row) td { background: rgba(255,255,255,0.02); }
+
+  /* Cost projection table */
+  .proj-table { width: 100%; border-collapse: collapse; }
+  .proj-table th {
+    font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px;
+    color: var(--text-dim); padding: 8px 10px; border-bottom: 1px solid var(--border);
+    background: var(--surface2); text-align: center;
+  }
+  .proj-table th:first-child { text-align: left; }
+  .proj-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); font-size: 12px; text-align: center; }
+  .proj-table td:first-child { text-align: left; color: var(--text-muted); }
+  .proj-table tr:last-child td { border-bottom: none; background: var(--surface2); font-weight: 700; }
+
+  /* Pill tags */
+  .pill {
+    display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 10px;
+    font-weight: 600; border: 1px solid;
+  }
+  .pill-low { background: var(--low-bg); color: var(--low); border-color: var(--low-border); }
+  .pill-medium { background: var(--medium-bg); color: var(--medium); border-color: var(--medium-border); }
+  .pill-high { background: var(--high-bg); color: var(--high); border-color: var(--high-border); }
+
+  /* Warning */
+  .warn { display: flex; gap: 8px; padding: 9px 12px; border-radius: 8px; font-size: 11px; margin-bottom: 8px; }
+  .warn-w { background: #2a1f0a; border: 1px solid var(--medium-border); color: #d29922; }
+  .warn-i { background: #0f1f2a; border: 1px solid #1f6feb; color: #58a6ff; }
+  .warn-s { background: var(--low-bg); border: 1px solid var(--low-border); color: var(--low); }
+
+  /* Add-ons panel */
+  .panel-hidden { display: none; }
+  .panel-body-flush { padding: 0; overflow-x: auto; }
+  .dt-col-wide { min-width: 240px; }
+  .ao-subtotal-bar {
+    background: var(--surface2); border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 8px; padding: 10px 18px;
+  }
+  .ao-subtotal-label { font-size: 11px; color: var(--text-muted); }
+  .ao-subtotal-val { font-size: 16px; font-weight: 700; color: var(--accent); }
+  .panel-hdr-note { font-size: 10px; font-weight: 400; color: var(--text-dim); margin-left: 6px; }
+  .panel-hdr-dim { font-size: 10px; color: var(--text-dim); }
+
+  /* Sources */
+  .src-wrap { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 18px; }
+  .src { display: inline-flex; align-items: center; gap: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 3px 10px; font-size: 10px; color: var(--text-muted); }
+  .src:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+
+  /* Responsive */
+  @media (max-width: 1100px) {
+    .daily-cards { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar { position: static; height: auto; }
+    .daily-cards { grid-template-columns: 1fr; }
+    .day-sim { grid-template-columns: 1fr; }
+    .metric-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-title">📅 Daily Cost Simulator <span style="font-size:10px;color:var(--text-dim);font-weight:400;">per-day breakdown · FastAPI + Spring Boot · Vercel + Railway + Cloudflare + Azure</span></div>
+  <div class="topbar-links">
+    <a href="cost-estimate.html" target="_blank">📊 Report</a>
+    <a href="cost-simulator.html" target="_blank">🗓 Monthly</a>
+    <a href="https://developers.cloudflare.com/workers/platform/pricing/" target="_blank">CF ↗</a>
+    <a href="https://vercel.com/pricing" target="_blank">Vercel ↗</a>
+    <a href="https://docs.railway.com/pricing" target="_blank">Railway ↗</a>
+    <a href="https://azure.microsoft.com/en-us/pricing/details/container-apps/" target="_blank">Azure ↗</a>
+  </div>
+</div>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+
+    <div class="sb-section">
+      <div class="sb-title">📁 Projects</div>
+      <div class="ctrl">
+        <div class="ctrl-row"><label class="ctrl-label">Vercel Projects</label><div class="ctrl-val"><input type="number" id="s_vercel_n" value="100" min="0" max="500"></div></div>
+        <input type="range" id="s_vercel" min="0" max="500" value="100">
+      </div>
+      <div class="ctrl">
+        <div class="ctrl-row"><label class="ctrl-label">Railway FastAPI</label><div class="ctrl-val"><input type="number" id="s_fastapi_n" value="100" min="0" max="500"></div></div>
+        <input type="range" id="s_fastapi" min="0" max="500" value="100">
+        <div class="ctrl-hint">Python · ~2 sec cold start</div>
+      </div>
+      <div class="ctrl">
+        <div class="ctrl-row"><label class="ctrl-label">Railway Spring Boot</label><div class="ctrl-val"><input type="number" id="s_spring_n" value="100" min="0" max="500"></div></div>
+        <input type="range" id="s_spring" min="0" max="500" value="100">
+        <div class="ctrl-hint">GraalVM native · ~700ms cold start</div>
+      </div>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-title">📈 Daily Traffic (Base = Medium)</div>
+      <div class="ctrl">
+        <div class="ctrl-row"><label class="ctrl-label">Requests/Day per Project</label><div class="ctrl-val"><input type="number" id="s_req_n" value="1000" min="1" max="500000"></div></div>
+        <input type="range" id="s_req" min="1" max="100000" step="10" value="1000">
+        <div class="ctrl-hint">Low=10% &nbsp;·&nbsp; High=10× &nbsp;·&nbsp; <span id="req_label">100 / 1,000 / 10,000</span></div>
+      </div>
+      <div class="ctrl">
+        <div class="ctrl-row"><label class="ctrl-label">Avg Response Size (KB)</label><div class="ctrl-val"><input type="number" id="s_kb_n" value="10" min="1" max="5000"></div></div>
+        <input type="range" id="s_kb" min="1" max="2000" value="10">
+        <div class="ctrl-hint">JSON API: 5–20 KB · HTML page: 50–200 KB</div>
+      </div>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-title">🚂 Railway Config</div>
+      <div class="ctrl">
+        <div class="ctrl-row"><label class="ctrl-label">RAM per Service</label><div class="ctrl-val" id="ram_lbl">128 MB</div></div>
+        <select id="s_ram">
+          <option value="64">64 MB</option>
+          <option value="128" selected>128 MB</option>
+          <option value="256">256 MB</option>
+          <option value="512">512 MB</option>
+          <option value="1024">1024 MB</option>
+          <option value="2048">2048 MB</option>
+        </select>
+      </div>
+      <div class="ctrl">
+        <div class="ctrl-row"><label class="ctrl-label">Active Hours/Day (medium)</label><div class="ctrl-val"><input type="number" id="s_hrs_n" value="4" min="0.5" max="24" step="0.5"></div></div>
+        <input type="range" id="s_hrs" min="0.5" max="24" step="0.5" value="4">
+        <div class="ctrl-hint">L/M/H: <span id="hrs_label">1h / 4h / 10h</span></div>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">Serverless Sleep</span>
+        <label class="toggle"><input type="checkbox" id="s_serverless" checked><span class="toggle-slider"></span></label>
+      </div>
+      <div class="ctrl">
+        <label class="ctrl-label" style="display:block;margin-bottom:5px;">Railway Plan</label>
+        <select id="s_rplan">
+          <option value="20">Pro — $20/mo · <a href="https://docs.railway.com/pricing/plans" target="_blank">↗</a></option>
+          <option value="5">Hobby — $5/mo</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-title">▲ Vercel Config</div>
+      <div class="ctrl">
+        <div class="ctrl-row"><label class="ctrl-label">Developer Seats</label><div class="ctrl-val"><input type="number" id="s_seats_n" value="1" min="1" max="50"></div></div>
+        <input type="range" id="s_seats" min="1" max="50" value="1">
+        <div class="ctrl-hint">$20/seat/mo · <a href="https://vercel.com/pricing" target="_blank">vercel.com/pricing ↗</a></div>
+      </div>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-title">🗓 Projection</div>
+      <div class="ctrl">
+        <div class="ctrl-row"><label class="ctrl-label">Simulate Days</label><div class="ctrl-val"><input type="number" id="s_days_n" value="30" min="1" max="365"></div></div>
+        <input type="range" id="s_days" min="1" max="365" value="30">
+        <div class="ctrl-hint">Show cumulative cost over N days</div>
+      </div>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-title">🛡 Prod &amp; Security Add-Ons</div>
+      <div class="ctrl-hint" style="margin-bottom:10px;color:var(--text-dim);">Toggle to include in daily totals (est.)</div>
+
+      <div class="toggle-row">
+        <span class="toggle-label">Logging (CloudWatch / GCP / PaaS)</span>
+        <label class="toggle"><input type="checkbox" id="ao_logging"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="ctrl" id="ao_logging_ctrl" style="display:none;">
+        <div class="ctrl-row"><label class="ctrl-label">Log volume / day (GB)</label><div class="ctrl-val"><input type="number" id="ao_log_gb" value="2" min="0" max="1000" step="0.5"></div></div>
+        <div class="ctrl-hint">CW: $0.50/GB after 5GB free · GCP: $0.50/GB after 50GB/mo free · PaaS: Better Stack from $29/mo</div>
+      </div>
+
+      <div class="toggle-row">
+        <span class="toggle-label">Monitoring &amp; Alerting</span>
+        <label class="toggle"><input type="checkbox" id="ao_monitoring"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="ctrl" id="ao_monitoring_ctrl" style="display:none;">
+        <div class="ctrl-row"><label class="ctrl-label">Custom metrics count</label><div class="ctrl-val"><input type="number" id="ao_metrics" value="50" min="0" max="10000"></div></div>
+        <div class="ctrl-hint">CW: $0.30/metric/mo · GCP: $0.18/metric/mo · CW alarms $0.10/alarm/mo</div>
+      </div>
+
+      <div class="toggle-row">
+        <span class="toggle-label">WAF / DDoS Protection</span>
+        <label class="toggle"><input type="checkbox" id="ao_waf"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="ctrl" id="ao_waf_ctrl" style="display:none;">
+        <div class="ctrl-row"><label class="ctrl-label">WAF rules count</label><div class="ctrl-val"><input type="number" id="ao_waf_rules" value="10" min="0" max="500"></div></div>
+        <div class="ctrl-hint">AWS WAF: $5/ACL+$1/rule+$0.60/M req · GCP Armor: $5/policy+$1/rule+$0.75/M req · CF WAF Pro: $20/mo/domain</div>
+      </div>
+
+      <div class="toggle-row">
+        <span class="toggle-label">Secrets Management</span>
+        <label class="toggle"><input type="checkbox" id="ao_secrets"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="ctrl" id="ao_secrets_ctrl" style="display:none;">
+        <div class="ctrl-row"><label class="ctrl-label">Secret count</label><div class="ctrl-val"><input type="number" id="ao_secret_count" value="50" min="0" max="5000"></div></div>
+        <div class="ctrl-hint">AWS Secrets Mgr: $0.40/secret/mo · GCP Secret Mgr: $0.06/version/mo (6 free)</div>
+      </div>
+
+      <div class="toggle-row">
+        <span class="toggle-label">Backup / DR (est.)</span>
+        <label class="toggle" title="Toggle Backup / DR add-on"><input type="checkbox" id="ao_backup" aria-label="Backup / DR add-on"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="ctrl-hint" id="ao_backup_hint" style="display:none;margin-bottom:8px;">AWS Backup / GCS snapshots — $5–$30/day est. depending on data volume &amp; replication.</div>
+
+      <div class="toggle-row">
+        <span class="toggle-label">Support Plan</span>
+        <label class="toggle"><input type="checkbox" id="ao_support"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="ctrl" id="ao_support_ctrl" style="display:none;">
+        <label class="ctrl-label" style="display:block;margin-bottom:5px;">Support tier</label>
+        <select id="ao_support_tier">
+          <option value="3.33">AWS Developer — $29/mo ÷ 30</option>
+          <option value="33.33" selected>AWS Business — $100/mo min ÷ 30</option>
+          <option value="100">AWS Enterprise — $3000/mo min ÷ 30</option>
+          <option value="0.97">GCP Standard — $29/mo ÷ 30</option>
+          <option value="16.67">GCP Enhanced — $500/mo ÷ 30</option>
+        </select>
+        <div class="ctrl-hint" style="margin-top:4px;">Prorated to daily. AWS Business = max($100, 10% of monthly bill).</div>
+      </div>
+    </div>
+
+    <button class="btn" onclick="resetDefaults()">↺ Reset Defaults</button>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+
+    <!-- Daily cost cards -->
+    <div class="daily-cards">
+      <div class="dc dc-low">
+        <div class="dc-tier low-text">🟢 Low Traffic Day</div>
+        <div class="dc-amount low-text" id="d_total_low">$0.00</div>
+        <div class="dc-unit low-text">per day</div>
+        <div class="dc-meta">
+          <div class="dcm-row"><span class="dcm-label">CF Workers</span><span class="dcm-val cf-text" id="d_cf_low">$0</span></div>
+          <div class="dcm-row"><span class="dcm-label">Vercel</span><span class="dcm-val vercel-text" id="d_v_low">$0</span></div>
+          <div class="dcm-row"><span class="dcm-label">Railway</span><span class="dcm-val railway-text" id="d_r_low">$0</span></div>
+          <div class="dcm-row" style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.1)">
+            <span class="dcm-label">→ /month est.</span><span class="dcm-val low-text" id="d_mo_low">$0</span>
+          </div>
+        </div>
+      </div>
+      <div class="dc dc-medium">
+        <div class="dc-tier medium-text">🟡 Medium Traffic Day</div>
+        <div class="dc-amount medium-text" id="d_total_medium">$0.00</div>
+        <div class="dc-unit medium-text">per day</div>
+        <div class="dc-meta">
+          <div class="dcm-row"><span class="dcm-label">CF Workers</span><span class="dcm-val cf-text" id="d_cf_medium">$0</span></div>
+          <div class="dcm-row"><span class="dcm-label">Vercel</span><span class="dcm-val vercel-text" id="d_v_medium">$0</span></div>
+          <div class="dcm-row"><span class="dcm-label">Railway</span><span class="dcm-val railway-text" id="d_r_medium">$0</span></div>
+          <div class="dcm-row" style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.1)">
+            <span class="dcm-label">→ /month est.</span><span class="dcm-val medium-text" id="d_mo_medium">$0</span>
+          </div>
+        </div>
+      </div>
+      <div class="dc dc-high">
+        <div class="dc-tier high-text">🔴 High Traffic Day</div>
+        <div class="dc-amount high-text" id="d_total_high">$0.00</div>
+        <div class="dc-unit high-text">per day</div>
+        <div class="dc-meta">
+          <div class="dcm-row"><span class="dcm-label">CF Workers</span><span class="dcm-val cf-text" id="d_cf_high">$0</span></div>
+          <div class="dcm-row"><span class="dcm-label">Vercel</span><span class="dcm-val vercel-text" id="d_v_high">$0</span></div>
+          <div class="dcm-row"><span class="dcm-label">Railway</span><span class="dcm-val railway-text" id="d_r_high">$0</span></div>
+          <div class="dcm-row" style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.1)">
+            <span class="dcm-label">→ /month est.</span><span class="dcm-val high-text" id="d_mo_high">$0</span>
+          </div>
+        </div>
+      </div>
+      <div class="dc dc-azure">
+        <div class="dc-tier azure-text">☁ Azure Container Apps</div>
+        <div class="dc-amount azure-text" id="d_total_azure">$0.00</div>
+        <div class="dc-unit azure-text">per day (medium traffic)</div>
+        <div class="dc-meta">
+          <div class="dcm-row"><span class="dcm-label">Container Apps</span><span class="dcm-val azure-text" id="d_az_compute">$0</span></div>
+          <div class="dcm-row"><span class="dcm-label">Front Door Std</span><span class="dcm-val azure-text" id="d_az_fd">$0</span></div>
+          <div class="dcm-row"><span class="dcm-label">Egress + WAF</span><span class="dcm-val azure-text" id="d_az_egress">$0</span></div>
+          <div class="dcm-row" style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.1)">
+            <span class="dcm-label">→ /month est.</span><span class="dcm-val azure-text" id="d_az_mo">$0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Per-unit metrics -->
+    <div class="panel">
+      <div class="panel-hdr">
+        <div class="panel-title">⚡ Per-Unit Metrics (Medium Traffic)</div>
+        <div style="font-size:10px;color:var(--text-dim);">Cost efficiency indicators</div>
+      </div>
+      <div class="panel-body">
+        <div class="metric-grid">
+          <div class="metric-card">
+            <div class="metric-label">Cost per Request</div>
+            <div class="metric-vals">
+              <span class="mv low-text" id="cpp_low">$0</span>
+              <span class="mv-sep">/</span>
+              <span class="mv medium-text" id="cpp_med">$0</span>
+              <span class="mv-sep">/</span>
+              <span class="mv high-text" id="cpp_high2">$0</span>
+            </div>
+            <div class="metric-sub">Low / Medium / High</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Cost per Project / Day</div>
+            <div class="metric-vals">
+              <span class="mv low-text" id="cproj_low">$0</span>
+              <span class="mv-sep">/</span>
+              <span class="mv medium-text" id="cproj_med">$0</span>
+              <span class="mv-sep">/</span>
+              <span class="mv high-text" id="cproj_high">$0</span>
+            </div>
+            <div class="metric-sub">Avg across all 300 projects</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Cost per 1,000 Requests</div>
+            <div class="metric-vals">
+              <span class="mv low-text" id="cp1k_low">$0</span>
+              <span class="mv-sep">/</span>
+              <span class="mv medium-text" id="cp1k_med">$0</span>
+              <span class="mv-sep">/</span>
+              <span class="mv high-text" id="cp1k_high">$0</span>
+            </div>
+            <div class="metric-sub">Useful for SaaS pricing decisions</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Railway Cost / Active Hour</div>
+            <div class="metric-vals">
+              <span class="mv low-text" id="cph_low">$0</span>
+              <span class="mv-sep">/</span>
+              <span class="mv medium-text" id="cph_med">$0</span>
+              <span class="mv-sep">/</span>
+              <span class="mv high-text" id="cph_high">$0</span>
+            </div>
+            <div class="metric-sub">RAM cost per active hour</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Total Requests / Day</div>
+            <div class="metric-vals">
+              <span class="mv low-text" id="treq_low">0</span>
+              <span class="mv-sep">/</span>
+              <span class="mv medium-text" id="treq_med">0</span>
+              <span class="mv-sep">/</span>
+              <span class="mv high-text" id="treq_high">0</span>
+            </div>
+            <div class="metric-sub">Across all projects</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Total Bandwidth / Day</div>
+            <div class="metric-vals">
+              <span class="mv low-text" id="tbw_low">0</span>
+              <span class="mv-sep">/</span>
+              <span class="mv medium-text" id="tbw_med">0</span>
+              <span class="mv-sep">/</span>
+              <span class="mv high-text" id="tbw_high">0</span>
+            </div>
+            <div class="metric-sub">Low / Medium / High</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hourly breakdown (medium traffic) -->
+    <div class="panel">
+      <div class="panel-hdr">
+        <div class="panel-title">🕐 Hourly Cost Breakdown — Medium Traffic Day</div>
+        <div style="font-size:10px;color:var(--text-dim);">Hover bars to see hourly detail</div>
+      </div>
+      <div class="panel-body">
+        <div id="hour_tooltip" style="display:none;position:fixed;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:11px;pointer-events:none;z-index:999;"></div>
+        <div class="hour-grid" id="hour_grid"></div>
+        <div class="hour-labels">
+          <span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>23:00</span>
+        </div>
+        <div class="hour-legend">
+          <div class="hl"><div class="hl-box" style="background:var(--cf);"></div>Cloudflare</div>
+          <div class="hl"><div class="hl-box" style="background:var(--vercel);"></div>Vercel</div>
+          <div class="hl"><div class="hl-box" style="background:var(--railway);"></div>Railway (active)</div>
+          <div class="hl"><div class="hl-box" style="background:#1f2937;border:1px solid var(--border);"></div>Railway (sleeping)</div>
+        </div>
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;gap:24px;flex-wrap:wrap;">
+          <div style="font-size:11px;color:var(--text-muted);">Total active: <strong id="hr_active" class="medium-text">4 hr</strong></div>
+          <div style="font-size:11px;color:var(--text-muted);">Sleeping: <strong id="hr_sleep" class="medium-text">20 hr</strong></div>
+          <div style="font-size:11px;color:var(--text-muted);">Hourly cost (active): <strong id="hr_cost_active" class="medium-text">$0</strong></div>
+          <div style="font-size:11px;color:var(--text-muted);">Hourly cost (sleeping): <strong id="hr_cost_sleep" class="medium-text">$0</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cumulative projection chart -->
+    <div class="panel">
+      <div class="panel-hdr">
+        <div class="panel-title">📈 Cumulative Cost Over <span id="proj_days_label">30</span> Days</div>
+        <div style="display:flex;gap:8px;font-size:10px;">
+          <span class="pill pill-low" id="proj_total_low">$0</span>
+          <span class="pill pill-medium" id="proj_total_medium">$0</span>
+          <span class="pill pill-high" id="proj_total_high">$0</span>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="chart-wrap">
+          <canvas id="proj_chart"></canvas>
+        </div>
+        <div class="chart-legend">
+          <div class="cl-item"><div class="cl-dot" style="background:var(--low);"></div>Low traffic</div>
+          <div class="cl-item"><div class="cl-dot" style="background:var(--medium);"></div>Medium traffic</div>
+          <div class="cl-item"><div class="cl-dot" style="background:var(--high);"></div>High traffic</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detail table -->
+    <div class="panel">
+      <div class="panel-hdr">
+        <div class="panel-title">🔍 Line-Item Daily Breakdown</div>
+        <div style="font-size:10px;color:var(--text-dim);">All USD/day · monthly plan costs prorated ÷ 30</div>
+      </div>
+      <div class="panel-body" style="padding:0;overflow-x:auto;">
+        <table class="dt" style="width:100%;">
+          <thead>
+            <tr>
+              <th style="min-width:220px;">Line Item</th>
+              <th>🟢 Low</th>
+              <th>🟡 Medium</th>
+              <th>🔴 High</th>
+              <th>Source</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="5" style="background:rgba(246,130,31,0.06);color:var(--cf);font-size:10px;font-weight:700;padding:7px 10px;letter-spacing:0.5px;">🔶 CLOUDFLARE WORKERS — daily prorated</td></tr>
+            <tr>
+              <td>Plan Base (÷30)<div style="font-size:9px;color:var(--text-dim);">$0 free or $5/mo paid ÷ 30 days</div></td>
+              <td id="dt_cf_base_low">—</td><td id="dt_cf_base_med">—</td><td id="dt_cf_base_high">—</td>
+              <td><a href="https://developers.cloudflare.com/workers/platform/pricing/" target="_blank">CF Pricing ↗</a></td>
+            </tr>
+            <tr>
+              <td>Request Overage (daily)<div style="font-size:9px;color:var(--text-dim);">$0.30/1M over 10M/month · prorated</div></td>
+              <td id="dt_cf_ovg_low">—</td><td id="dt_cf_ovg_med">—</td><td id="dt_cf_ovg_high">—</td>
+              <td><a href="https://workers.cloudflare.com/plans" target="_blank">CF Plans ↗</a></td>
+            </tr>
+
+            <tr><td colspan="5" style="background:rgba(168,179,193,0.06);color:var(--vercel);font-size:10px;font-weight:700;padding:7px 10px;letter-spacing:0.5px;">▲ VERCEL — daily prorated</td></tr>
+            <tr>
+              <td>Pro Seat (÷30)<div style="font-size:9px;color:var(--text-dim);" id="dt_v_seat_note">1 seat × $20 ÷ 30</div></td>
+              <td id="dt_v_base_low">—</td><td id="dt_v_base_med">—</td><td id="dt_v_base_high">—</td>
+              <td><a href="https://vercel.com/pricing" target="_blank">Vercel ↗</a></td>
+            </tr>
+            <tr>
+              <td>Edge Requests (daily)<div style="font-size:9px;color:var(--text-dim);">10M/mo incl. → ~333K/day free · $2/1M over</div></td>
+              <td id="dt_v_edge_low">—</td><td id="dt_v_edge_med">—</td><td id="dt_v_edge_high">—</td>
+              <td><a href="https://vercel.com/docs/pricing" target="_blank">Vercel Pricing Docs ↗</a></td>
+            </tr>
+            <tr>
+              <td>Bandwidth (daily)<div style="font-size:9px;color:var(--text-dim);">1TB/mo → ~34GB/day free · $0.15/GB over</div></td>
+              <td id="dt_v_bw_low">—</td><td id="dt_v_bw_med">—</td><td id="dt_v_bw_high">—</td>
+              <td><a href="https://vercel.com/docs/plans/pro-plan" target="_blank">Vercel Pro ↗</a></td>
+            </tr>
+
+            <tr><td colspan="5" style="background:rgba(168,85,247,0.06);color:var(--railway);font-size:10px;font-weight:700;padding:7px 10px;letter-spacing:0.5px;">🚂 RAILWAY — true daily usage-based</td></tr>
+            <tr>
+              <td>Plan Base (÷30)<div style="font-size:9px;color:var(--text-dim);">$20 or $5 plan ÷ 30 days</div></td>
+              <td id="dt_r_base_low">—</td><td id="dt_r_base_med">—</td><td id="dt_r_base_high">—</td>
+              <td><a href="https://docs.railway.com/pricing/plans" target="_blank">Railway Plans ↗</a></td>
+            </tr>
+            <tr>
+              <td>RAM Cost (daily)<div style="font-size:9px;color:var(--text-dim);" id="dt_r_ram_note">services × GB × active hrs × $0.013699/GB-hr</div></td>
+              <td id="dt_r_ram_low">—</td><td id="dt_r_ram_med">—</td><td id="dt_r_ram_high">—</td>
+              <td><a href="https://docs.railway.com/pricing" target="_blank">Railway Pricing ↗</a></td>
+            </tr>
+            <tr>
+              <td>Egress (daily)<div style="font-size:9px;color:var(--text-dim);">req/day × KB ÷ 1M GB × $0.05/GB (cut from $0.10 in 2025)</div></td>
+              <td id="dt_r_egress_low">—</td><td id="dt_r_egress_med">—</td><td id="dt_r_egress_high">—</td>
+              <td><a href="https://docs.railway.com/pricing" target="_blank">Railway Pricing ↗</a></td>
+            </tr>
+            <tr>
+              <td>Credit Applied (÷30)<div style="font-size:9px;color:var(--text-dim);">Plan credit offsets usage · prorated daily</div></td>
+              <td id="dt_r_credit_low">—</td><td id="dt_r_credit_med">—</td><td id="dt_r_credit_high">—</td>
+              <td><a href="https://docs.railway.com/pricing/cost-control" target="_blank">Cost Control ↗</a></td>
+            </tr>
+
+            <tr class="total-row">
+              <td>💰 TOTAL / DAY</td>
+              <td class="low-text" id="dt_grand_low">$0.00</td>
+              <td class="medium-text" id="dt_grand_med">$0.00</td>
+              <td class="high-text" id="dt_grand_high">$0.00</td>
+              <td></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Projection table -->
+    <div class="panel">
+      <div class="panel-hdr">
+        <div class="panel-title">🗓 Cost Projection Table</div>
+        <div style="font-size:10px;color:var(--text-dim);">Cumulative cost at given day count</div>
+      </div>
+      <div class="panel-body" style="padding:0;overflow-x:auto;">
+        <table class="proj-table" style="width:100%;">
+          <thead>
+            <tr>
+              <th>Period</th>
+              <th>🟢 Low</th><th>🟡 Medium</th><th>🔴 High</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>1 Day</td><td class="low-text" id="pt_1_low">—</td><td class="medium-text" id="pt_1_med">—</td><td class="high-text" id="pt_1_high">—</td></tr>
+            <tr><td>7 Days (1 week)</td><td class="low-text" id="pt_7_low">—</td><td class="medium-text" id="pt_7_med">—</td><td class="high-text" id="pt_7_high">—</td></tr>
+            <tr><td>14 Days (2 weeks)</td><td class="low-text" id="pt_14_low">—</td><td class="medium-text" id="pt_14_med">—</td><td class="high-text" id="pt_14_high">—</td></tr>
+            <tr><td>30 Days (1 month)</td><td class="low-text" id="pt_30_low">—</td><td class="medium-text" id="pt_30_med">—</td><td class="high-text" id="pt_30_high">—</td></tr>
+            <tr><td>90 Days (1 quarter)</td><td class="low-text" id="pt_90_low">—</td><td class="medium-text" id="pt_90_med">—</td><td class="high-text" id="pt_90_high">—</td></tr>
+            <tr><td>365 Days (1 year)</td><td class="low-text" id="pt_365_low">—</td><td class="medium-text" id="pt_365_med">—</td><td class="high-text" id="pt_365_high">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Production & Security Add-Ons Panel -->
+    <div class="panel panel-hidden" id="ao_panel">
+      <div class="panel-hdr">
+        <div class="panel-title">🛡 Production &amp; Security Add-Ons <span class="panel-hdr-note">feeds live daily total · estimates marked ~</span></div>
+        <div class="panel-hdr-dim">Toggle add-ons in sidebar · pricing verified June 2026</div>
+      </div>
+      <div class="panel-body-flush">
+        <table class="dt" style="width:100%;">
+          <thead>
+            <tr>
+              <th class="dt-col-wide">Add-On</th>
+              <th>Platform / Service</th>
+              <th>Daily Cost (est.)</th>
+              <th>Monthly Est.</th>
+              <th>Source</th>
+            </tr>
+          </thead>
+          <tbody id="ao_tbody">
+          </tbody>
+        </table>
+        <div class="ao-subtotal-bar">
+          <div class="ao-subtotal-label">Add-ons daily subtotal</div>
+          <div class="ao-subtotal-val" id="ao_subtotal">$0.00</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Warnings -->
+    <div id="warn_wrap"></div>
+
+    <!-- Sources -->
+    <div class="src-wrap">
+      <a href="https://developers.cloudflare.com/workers/platform/pricing/" target="_blank" class="src">🔶 CF Workers Pricing</a>
+      <a href="https://www.cloudflare.com/plans/developer-platform/" target="_blank" class="src">🔶 CF Dev Platform</a>
+      <a href="https://workers.cloudflare.com/plans" target="_blank" class="src">🔶 CF Workers Plans</a>
+      <a href="https://vercel.com/pricing" target="_blank" class="src">▲ Vercel Pricing</a>
+      <a href="https://vercel.com/docs/plans/pro-plan" target="_blank" class="src">▲ Vercel Pro Plan</a>
+      <a href="https://vercel.com/docs/pricing" target="_blank" class="src">▲ Vercel Pricing Docs</a>
+      <a href="https://docs.railway.com/pricing" target="_blank" class="src">🚂 Railway Pricing</a>
+      <a href="https://docs.railway.com/pricing/plans" target="_blank" class="src">🚂 Railway Plans</a>
+      <a href="https://docs.railway.com/deployments/serverless" target="_blank" class="src">🚂 Railway Serverless</a>
+      <a href="https://docs.railway.com/pricing/cost-control" target="_blank" class="src">🚂 Cost Control</a>
+      <a href="https://railway.com/pricing" target="_blank" class="src">🚂 Railway.com Pricing</a>
+      <a href="https://www.cloudflare.com/products/registrar/" target="_blank" class="src">🌐 CF Registrar</a>
+    </div>
+    <div style="text-align:center;color:var(--text-dim);font-size:11px;margin-top:16px;padding-top:12px;border-top:1px solid var(--border);">
+      Daily costs = monthly plan costs ÷ 30 + actual daily usage (Railway RAM, egress). Pricing verified June 2026 against official docs. Railway RAM: $10/GB-mo ($0.013699/GB-hr); egress: $0.05/GB. CF Workers: $0.30/M req over 10M. Vercel: $2/M edge req, $0.15/GB BW overage.
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── Constants (verified June 2026 against official pricing pages) ────────
+// Cloudflare Workers: Free = 100K req/day (≈3M/mo); Paid = $5/mo base, 10M req/mo incl., $0.30/M overage
+// Standard usage model: $0.30/M requests + $0.02/M CPU-ms · developers.cloudflare.com/workers/platform/pricing/
+const CF_FREE_MONTHLY = 3_000_000;    // 100K/day × 30 days
+const CF_PAID_INCLUDED = 10_000_000;  // included in $5/mo paid plan
+const CF_PAID_BASE_MO = 5;            // $5/mo minimum · unchanged
+const CF_OVERAGE_PER_M = 0.30;        // $0.30 per million requests over 10M · confirmed 2025-2026
+// Vercel Pro: $20/seat/mo; 1TB BW + 10M edge req incl.; $0.15/GB BW overage; $2/M edge req overage
+// vercel.com/pricing · confirmed 2025-2026
+const V_SEAT_PRICE_MO = 20;           // $20/seat/mo (Owner or Member; viewers free) · unchanged
+const V_INCL_BW_GB_MO = 1024;         // 1 TB Fast Data Transfer included · unchanged
+const V_INCL_EDGE_MO = 10_000_000;    // 10M edge requests included · unchanged
+const V_BW_OVERAGE = 0.15;            // $0.15/GB Fast Data Transfer overage · confirmed 2025-2026
+const V_EDGE_OVERAGE = 2.00;          // $2.00/M edge requests overage · confirmed 2025-2026
+const R_RAM_RATE = 0.013699; // per GB-hour ($10/GB/mo ÷ 730 hr/mo) · Railway docs June 2026
+const R_EGR_RATE = 0.05;     // per GB (reduced from $0.10/GB in 2023; confirmed $0.05/GB 2025-2026)
+
+const TRAFFIC = { low: 0.1, medium: 1, high: 10 };
+const ACT_MUL = { low: 0.25, medium: 1, high: 2.5 };
+
+const $ = id => document.getElementById(id);
+const fmtD = n => '$' + (n < 0.005 ? '0.000' : n < 0.01 ? n.toFixed(4) : n < 1 ? n.toFixed(3) : n.toFixed(2));
+const fmtM = n => '$' + (n < 1 ? n.toFixed(2) : Math.round(n).toLocaleString());
+const fmtR = n => {
+  if (n >= 1e9) return (n/1e9).toFixed(1)+'B';
+  if (n >= 1e6) return (n/1e6).toFixed(1)+'M';
+  if (n >= 1e3) return Math.round(n/1e3)+'K';
+  return Math.round(n)+'';
+};
+const fmtGB = n => n >= 1024 ? (n/1024).toFixed(1)+'TB' : n < 1 ? (n*1024).toFixed(0)+'MB' : n.toFixed(1)+'GB';
+const fmtSmall = n => n < 0.000001 ? '$0.0000' : '$' + n.toFixed(6);
+
+// ── Add-on constants (verified June 2026 against official docs) ──────────
+// AWS WAF: $5/ACL/mo + $1/rule/mo + $0.60/M req  (aws.amazon.com/waf/pricing — confirmed 2025-2026)
+const AO_AWS_WAF_ACL_MO   = 5.00;
+const AO_AWS_WAF_RULE_MO  = 1.00;
+const AO_AWS_WAF_REQ_PER_M = 0.60;
+// GCP Cloud Armor standard: $5/policy/mo + $1/rule/mo + $0.75/M req (cloud.google.com/armor/pricing — confirmed 2025-2026)
+const AO_GCP_ARMOR_POL_MO  = 5.00;
+const AO_GCP_ARMOR_RULE_MO = 1.00;
+const AO_GCP_ARMOR_REQ_PER_M = 0.75;
+// CloudWatch Logs: $0.50/GB ingested (5GB/mo free) (aws.amazon.com/cloudwatch/pricing — confirmed 2025-2026; tiered Lambda pricing added May 2025 for Lambda-specific logs)
+const AO_CW_LOG_PER_GB    = 0.50;
+const AO_CW_LOG_FREE_GB_MO = 5;
+// CloudWatch custom metrics: $0.30/metric/mo first 10k (aws.amazon.com/cloudwatch/pricing — confirmed 2025-2026)
+const AO_CW_METRIC_MO     = 0.30;
+// GCP Cloud Logging: $0.50/GB after 50 GB/mo free (cloud.google.com/products/observability/pricing — confirmed 2025-2026)
+const AO_GCP_LOG_PER_GB   = 0.50;
+const AO_GCP_LOG_FREE_GB_MO = 50;
+// AWS Secrets Manager: $0.40/secret/mo (aws.amazon.com/secrets-manager/pricing — confirmed 2025-2026)
+const AO_AWS_SECRET_MO    = 0.40;
+// GCP Secret Manager: $0.06/version/mo, 6 free (cloud.google.com/secret-manager/pricing — confirmed 2025-2026)
+const AO_GCP_SECRET_MO    = 0.06;
+const AO_GCP_SECRET_FREE  = 6;
+// Backup/DR flat estimate: $10/day (rough mid-range for 300-project infra)
+const AO_BACKUP_DAY_EST   = 10.00;
+
+function getAO() {
+  return {
+    logging:    $('ao_logging').checked,
+    logGB:      +$('ao_log_gb').value || 2,
+    monitoring: $('ao_monitoring').checked,
+    metrics:    +$('ao_metrics').value || 50,
+    waf:        $('ao_waf').checked,
+    wafRules:   +$('ao_waf_rules').value || 10,
+    secrets:    $('ao_secrets').checked,
+    secretCount: +$('ao_secret_count').value || 50,
+    backup:     $('ao_backup').checked,
+    support:    $('ao_support').checked,
+    supportDay: +$('ao_support_tier').value || 33.33,
+  };
+}
+
+function calcAddOns(ao, medTotalDay) {
+  const rows = [];
+  let subtotal = 0;
+
+  if (ao.logging) {
+    // AWS CloudWatch Logs: prorate free tier daily, charge overage
+    const cwFreeDay = AO_CW_LOG_FREE_GB_MO / 30;
+    const cwDay = Math.max(0, ao.logGB - cwFreeDay) * AO_CW_LOG_PER_GB;
+    // GCP Cloud Logging: prorate free tier daily
+    const gcpFreeDay = AO_GCP_LOG_FREE_GB_MO / 30;
+    const gcpDay = Math.max(0, ao.logGB - gcpFreeDay) * AO_GCP_LOG_PER_GB;
+    // PaaS option: Better Stack $29/mo ÷ 30
+    const paasDay = 29 / 30;
+    const repDay = cwDay; // use AWS as representative for total feed
+    subtotal += repDay;
+    rows.push({
+      name: 'Logging', note: ao.logGB + ' GB/day ingested',
+      platform: 'AWS CW Logs · GCP Cloud Logging · Better Stack',
+      daily: repDay,
+      monthly: repDay * 30,
+      detail: `AWS CW: ${fmtD(cwDay)}/day · GCP: ${fmtD(gcpDay)}/day · PaaS (Better Stack): ~${fmtD(paasDay)}/day`,
+      src: 'https://aws.amazon.com/cloudwatch/pricing/',
+      srcLabel: 'CloudWatch Pricing ↗',
+    });
+  }
+
+  if (ao.monitoring) {
+    // CloudWatch custom metrics: $0.30/metric/mo prorated
+    const cwMDay = (ao.metrics * AO_CW_METRIC_MO) / 30;
+    subtotal += cwMDay;
+    rows.push({
+      name: 'Monitoring & Alerting', note: ao.metrics + ' custom metrics',
+      platform: 'AWS CloudWatch · GCP Cloud Monitoring',
+      daily: cwMDay,
+      monthly: cwMDay * 30,
+      detail: `CW: $0.30/metric/mo → ${fmtD(cwMDay)}/day · GCP: ~$0.18/metric/mo`,
+      src: 'https://aws.amazon.com/cloudwatch/pricing/',
+      srcLabel: 'CloudWatch Pricing ↗',
+    });
+  }
+
+  if (ao.waf) {
+    // AWS WAF: ($5 ACL + rules×$1 + requests×$0.60/M) / 30 per day
+    // Use medium traffic total requests across all projects as request volume
+    const totalReqMedDay = medTotalDay; // passed in as request proxy — use a flag instead
+    // WAF request volume: caller passes total daily requests
+    const awsWafDay = (AO_AWS_WAF_ACL_MO + ao.wafRules * AO_AWS_WAF_RULE_MO) / 30;
+    const gcpArmorDay = (AO_GCP_ARMOR_POL_MO + ao.wafRules * AO_GCP_ARMOR_RULE_MO) / 30;
+    // CF WAF Pro: $20/mo per domain — for 300 projects that would be enormous; use $20/mo for shared policy
+    const cfWafDay = 20 / 30;
+    subtotal += awsWafDay;
+    rows.push({
+      name: 'WAF / DDoS Protection', note: ao.wafRules + ' rules (excl. per-req fees)',
+      platform: 'AWS WAF · GCP Cloud Armor · CF WAF Pro',
+      daily: awsWafDay,
+      monthly: awsWafDay * 30,
+      detail: `AWS WAF: ${fmtD(awsWafDay)}/day ($5 ACL+rules) · GCP Armor: ${fmtD(gcpArmorDay)}/day · CF WAF Pro: ${fmtD(cfWafDay)}/day`,
+      src: 'https://aws.amazon.com/waf/pricing/',
+      srcLabel: 'AWS WAF Pricing ↗',
+    });
+  }
+
+  if (ao.secrets) {
+    // AWS: $0.40/secret/mo; GCP: $0.06/version/mo with 6 free
+    const awsSecDay = (ao.secretCount * AO_AWS_SECRET_MO) / 30;
+    const gcpFree = AO_GCP_SECRET_FREE;
+    const gcpSecDay = (Math.max(0, ao.secretCount - gcpFree) * AO_GCP_SECRET_MO) / 30;
+    subtotal += awsSecDay;
+    rows.push({
+      name: 'Secrets Management', note: ao.secretCount + ' secrets/versions',
+      platform: 'AWS Secrets Manager · GCP Secret Manager',
+      daily: awsSecDay,
+      monthly: awsSecDay * 30,
+      detail: `AWS: $0.40/secret/mo → ${fmtD(awsSecDay)}/day · GCP: $0.06/version/mo (6 free) → ${fmtD(gcpSecDay)}/day`,
+      src: 'https://aws.amazon.com/secrets-manager/pricing/',
+      srcLabel: 'Secrets Manager Pricing ↗',
+    });
+  }
+
+  if (ao.backup) {
+    subtotal += AO_BACKUP_DAY_EST;
+    rows.push({
+      name: '~ Backup / DR', note: 'rough estimate · varies by data volume',
+      platform: 'AWS Backup · GCS snapshots · cross-region replication',
+      daily: AO_BACKUP_DAY_EST,
+      monthly: AO_BACKUP_DAY_EST * 30,
+      detail: 'Estimate: $5–$30/day typical for 300-project infra. Set actual budget after auditing storage volumes.',
+      src: 'https://aws.amazon.com/backup/pricing/',
+      srcLabel: 'AWS Backup Pricing ↗',
+    });
+  }
+
+  if (ao.support) {
+    subtotal += ao.supportDay;
+    rows.push({
+      name: 'Support Plan', note: 'prorated daily',
+      platform: 'AWS / GCP support tiers',
+      daily: ao.supportDay,
+      monthly: ao.supportDay * 30,
+      detail: 'AWS Business: max($100, 10% monthly spend) · AWS Enterprise: $3,000/mo min · GCP Standard: $29/mo',
+      src: 'https://aws.amazon.com/premiumsupport/plans/',
+      srcLabel: 'AWS Support Plans ↗',
+    });
+  }
+
+  return { rows, subtotal };
+}
+
+// ── Render add-on table, subtotal, and reveal/hide the panel ──
+function renderAddOns(res) {
+  const note = 'color:var(--text-dim);font-size:11px;margin-top:2px;';
+  const tbody = $('ao_tbody');
+  if (tbody) {
+    tbody.innerHTML = res.rows.length
+      ? res.rows.map(r => `<tr>
+          <td class="dt-col-wide"><strong>${r.name}</strong><div style="${note}">${r.note}</div></td>
+          <td>${r.platform}<div style="${note}">${r.detail}</div></td>
+          <td>${fmtD(r.daily)}</td>
+          <td>${fmtM(r.monthly)}</td>
+          <td><a href="${r.src}" target="_blank" rel="noopener noreferrer">${r.srcLabel}</a></td>
+        </tr>`).join('')
+      : '<tr><td colspan="5" style="text-align:center;color:var(--text-dim);padding:18px;">No add-ons selected — toggle production &amp; security add-ons in the sidebar to include them in the live total.</td></tr>';
+  }
+  if ($('ao_subtotal')) $('ao_subtotal').textContent = fmtD(res.subtotal) + '/day · ' + fmtM(res.subtotal * 30) + '/mo';
+  const panel = $('ao_panel');
+  if (panel) panel.classList.toggle('panel-hidden', res.rows.length === 0);
+}
+
+// ── Show per-add-on detail controls only when their toggle is on ──
+function syncAOCtrls() {
+  const showCtrl = (cb, ctrl) => { const e = $(ctrl); if (e) e.style.display = ($(cb) && $(cb).checked) ? '' : 'none'; };
+  showCtrl('ao_logging', 'ao_logging_ctrl');
+  showCtrl('ao_monitoring', 'ao_monitoring_ctrl');
+  showCtrl('ao_waf', 'ao_waf_ctrl');
+  showCtrl('ao_secrets', 'ao_secrets_ctrl');
+  showCtrl('ao_support', 'ao_support_ctrl');
+  const bh = $('ao_backup_hint'); if (bh) bh.style.display = ($('ao_backup') && $('ao_backup').checked) ? '' : 'none';
+}
+
+function getV() {
+  return {
+    nV: +$('s_vercel').value||0,
+    nF: +$('s_fastapi').value||0,
+    nS: +$('s_spring').value||0,
+    req: +$('s_req').value||100,
+    kb: +$('s_kb').value||10,
+    ram: +$('s_ram').value||128,
+    hrs: +$('s_hrs').value||4,
+    sl: $('s_serverless').checked,
+    rplan: +$('s_rplan').value||20,
+    seats: +$('s_seats').value||1,
+    days: +$('s_days').value||30,
+  };
+}
+
+function calcDay(v, level) {
+  const mul = TRAFFIC[level];
+  const nR = v.nF + v.nS;
+  const nAll = v.nV + nR;
+
+  const reqDay = v.req * mul;
+  const totalReqDay = nAll * reqDay;
+  const vReqDay = v.nV * reqDay;
+  const rReqDay = nR * reqDay;
+
+  // ── Cloudflare (prorate monthly plan, add daily overage) ──
+  const totalReqMo = totalReqDay * 30;
+  let cfBaseMo = 0, cfOverageMo = 0;
+  if (totalReqMo > CF_FREE_MONTHLY) {
+    cfBaseMo = CF_PAID_BASE_MO;
+    cfOverageMo = Math.max(0, (totalReqMo - CF_PAID_INCLUDED) / 1e6) * CF_OVERAGE_PER_M;
+  }
+  const cfBaseDay = cfBaseMo / 30;
+  const cfOverageDay = cfOverageMo / 30;
+  const cfDay = cfBaseDay + cfOverageDay;
+
+  // ── Vercel (prorate monthly) ──
+  const vBaseDay = (v.seats * V_SEAT_PRICE_MO) / 30;
+  const vBwGBDay = (vReqDay * v.kb) / (1024 * 1024);
+  const vInclBwDay = V_INCL_BW_GB_MO / 30;
+  const vBwOvgDay = Math.max(0, vBwGBDay - vInclBwDay) * V_BW_OVERAGE;
+  const vInclEdgeDay = V_INCL_EDGE_MO / 30;
+  const vEdgeOvgDay = Math.max(0, vReqDay - vInclEdgeDay) / 1e6 * V_EDGE_OVERAGE;
+  const vDay = vBaseDay + vBwOvgDay + vEdgeOvgDay;
+
+  // ── Railway (true daily) ──
+  const rBaseDay = v.rplan / 30;
+  const rCreditDay = v.rplan / 30;
+  const activeHrs = v.sl ? Math.min(24, v.hrs * ACT_MUL[level]) : 24;
+  const ramGB = v.ram / 1024;
+  const ramCostDay = nR * ramGB * activeHrs * R_RAM_RATE;
+  const rBwGBDay = (rReqDay * v.kb) / (1024 * 1024);
+  const rEgressDay = rBwGBDay * R_EGR_RATE;
+  const rResourceDay = ramCostDay + rEgressDay;
+  const rCreditApplied = Math.min(rCreditDay, rResourceDay);
+  const rDay = rBaseDay + Math.max(0, rResourceDay - rCreditDay);
+
+  const total = cfDay + vDay + rDay;
+
+  return {
+    cfBaseDay, cfOverageDay, cfDay,
+    vBaseDay, vBwGBDay, vBwOvgDay, vEdgeOvgDay, vDay,
+    rBaseDay, ramCostDay, rEgressDay, rResourceDay, rCreditApplied, rDay,
+    total, totalReqDay, vReqDay, rReqDay,
+    activeHrs,
+    bwTotalGBDay: vBwGBDay + rBwGBDay,
+    vBwGBDay, rBwGBDay, vInclBwDay, vInclEdgeDay,
+    nR,
+  };
+}
+
+function drawChart(low, med, high) {
+  const days = getV().days;
+  const canvas = $('proj_chart');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = 180 * dpr;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = '180px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const W = rect.width, H = 180;
+  const PAD = { top: 12, right: 16, bottom: 28, left: 54 };
+
+  ctx.clearRect(0, 0, W, H);
+
+  const maxCost = high.total * days * 1.1;
+  const chartW = W - PAD.left - PAD.right;
+  const chartH = H - PAD.top - PAD.bottom;
+
+  const toX = d => PAD.left + (d / days) * chartW;
+  const toY = v => PAD.top + chartH - (v / maxCost) * chartH;
+
+  // Grid lines
+  ctx.strokeStyle = '#30363d';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = PAD.top + (chartH / 4) * i;
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + chartW, y); ctx.stroke();
+    const val = maxCost * (1 - i / 4);
+    ctx.fillStyle = '#6e7681'; ctx.font = '10px system-ui'; ctx.textAlign = 'right';
+    ctx.fillText('$' + (val < 10 ? val.toFixed(1) : Math.round(val)), PAD.left - 4, y + 3);
+  }
+
+  // X axis labels
+  ctx.fillStyle = '#6e7681'; ctx.textAlign = 'center';
+  const step = Math.max(1, Math.floor(days / 6));
+  for (let d = 0; d <= days; d += step) {
+    ctx.fillText('d' + d, toX(d), H - 6);
+  }
+
+  // Lines
+  const drawLine = (dailyCost, color) => {
+    ctx.strokeStyle = color; ctx.lineWidth = 2;
+    ctx.shadowColor = color; ctx.shadowBlur = 4;
+    ctx.beginPath();
+    for (let d = 0; d <= days; d++) {
+      const x = toX(d), y = toY(dailyCost * d);
+      d === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  };
+
+  // Fill areas
+  const fillArea = (dailyCost, color) => {
+    ctx.fillStyle = color.replace(')', ', 0.08)').replace('rgb', 'rgba');
+    ctx.beginPath();
+    ctx.moveTo(toX(0), toY(0));
+    for (let d = 1; d <= days; d++) ctx.lineTo(toX(d), toY(dailyCost * d));
+    ctx.lineTo(toX(days), toY(0));
+    ctx.closePath(); ctx.fill();
+  };
+
+  fillArea(high.total, '#f85149');
+  fillArea(med.total, '#d29922');
+  fillArea(low.total, '#3fb950');
+  drawLine(low.total, '#3fb950');
+  drawLine(med.total, '#d29922');
+  drawLine(high.total, '#f85149');
+}
+
+function drawHours(med) {
+  const v = getV();
+  const nR = v.nF + v.nS;
+  const activeHrs = med.activeHrs;
+  const grid = $('hour_grid');
+  grid.innerHTML = '';
+
+  const maxH = Math.max(med.cfDay, med.vDay, med.rDay) / 24 * 1.2 || 0.01;
+
+  for (let h = 0; h < 24; h++) {
+    const isActive = h < Math.ceil(activeHrs);
+    const partial = h === Math.ceil(activeHrs) - 1 ? (activeHrs % 1 || 1) : 1;
+
+    const cfH = med.cfDay / 24;
+    const vH = med.vDay / 24;
+    const rH = isActive ? (nR * (v.ram/1024) * partial * R_RAM_RATE + (med.rEgressDay / 24)) : med.rBaseDay / 24 * 0.05;
+    const totalH = cfH + vH + rH;
+    const pct = Math.max(4, (totalH / (maxH * 24)) * 100);
+
+    const bar = document.createElement('div');
+    bar.className = 'hour-bar';
+    bar.style.display = 'flex';
+    bar.style.flexDirection = 'column';
+    bar.style.justifyContent = 'flex-end';
+
+    // Stacked segments inside bar
+    const total = cfH + vH + rH || 0.001;
+    const cfPct = cfH / total * 100;
+    const vPct = vH / total * 100;
+    const rPct = rH / total * 100;
+
+    bar.innerHTML = `
+      <div style="width:100%;height:${rPct}%;background:${isActive ? 'var(--railway)' : '#2a1f3d'};min-height:1px;"></div>
+      <div style="width:100%;height:${vPct}%;background:var(--vercel);min-height:1px;"></div>
+      <div style="width:100%;height:${cfPct}%;background:var(--cf);min-height:1px;border-radius:2px 2px 0 0;"></div>
+    `;
+    bar.style.height = '100%';
+    bar.style.overflow = 'hidden';
+    bar.style.borderRadius = '3px';
+    bar.style.border = isActive ? '1px solid rgba(168,85,247,0.3)' : '1px solid rgba(255,255,255,0.04)';
+
+    bar.addEventListener('mousemove', e => {
+      const tt = $('hour_tooltip');
+      tt.style.display = 'block';
+      tt.style.left = (e.clientX + 12) + 'px';
+      tt.style.top = (e.clientY - 10) + 'px';
+      tt.innerHTML = `<div style="font-weight:700;margin-bottom:4px;">${String(h).padStart(2,'0')}:00 – ${String(h+1).padStart(2,'0')}:00</div>
+        <div style="color:var(--cf)">CF: ${fmtD(cfH)}</div>
+        <div style="color:var(--vercel)">Vercel: ${fmtD(vH)}</div>
+        <div style="color:var(--railway)">Railway: ${fmtD(rH)} ${isActive ? '(active)' : '(sleeping)'}</div>
+        <div style="margin-top:4px;font-weight:600;">Total: ${fmtD(totalH)}</div>`;
+    });
+    bar.addEventListener('mouseleave', () => { $('hour_tooltip').style.display = 'none'; });
+
+    grid.appendChild(bar);
+  }
+
+  $('hr_active').textContent = activeHrs.toFixed(1) + ' hr';
+  $('hr_sleep').textContent = (24 - activeHrs).toFixed(1) + ' hr';
+  $('hr_cost_active').textContent = fmtD(med.cfDay/24 + med.vDay/24 + (nR * (v.ram/1024) * R_RAM_RATE + med.rEgressDay/24));
+  $('hr_cost_sleep').textContent = fmtD(med.cfDay/24 + med.vDay/24 + med.rBaseDay/24*0.05);
+}
+
+function render() {
+  const v = getV();
+  const low = calcDay(v, 'low');
+  const med = calcDay(v, 'medium');
+  const high = calcDay(v, 'high');
+  const nAll = v.nV + v.nF + v.nS;
+  const nR = v.nF + v.nS;
+
+  // ── Production & security add-ons (feed the live daily total) ──
+  const ao = getAO();
+  const aoRes = calcAddOns(ao, med.totalReqDay);
+  const aoSub = aoRes.subtotal;
+  renderAddOns(aoRes);
+  syncAOCtrls();
+
+  // ── Daily cards (base infra + selected add-ons) ──
+  for (const [level, r] of [['low',low],['medium',med],['high',high]]) {
+    $('d_total_'+level).textContent = fmtD(r.total + aoSub);
+    $('d_cf_'+level).textContent = fmtD(r.cfDay);
+    $('d_v_'+level).textContent = fmtD(r.vDay);
+    $('d_r_'+level).textContent = fmtD(r.rDay);
+    $('d_mo_'+level).textContent = fmtM((r.total + aoSub) * 30);
+  }
+
+  // ── Per-unit metrics ──
+  const safeReq = (r) => r.totalReqDay > 0 ? r.total / r.totalReqDay : 0;
+  const safeProj = (r) => nAll > 0 ? r.total / nAll : 0;
+
+  for (const [sf, r] of [['low',low],['med',med],['high2',high]]) {
+    $('cpp_'+sf).textContent = fmtSmall(safeReq(r === high ? high : r));
+  }
+  $('cpp_high2').textContent = fmtSmall(safeReq(high));
+
+  for (const [sf, r] of [['low',low],['med',med],['high',high]]) {
+    $('cproj_'+sf).textContent = fmtD(safeProj(r));
+    $('cp1k_'+sf).textContent = '$' + (safeReq(r) * 1000).toFixed(4);
+    const rph = nR > 0 ? (r.ramCostDay / Math.max(0.5, r.activeHrs)) : 0;
+    $('cph_'+sf).textContent = fmtD(rph);
+    $('treq_'+sf).textContent = fmtR(r.totalReqDay);
+    $('tbw_'+sf).textContent = fmtGB(r.bwTotalGBDay);
+  }
+
+  // ── Detail table ──
+  const setD = (pfx, r) => {
+    $('dt_cf_base_'+pfx).textContent = r.cfBaseDay < 0.001 ? '✓ $0.000' : fmtD(r.cfBaseDay);
+    $('dt_cf_ovg_'+pfx).textContent = r.cfOverageDay < 0.001 ? '—' : fmtD(r.cfOverageDay);
+    $('dt_v_base_'+pfx).textContent = fmtD(r.vBaseDay);
+    $('dt_v_edge_'+pfx).textContent = r.vEdgeOvgDay < 0.001 ? '✓ incl.' : fmtD(r.vEdgeOvgDay);
+    $('dt_v_bw_'+pfx).textContent = r.vBwOvgDay < 0.001 ? '✓ ' + fmtGB(r.vBwGBDay) : fmtD(r.vBwOvgDay);
+    $('dt_r_base_'+pfx).textContent = fmtD(r.rBaseDay);
+    $('dt_r_ram_'+pfx).textContent = fmtD(r.ramCostDay);
+    $('dt_r_egress_'+pfx).textContent = fmtD(r.rEgressDay);
+    $('dt_r_credit_'+pfx).textContent = '-' + fmtD(r.rCreditApplied);
+    $('dt_grand_'+pfx).textContent = fmtD(r.total);
+  };
+  setD('low', low); setD('med', med); setD('high', high);
+  $('dt_v_seat_note').textContent = v.seats + ' seat' + (v.seats>1?'s':'') + ' × $20 ÷ 30';
+  $('dt_r_ram_note').textContent = nR + ' svc × ' + v.ram + 'MB × ' + med.activeHrs.toFixed(1) + 'hr × $0.013699/GB-hr';
+
+  // ── Projection totals ──
+  const periods = [1, 7, 14, 30, 90, 365];
+  const lowAll = low.total + aoSub, medAll = med.total + aoSub, highAll = high.total + aoSub;
+  for (const d of periods) {
+    $('pt_'+d+'_low').textContent = fmtM(lowAll * d);
+    $('pt_'+d+'_med').textContent = fmtM(medAll * d);
+    $('pt_'+d+'_high').textContent = fmtM(highAll * d);
+  }
+  $('proj_total_low').textContent = fmtM(lowAll * v.days);
+  $('proj_total_medium').textContent = fmtM(medAll * v.days);
+  $('proj_total_high').textContent = fmtM(highAll * v.days);
+  $('proj_days_label').textContent = v.days;
+
+  // ── Labels ──
+  const lo = Math.round(v.req*0.1).toLocaleString();
+  const mi = v.req.toLocaleString();
+  const hi = (v.req*10).toLocaleString();
+  $('req_label').textContent = lo+' / '+mi+' / '+hi;
+  $('hrs_label').textContent = (v.hrs*0.25).toFixed(1)+'h / '+v.hrs.toFixed(1)+'h / '+Math.min(24,v.hrs*2.5).toFixed(1)+'h';
+  $('ram_lbl').textContent = v.ram + ' MB';
+
+  // ── Hourly chart ──
+  drawHours(med);
+
+  // ── Cumulative chart (includes add-ons) ──
+  drawChart({total: lowAll}, {total: medAll}, {total: highAll});
+
+  // ── Warnings ──
+  const warns = [];
+  if (!v.sl) warns.push({cls:'warn-w', icon:'⚠️', txt:'<strong>Serverless OFF:</strong> Railway bills 24hr/day — costs may be 4–20× higher.'});
+  if (v.nS > 0 && v.ram < 128) warns.push({cls:'warn-w', icon:'⚠️', txt:'<strong>Spring Boot RAM too low:</strong> GraalVM native needs ≥128MB. May OOM crash.'});
+  if (v.nS > 0 && v.ram >= 512) warns.push({cls:'warn-i', icon:'ℹ️', txt:'GraalVM Spring Boot runs fine in 128–256MB. 512MB+ suggests JVM mode → cold starts 10–30sec → serverless fails. <a href="https://docs.railway.com/guides/spring-boot" target="_blank">Spring Boot guide ↗</a>'});
+  if (high.total * 30 > 500) warns.push({cls:'warn-w', icon:'⚠️', txt:'Monthly projection at high traffic exceeds $500. Set a <a href="https://docs.railway.com/pricing/cost-control" target="_blank">Railway spend limit ↗</a>.'});
+  warns.push({cls:'warn-s', icon:'✅', txt:'CF Worker subrequests to Vercel/Railway are <strong>free</strong> — only user→Worker req is billed. <a href="https://developers.cloudflare.com/workers/platform/pricing/" target="_blank">CF pricing ↗</a>'});
+  warns.push({cls:'warn-i', icon:'ℹ️', txt:'Plan base costs (CF $5/mo, Vercel $20/seat/mo, Railway $20/mo) are prorated daily (÷30). Actual billing is monthly. <a href="https://docs.railway.com/deployments/serverless" target="_blank">Railway serverless ↗</a>'});
+
+  $('warn_wrap').innerHTML = warns.map(w => `<div class="warn ${w.cls}"><span>${w.icon}</span><span>${w.txt}</span></div>`).join('');
+}
+
+// ── Slider ↔ input sync ────────────────────────────────────────────────
+function link(sId, nId) {
+  $(sId).addEventListener('input', () => { $(nId).value = $(sId).value; render(); });
+  $(nId).addEventListener('input', () => { $(sId).value = $(nId).value; render(); });
+}
+link('s_vercel','s_vercel_n'); link('s_fastapi','s_fastapi_n'); link('s_spring','s_spring_n');
+link('s_req','s_req_n'); link('s_kb','s_kb_n'); link('s_hrs','s_hrs_n');
+link('s_seats','s_seats_n'); link('s_days','s_days_n');
+$('s_ram').addEventListener('change', render);
+$('s_rplan').addEventListener('change', render);
+$('s_serverless').addEventListener('change', render);
+
+// Production & security add-on toggles + detail inputs → recompute live total
+['ao_logging','ao_monitoring','ao_waf','ao_secrets','ao_backup','ao_support']
+  .forEach(id => { const e = $(id); if (e) e.addEventListener('change', render); });
+['ao_log_gb','ao_metrics','ao_waf_rules','ao_secret_count','ao_support_tier']
+  .forEach(id => { const e = $(id); if (e) e.addEventListener('input', render); });
+
+function resetDefaults() {
+  const defaults = {s_vercel:100,s_fastapi:100,s_spring:100,s_req:1000,s_kb:10,s_hrs:4,s_seats:1,s_days:30};
+  for (const [id,val] of Object.entries(defaults)) {
+    $(id).value = val;
+    const ni = $(id+'_n');
+    if (ni) ni.value = val;
+  }
+  $('s_ram').value = 128; $('ram_lbl').textContent = '128 MB';
+  $('s_rplan').value = 20;
+  $('s_serverless').checked = true;
+  ['ao_logging','ao_monitoring','ao_waf','ao_secrets','ao_backup','ao_support']
+    .forEach(id => { const e = $(id); if (e) e.checked = false; });
+  render();
+}
+
+// Redraw chart on resize
+window.addEventListener('resize', render);
+render();
+</script>
+</body>
+</html>

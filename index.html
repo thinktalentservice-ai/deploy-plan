@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deploy Plan – Reports</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+    header {
+      max-width: 860px;
+      margin: 0 auto 2.5rem;
+      border-bottom: 1px solid #21262d;
+      padding-bottom: 1.5rem;
+    }
+    header h1 {
+      font-size: 1.75rem;
+      color: #e6edf3;
+      margin-bottom: 0.4rem;
+    }
+    header p { color: #8b949e; font-size: 0.95rem; }
+    .grid {
+      max-width: 860px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1rem;
+    }
+    .card {
+      background: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 8px;
+      padding: 1.25rem 1.4rem;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .card:hover {
+      border-color: #58a6ff;
+      background: #1c2128;
+    }
+    .card-icon { font-size: 1.4rem; }
+    .card-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #58a6ff;
+    }
+    .card-desc { font-size: 0.82rem; color: #8b949e; line-height: 1.4; }
+    footer {
+      max-width: 860px;
+      margin: 2.5rem auto 0;
+      font-size: 0.78rem;
+      color: #484f58;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Deploy Plan &amp; Cost Reports</h1>
+    <p>Serverless platform analysis, cost simulations, and security overviews.</p>
+  </header>
+
+  <div class="grid">
+    <a class="card" href="platform-comparison.html">
+      <span class="card-icon">📊</span>
+      <span class="card-title">Platform Comparison</span>
+      <span class="card-desc">Side-by-side comparison of serverless platforms for deployment.</span>
+    </a>
+    <a class="card" href="best-serverless-lowbudget.html">
+      <span class="card-icon">💡</span>
+      <span class="card-title">Best Serverless (Low Budget)</span>
+      <span class="card-desc">Top picks for serverless hosting on a tight budget.</span>
+    </a>
+    <a class="card" href="serverless-platforms.html">
+      <span class="card-icon">☁️</span>
+      <span class="card-title">Serverless Platforms</span>
+      <span class="card-desc">Overview of available serverless platform options.</span>
+    </a>
+    <a class="card" href="cost-estimate.html">
+      <span class="card-icon">🧮</span>
+      <span class="card-title">Cost Estimate</span>
+      <span class="card-desc">Static cost breakdown and estimation for cloud deployment.</span>
+    </a>
+    <a class="card" href="cost-simulator.html">
+      <span class="card-icon">⚙️</span>
+      <span class="card-title">Cost Simulator</span>
+      <span class="card-desc">Interactive simulator to model deployment costs.</span>
+    </a>
+    <a class="card" href="cost-simulator-daily.html">
+      <span class="card-icon">📅</span>
+      <span class="card-title">Cost Simulator – Daily</span>
+      <span class="card-desc">Daily cost simulation view with granular breakdowns.</span>
+    </a>
+    <a class="card" href="cost-simulator-variant.html">
+      <span class="card-icon">🔀</span>
+      <span class="card-title">Cost Simulator – Variant</span>
+      <span class="card-desc">Alternate scenario modeling for cost comparison.</span>
+    </a>
+    <a class="card" href="security-features.html">
+      <span class="card-icon">🔒</span>
+      <span class="card-title">Security Features</span>
+      <span class="card-desc">Security capabilities and feature matrix across platforms.</span>
+    </a>
+  </div>
+
+  <footer>Deploy Plan · GitHub Pages</footer>
+</body>
+</html>
